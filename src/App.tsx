@@ -5,6 +5,7 @@ import * as Router from './Router';
 import {
     Link
 } from 'react-router-dom';
+import { Cmd } from 'Cmd';
 
 export type Action
     = Readonly<{ type: 'ROUTE_CHANGED'; route: Router.Route }>
@@ -24,14 +25,24 @@ const VoidPage: Page = { type: 'VOID_PAGE' };
 const BeerListPage = (counter: Counter.State): Page => ({ type: 'BEER_LIST_PAGE', counter });
 const BeerItemPage = (counter: Counter.State): Page => ({ type: 'BEER_ITEM_PAGE', counter });
 
-const initPage = (route: Router.Route): Page => {
+const initPage = (route: Router.Route): [ Page, Cmd<Action> ] => {
     switch (route.type) {
         case 'TO_BEER_LIST': {
-            return BeerListPage(Counter.init(0));
+            const [ initialCounter, cmdOfCounter ] = Counter.init(0);
+
+            return [
+                BeerListPage(initialCounter),
+                cmdOfCounter.map(CounterAction)
+            ];
         }
 
         case 'TO_BEER_ITEM': {
-            return BeerItemPage(Counter.init(route.id));
+            const [ initialCounter, cmdOfCounter ] = Counter.init(route.id);
+
+            return [
+                BeerItemPage(initialCounter),
+                cmdOfCounter.map(CounterAction)
+            ];
         }
     }
 };
@@ -40,37 +51,46 @@ export type State = Readonly<{
     page: Page;
 }>;
 
-export const initial: State = {
-    page: VoidPage
-};
+export const init = (): [ State, Cmd<Action> ] => [
+    {
+        page: VoidPage
+    },
+    Cmd.none
+];
 
-export const update = (action: Action, { page }: State): State => {
+export const update = (action: Action, { page }: State): [ State, Cmd<Action> ] => {
     switch (action.type) {
         case 'ROUTE_CHANGED': {
-            return {
-                page: initPage(action.route)
-            };
+            const [ page, cmd ] = initPage(action.route);
+
+            return [ { page }, cmd ];
         }
 
         case 'COUNTER_ACTION': {
             switch (page.type) {
                 case 'BEER_LIST_PAGE': {
-                    return {
-                        page: BeerListPage(
-                            Counter.update(action.msg, page.counter)
-                        )
-                    };
+                    const [ nextCounter, cmdOfCounter ] = Counter.update(action.msg, page.counter);
+
+                    return [
+                        {
+                            page: BeerListPage(nextCounter)
+                        },
+                        cmdOfCounter.map(CounterAction)
+                    ];
                 }
 
                 case 'BEER_ITEM_PAGE': {
-                    return {
-                        page: BeerItemPage(
-                            Counter.update(action.msg, page.counter)
-                        )
-                    };
+                    const [ nextCounter, cmdOfCounter ] = Counter.update(action.msg, page.counter);
+
+                    return [
+                        {
+                            page: BeerItemPage(nextCounter)
+                        },
+                        cmdOfCounter.map(CounterAction)
+                    ];
                 }
                 default: {
-                    return { page };
+                    return [ { page }, Cmd.none ];
                 }
             }
         }
