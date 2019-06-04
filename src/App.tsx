@@ -20,18 +20,24 @@ const CounterAction = (msg: Counter.Action): Action => ({ type: 'COUNTER_ACTION'
 
 type Page
     = Readonly<{ type: 'VOID_PAGE' }>
+    | Readonly<{ type: 'HOME_PAGE' }>
     | Readonly<{ type: 'BEER_LIST_PAGE'; beerListPage: BeerList.State }>
     | Readonly<{ type: 'BEER_ITEM_PAGE'; counter: Counter.State }>
     ;
 
 const VoidPage: Page = { type: 'VOID_PAGE' };
+const HomePage: Page = { type: 'HOME_PAGE' };
 const BeerListPage = (beerListPage: BeerList.State): Page => ({ type: 'BEER_LIST_PAGE', beerListPage });
 const BeerItemPage = (counter: Counter.State): Page => ({ type: 'BEER_ITEM_PAGE', counter });
 
 const initPage = (route: Router.Route): [ Page, Cmd<Action> ] => {
     switch (route.type) {
+        case 'TO_HOME': {
+            return [ HomePage, Cmd.none ];
+        }
+
         case 'TO_BEER_LIST': {
-            const [ initialBeerList, cmdOfBeerList ] = BeerList.init();
+            const [ initialBeerList, cmdOfBeerList ] = BeerList.init(route.page);
 
             return [
                 BeerListPage(initialBeerList),
@@ -109,6 +115,12 @@ const ViewPage: React.FC<{
         case 'VOID_PAGE': {
             return (
                 <div>Loading...</div>
+            );
+        }
+
+        case 'HOME_PAGE': {
+            return (
+                <div>Search from here</div>
             );
         }
 

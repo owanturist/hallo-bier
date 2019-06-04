@@ -31,8 +31,10 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     firstBrewed: Decode.field('first_brewed', Decode.string.map((shortDate: string) => new Date(`01/${shortDate}`)))
 });
 
-const load = (): Http.Request<Array<Beer>> => {
+const load = (pageNumber: number): Http.Request<Array<Beer>> => {
     return Http.get(PUNK_ENDPOINT)
+        .withQueryParam('page', pageNumber.toString())
+        .withQueryParam('per_page', '10')
         .withExpect(Http.expectJson(Decode.list(beerDecoder)));
 };
 
@@ -45,14 +47,16 @@ const Load: Action = { type: 'LOAD' };
 const LoadDone = (response: Either<Http.Error, Array<Beer>>): Action => ({ type: 'LOAD_DONE', response });
 
 export type State = Readonly<{
+    pageNumber: number;
     beerList: RemoteData<Http.Error, Array<Beer>>;
 }>;
 
-export const init = (): [ State, Cmd<Action> ] => [
+export const init = (pageNumber: number): [ State, Cmd<Action> ] => [
     {
+        pageNumber,
         beerList: Loading
     },
-    load().send(LoadDone)
+    load(pageNumber).send(LoadDone)
 ];
 
 export const update = (action: Action, state: State): [ State, Cmd<Action> ] => {
@@ -60,7 +64,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
         case 'LOAD': {
             return [
                 { ...state, beerList: Loading },
-                load().send(LoadDone)
+                load(state.pageNumber).send(LoadDone)
             ];
         }
 
