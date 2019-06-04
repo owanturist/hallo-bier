@@ -35,8 +35,7 @@ export const update = (action: Action, state: State): State => {
 export const View: React.FC<{
     state: State;
     dispatch(action: Action): void;
-}> = ({ state, dispatch }) => {
-  return (
+}> = ({ state, dispatch }) => (
     <div>
         <Counter.View
             state={state.left}
@@ -49,4 +48,3 @@ export const View: React.FC<{
         />
     </div>
   );
-};

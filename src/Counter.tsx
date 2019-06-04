@@ -8,6 +8,12 @@ export type Action
 const Increment: Action = { type: 'INCREMENT' };
 const Decrement: Action = { type: 'DECREMENT' };
 
+const DelayedIncrement = (dispatch: (action: Action) => void) => {
+    setTimeout(() => {
+        dispatch(Increment);
+    }, 1000);
+};
+
 export type State = Readonly<{
     count: number;
 }>;
@@ -42,7 +48,7 @@ export const View: React.FC<{
 
         <button
             type="button"
-            onClick={() => dispatch(Increment)}
+            onClick={() => DelayedIncrement(dispatch)}
         >+</button>
     </div>
 );

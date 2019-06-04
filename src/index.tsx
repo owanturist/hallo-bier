@@ -2,20 +2,17 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider, connect } from 'react-redux';
-import { createStore, applyMiddleware, compose } from 'redux';
-import thunkMiddleware from 'redux-thunk';
+import { createStore } from 'redux';
 import * as App from './App';
 import './index.css';
 import * as serviceWorker from './serviceWorker';
 
-const composeEnhangers = (window as any).__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+const reduxDevtools = (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__();
 
 const store = createStore(
     (state: App.State, action: App.Action) => App.update(action, state) || state,
     App.initial,
-    composeEnhangers(
-        applyMiddleware(thunkMiddleware)
-    )
+    reduxDevtools
 );
 
 const Connector = connect(
