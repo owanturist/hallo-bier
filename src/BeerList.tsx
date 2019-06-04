@@ -8,7 +8,7 @@ import {
     Either
 } from 'frctl/dist/src/Either';
 import * as Decode from 'frctl/dist/src/Json/Decode';
-import * as Http from 'Http_';
+import * as Http from 'Http';
 import { Cmd } from 'Cmd';
 
 const PUNK_ENDPOINT = 'https://api.punkapi.com/v2/beers';
