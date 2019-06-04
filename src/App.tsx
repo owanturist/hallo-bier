@@ -2,7 +2,8 @@ import React from 'react';
 import { compose } from 'redux';
 import * as Router from './Router';
 import * as Counter from './Counter';
-import * as BeerList from './BeerList';
+import * as HomePage from './HomePage';
+import * as BeerListPage from './BeerListPage';
 import {
     Link
 } from 'react-router-dom';
@@ -10,38 +11,45 @@ import { Cmd } from 'Cmd';
 
 export type Action
     = Readonly<{ type: 'ROUTE_CHANGED'; route: Router.Route }>
-    | Readonly<{ type: 'BEER_LIST_ACTION'; action: BeerList.Action }>
-    | Readonly<{ type: 'COUNTER_ACTION'; action: Counter.Action }>
+    | Readonly<{ type: 'ACTION_HOME'; action: HomePage.Action }>
+    | Readonly<{ type: 'ACTION_BEER_LIST'; action: BeerListPage.Action }>
+    | Readonly<{ type: 'ACTION_COUNTER'; action: Counter.Action }>
     ;
 
 const RouteChanged = (route: Router.Route): Action => ({ type: 'ROUTE_CHANGED', route });
-const BeerListAction = (action: BeerList.Action): Action => ({ type: 'BEER_LIST_ACTION', action });
-const CounterAction = (msg: Counter.Action): Action => ({ type: 'COUNTER_ACTION', action: msg });
+const ActionHome = (action: HomePage.Action): Action => ({ type: 'ACTION_HOME', action });
+const ActionBeerList = (action: BeerListPage.Action): Action => ({ type: 'ACTION_BEER_LIST', action });
+const ActionCounter = (action: Counter.Action): Action => ({ type: 'ACTION_COUNTER', action });
 
 type Page
-    = Readonly<{ type: 'VOID_PAGE' }>
-    | Readonly<{ type: 'HOME_PAGE' }>
-    | Readonly<{ type: 'BEER_LIST_PAGE'; beerListPage: BeerList.State }>
-    | Readonly<{ type: 'BEER_ITEM_PAGE'; counter: Counter.State }>
+    = Readonly<{ type: 'PAGE_VOID' }>
+    | Readonly<{ type: 'PAGE_HOME'; state: HomePage.State }>
+    | Readonly<{ type: 'PAGE_BEER_LIST'; state: BeerListPage.State }>
+    | Readonly<{ type: 'PAGE_BEER_ITEM'; state: Counter.State }>
     ;
 
-const VoidPage: Page = { type: 'VOID_PAGE' };
-const HomePage: Page = { type: 'HOME_PAGE' };
-const BeerListPage = (beerListPage: BeerList.State): Page => ({ type: 'BEER_LIST_PAGE', beerListPage });
-const BeerItemPage = (counter: Counter.State): Page => ({ type: 'BEER_ITEM_PAGE', counter });
+const PageVoid: Page = { type: 'PAGE_VOID' };
+const PageHome = (state: HomePage.State): Page => ({ type: 'PAGE_HOME', state });
+const PageBeerList = (state: BeerListPage.State): Page => ({ type: 'PAGE_BEER_LIST', state });
+const PageBeerItem = (state: Counter.State): Page => ({ type: 'PAGE_BEER_ITEM', state });
 
 const initPage = (route: Router.Route): [ Page, Cmd<Action> ] => {
     switch (route.type) {
         case 'TO_HOME': {
-            return [ HomePage, Cmd.none ];
+            const [ initialHome, cmdOfHome ] = HomePage.init();
+
+            return [
+                PageHome(initialHome),
+                cmdOfHome.map(ActionHome)
+            ];
         }
 
         case 'TO_BEER_LIST': {
-            const [ initialBeerList, cmdOfBeerList ] = BeerList.init(route.page);
+            const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(route.page);
 
             return [
-                BeerListPage(initialBeerList),
-                cmdOfBeerList.map(BeerListAction)
+                PageBeerList(initialBeerList),
+                cmdOfBeerList.map(ActionBeerList)
             ];
         }
 
@@ -49,8 +57,8 @@ const initPage = (route: Router.Route): [ Page, Cmd<Action> ] => {
             const [ initialCounter, cmdOfCounter ] = Counter.init(route.id);
 
             return [
-                BeerItemPage(initialCounter),
-                cmdOfCounter.map(CounterAction)
+                PageBeerItem(initialCounter),
+                cmdOfCounter.map(ActionCounter)
             ];
         }
     }
@@ -62,7 +70,7 @@ export type State = Readonly<{
 
 export const init = (): [ State, Cmd<Action> ] => [
     {
-        page: VoidPage
+        page: PageVoid
     },
     Cmd.none
 ];
@@ -75,33 +83,48 @@ export const update = (action: Action, { page }: State): [ State, Cmd<Action> ] 
             return [{ page: nextPage }, cmd ];
         }
 
-        case 'BEER_LIST_ACTION': {
-            if (page.type !== 'BEER_LIST_PAGE') {
+        case 'ACTION_HOME': {
+            if (page.type !== 'PAGE_HOME') {
                 return [{ page }, Cmd.none ];
             }
 
-            const [ nextBeerListPage, cmdOfBeerList ] = BeerList.update(action.action, page.beerListPage);
+            const [ nextHomePage, cmdOfHome ] = HomePage.update(action.action, page.state);
 
             return [
                 {
-                    page: BeerListPage(nextBeerListPage)
+                    page: PageHome(nextHomePage)
                 },
-                cmdOfBeerList.map(BeerListAction)
+                cmdOfHome.map(ActionHome)
             ];
         }
 
-        case 'COUNTER_ACTION': {
-            if (page.type !== 'BEER_ITEM_PAGE') {
+        case 'ACTION_BEER_LIST': {
+            if (page.type !== 'PAGE_BEER_LIST') {
                 return [{ page }, Cmd.none ];
             }
 
-            const [ nextCounter, cmdOfCounter ] = Counter.update(action.action, page.counter);
+            const [ nextBeerListPage, cmdOfBeerList ] = BeerListPage.update(action.action, page.state);
 
             return [
                 {
-                    page: BeerItemPage(nextCounter)
+                    page: PageBeerList(nextBeerListPage)
                 },
-                cmdOfCounter.map(CounterAction)
+                cmdOfBeerList.map(ActionBeerList)
+            ];
+        }
+
+        case 'ACTION_COUNTER': {
+            if (page.type !== 'PAGE_BEER_ITEM') {
+                return [{ page }, Cmd.none ];
+            }
+
+            const [ nextCounter, cmdOfCounter ] = Counter.update(action.action, page.state);
+
+            return [
+                {
+                    page: PageBeerItem(nextCounter)
+                },
+                cmdOfCounter.map(ActionCounter)
             ];
         }
     }
@@ -112,35 +135,38 @@ const ViewPage: React.FC<{
     dispatch(action: Action): void;
 }> = ({ page, dispatch }) => {
     switch (page.type) {
-        case 'VOID_PAGE': {
+        case 'PAGE_VOID': {
             return (
                 <div>Loading...</div>
             );
         }
 
-        case 'HOME_PAGE': {
+        case 'PAGE_HOME': {
             return (
-                <div>Search from here</div>
-            );
-        }
-
-        case 'BEER_LIST_PAGE': {
-            return (
-                <BeerList.View
-                    state={page.beerListPage}
-                    dispatch={compose(dispatch, BeerListAction)}
+                <HomePage.View
+                    state={page.state}
+                    dispatch={compose(dispatch, ActionHome)}
                 />
             );
         }
 
-        case 'BEER_ITEM_PAGE': {
+        case 'PAGE_BEER_LIST': {
+            return (
+                <BeerListPage.View
+                    state={page.state}
+                    dispatch={compose(dispatch, ActionBeerList)}
+                />
+            );
+        }
+
+        case 'PAGE_BEER_ITEM': {
             return (
                 <div>
                     <Link to="/">Go to home</Link>
 
                     <Counter.View
-                        state={page.counter}
-                        dispatch={compose(dispatch, CounterAction)}
+                        state={page.state}
+                        dispatch={compose(dispatch, ActionCounter)}
                     />
                 </div>
             );
