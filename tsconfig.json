@@ -1,7 +1,5 @@
 {
   "compilerOptions": {
-
-    /* Basic Options */
     "target": "es5",
     "module": "esnext",
     "moduleResolution": "node",
@@ -24,23 +22,17 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
-
-    /* Strict Type-Checking Options */
-    "strict": true, // noImplicitAny noImplicitThis alwaysStrict strictNullChecks strictFunctionTypes strictPropertyInitialization
-    "strictFunctionTypes": false, // otherwise brokes .pipe
-
-    /* Additional Checks */
+    "strict": true,
+    "strictFunctionTypes": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-
-    /* Source Map Options */
     "sourceMap": false,
     "inlineSourceMap": false,
     "inlineSources": false,
-
-    "preserveConstEnums": true
+    "preserveConstEnums": true,
+    "allowJs": true
   },
   "include": [
     "src"

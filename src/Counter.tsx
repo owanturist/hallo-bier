@@ -18,9 +18,7 @@ export type State = Readonly<{
     count: number;
 }>;
 
-export const initial: State = {
-    count: 0
-};
+export const init = (count: number): State => ({ count });
 
 export const update = (action: Action, state: State): State => {
     switch (action.type) {
