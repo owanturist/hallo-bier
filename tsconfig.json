@@ -1,7 +1,9 @@
 {
   "extends": "./tsconfig.dev.json",
   "compilerOptions": {
-    "sourceMap": true
+    "sourceMap": true,
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true
   },
   "include": [
     "src",
