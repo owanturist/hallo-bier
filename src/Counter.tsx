@@ -1,64 +1,48 @@
 import React from 'react';
-import { connect } from 'react-redux';
 
-type Action
-    = Readonly<{ type: '@COUNTER__INCREMENT' }>
-    | Readonly<{ type: '@COUNTER__DECREMENT' }>
+export type Action
+    = Readonly<{ type: 'INCREMENT' }>
+    | Readonly<{ type: 'DECREMENT' }>
     ;
 
-const Increment = (): Action => ({ type: '@COUNTER__INCREMENT' });
-const Decrement = (): Action => ({ type: '@COUNTER__DECREMENT' });
+const Increment: Action = { type: 'INCREMENT' };
+const Decrement: Action = { type: 'DECREMENT' };
 
 export type State = Readonly<{
     count: number;
 }>;
 
-const initialState: State = {
+export const initial: State = {
     count: 0
 };
 
-export const reducer = (state = initialState, action: Action): State => {
+export const update = (action: Action, state: State): State => {
     switch (action.type) {
-        case '@COUNTER__INCREMENT': {
+        case 'INCREMENT': {
             return { ...state, count: state.count + 1 };
         }
 
-        case '@COUNTER__DECREMENT': {
+        case 'DECREMENT': {
             return { ...state, count: state.count - 1 };
-        }
-
-        default: {
-            return state;
         }
     }
 };
 
-const Counter: React.FC<{
-    count: number;
-    onIncrement(): void;
-    onDecrement(): void;
-}> = props => (
+export const View: React.FC<{
+    state: State;
+    dispatch(action: Action): void;
+}> = ({ state, dispatch }) => (
     <div>
         <button
             type="button"
-            onClick={props.onDecrement}
+            onClick={() => dispatch(Decrement)}
         >-</button>
 
-        {props.count}
+        {state.count}
 
         <button
             type="button"
-            onClick={props.onIncrement}
+            onClick={() => dispatch(Increment)}
         >+</button>
     </div>
 );
-
-export const View = connect(
-    (state: State) => ({
-        count: state.count
-    }),
-    {
-        onIncrement: Increment,
-        onDecrement: Decrement
-    }
-)(Counter);

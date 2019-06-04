@@ -1,23 +1,34 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter } from 'react-router-dom';
-import { Provider } from 'react-redux';
-import { createStore } from 'redux';
-import * as Counter from './Counter';
+import { Provider, connect } from 'react-redux';
+import { createStore, applyMiddleware, compose } from 'redux';
+import thunkMiddleware from 'redux-thunk';
+import * as App from './App';
 import './index.css';
 import * as serviceWorker from './serviceWorker';
 
-const reduxDevtools = (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__();
+const composeEnhangers = (window as any).__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
 const store = createStore(
-    Counter.reducer,
-    reduxDevtools
+    (state: App.State, action: App.Action) => App.update(action, state) || state,
+    App.initial,
+    composeEnhangers(
+        applyMiddleware(thunkMiddleware)
+    )
 );
+
+const Connector = connect(
+    (state: App.State) => ({ state }),
+    (dispatch: (action: App.Action) => void) => ({ dispatch })
+)(({ state, dispatch }) => (
+    <App.View state={state} dispatch={dispatch} />
+));
 
 ReactDOM.render(
     <Provider store={store}>
         <BrowserRouter>
-            <Counter.View />
+            <Connector />
         </BrowserRouter>
     </Provider>,
     document.getElementById('root')
