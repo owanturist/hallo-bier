@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import throttle from 'lodash.throttle';
 import {
     RemoteData,
     NotAsked,
@@ -97,6 +98,10 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
         }
 
         case 'LOAD_MORE': {
+            if (!state.hasMore || state.loading.isLoading()) {
+                return [ state, Cmd.none ];
+            }
+
             return [
                 state,
                 load(
@@ -140,7 +145,7 @@ const BeerView: React.FC<{
     </div>
 );
 
-const PageSucceed: React.FC<{
+const BeerListView: React.FC<{
     beerList: Array<Beer>;
 }> = ({ beerList }) => (
     <ul>
@@ -150,7 +155,7 @@ const PageSucceed: React.FC<{
     </ul>
 );
 
-const PageFailure: React.FC<{
+const ErrorView: React.FC<{
     error: Http.Error;
     dispatch(action: Action): void;
 }> = ({ error, dispatch }) => (
@@ -200,32 +205,52 @@ const LoadMoreView: React.FC<{
     </div>
 );
 
-export const View: React.FC<{
+export class View extends React.Component<{
     state: State;
     dispatch(action: Action): void;
-}> = ({ state, dispatch }) => (
-    <div>
-        <h1>Beer List:</h1>
+}> {
+    private listener?: () => void;
 
-        {state.beerList.length > 0 && (
-            <PageSucceed beerList={state.beerList} />
-        )}
+    public componentDidMount() {
+        this.listener = throttle(() => {
+            const el = document.scrollingElement;
+            const { state, dispatch } = this.props;
 
-        {state.loading.cata({
-            Loading: () => (
-                <LoadMoreView
-                    busy
-                    dispatch={dispatch}
-                />
-            ),
+            if (state.hasMore && !state.loading.isLoading()
+            && el && el.scrollHeight - el.scrollTop < window.innerHeight * 2
+            ) {
+                dispatch(LoadMore);
+            }
+        }, 300);
 
-            Failure: (error: Http.Error) => <PageFailure error={error} dispatch={dispatch} />,
+        window.addEventListener('scroll', this.listener);
+    }
 
-            _: () => (
-                <LoadMoreView
-                    dispatch={dispatch}
-                />
-            )
-        })}
-    </div>
-);
+    public componentWillUnmount() {
+        if (typeof this.listener === 'function') {
+            window.removeEventListener('scroll', this.listener);
+        }
+    }
+
+    public render() {
+        const { state, dispatch } = this.props;
+
+        return (
+            <div>
+                <h1>Beer List:</h1>
+
+                {state.beerList.length > 0 && (
+                    <BeerListView beerList={state.beerList} />
+                )}
+
+                {state.loading.cata({
+                    Loading: () => <LoadMoreView busy dispatch={dispatch} />,
+
+                    Failure: (error: Http.Error) => <ErrorView error={error} dispatch={dispatch} />,
+
+                    _: () => <LoadMoreView dispatch={dispatch} />
+                })}
+            </div>
+        );
+    }
+}
