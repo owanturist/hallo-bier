@@ -141,27 +141,13 @@ const BeerView: React.FC<{
 );
 
 const PageSucceed: React.FC<{
-    hasMore: boolean;
     beerList: Array<Beer>;
-    dispatch(action: Action): void;
-}> = ({ hasMore, beerList, dispatch }) => (
-    <div>
-        <ul>
-            {beerList.map((beer: Beer) => (
-                <li key={beer.id}><BeerView beer={beer}/></li>
-            ))}
-        </ul>
-        {hasMore ? (
-            <div>
-                <button
-                    type="button"
-                    onClick={() => dispatch(LoadMore)}
-                >Load More Beer!</button>
-            </div>
-        ) : (
-            <div>There aren't more beer.</div>
-        )}
-    </div>
+}> = ({ beerList }) => (
+    <ul>
+        {beerList.map((beer: Beer) => (
+            <li key={beer.id}><BeerView beer={beer}/></li>
+        ))}
+    </ul>
 );
 
 const PageFailure: React.FC<{
@@ -201,8 +187,17 @@ const PageFailure: React.FC<{
     </div>
 );
 
-const PageLoading: React.FC = () => (
-    <div>Beer is loading...</div>
+const LoadMoreView: React.FC<{
+    busy?: boolean;
+    dispatch(action: Action): void;
+}> = ({ busy, dispatch }) => (
+    <div>
+        <button
+            type="button"
+            disabled={busy}
+            onClick={() => dispatch(LoadMore)}
+        >Load More Beer!</button>
+    </div>
 );
 
 export const View: React.FC<{
@@ -213,19 +208,24 @@ export const View: React.FC<{
         <h1>Beer List:</h1>
 
         {state.beerList.length > 0 && (
-            <PageSucceed
-                hasMore={state.hasMore}
-                beerList={state.beerList}
-                dispatch={dispatch}
-            />
+            <PageSucceed beerList={state.beerList} />
         )}
 
         {state.loading.cata({
-            Loading: () => <PageLoading />,
+            Loading: () => (
+                <LoadMoreView
+                    busy
+                    dispatch={dispatch}
+                />
+            ),
 
             Failure: (error: Http.Error) => <PageFailure error={error} dispatch={dispatch} />,
 
-            _: () => null
+            _: () => (
+                <LoadMoreView
+                    dispatch={dispatch}
+                />
+            )
         })}
     </div>
 );
