@@ -4,7 +4,7 @@ import { Maybe } from 'frctl/dist/src/Maybe';
 
 export class Month {
     public static fromIndex(index: number) {
-        return Month.YEAR[index % 12];
+        return Month.YEAR[Math.max(1, index - 1) % 12];
     }
 
     public static year(): Array<Month> {
@@ -12,18 +12,18 @@ export class Month {
     }
 
     protected static YEAR: Array<Month> = [
-        new Month(0, 'Jan', 'January'),
-        new Month(0, 'Feb', 'February'),
-        new Month(0, 'Mar', 'March'),
-        new Month(0, 'Apr', 'April'),
-        new Month(0, 'May', 'May'),
-        new Month(0, 'Jun', 'June'),
-        new Month(0, 'Jul', 'July'),
-        new Month(0, 'Aug', 'August'),
-        new Month(0, 'Sep', 'September'),
-        new Month(0, 'Oct', 'October'),
-        new Month(0, 'Nov', 'November'),
-        new Month(0, 'Dec', 'December')
+        new Month(1, 'Jan', 'January'),
+        new Month(2, 'Feb', 'February'),
+        new Month(3, 'Mar', 'March'),
+        new Month(4, 'Apr', 'April'),
+        new Month(5, 'May', 'May'),
+        new Month(6, 'Jun', 'June'),
+        new Month(7, 'Jul', 'July'),
+        new Month(8, 'Aug', 'August'),
+        new Month(9, 'Sep', 'September'),
+        new Month(10, 'Oct', 'October'),
+        new Month(11, 'Nov', 'November'),
+        new Month(12, 'Dec', 'December')
     ];
 
     protected constructor(
@@ -36,6 +36,10 @@ export class Month {
         return this.index;
     }
 
+    public toString(): string {
+        return this.toShortName();
+    }
+
     public toShortName(): string {
         return this.short;
     }
@@ -45,7 +49,7 @@ export class Month {
     }
 
     public toDate(year: number): Date {
-        return new Date(`${this.index + 1}/01/${year}`);
+        return new Date(`${this.index}/01/${year}`);
     }
 
     public isEqual(another: Month) {
@@ -61,7 +65,8 @@ export const init = (year: number): State => ({ year });
 
 interface StagePattern<R> {
     Update(nextState: State): R;
-    Select(month: Month, year: number): R;
+    Select(selected: Selected): R;
+    Unselect(): R;
 }
 
 export abstract class Stage {
@@ -87,13 +92,33 @@ class Select extends Stage {
     }
 
     public cata<R>(pattern: StagePattern<R>): R {
-        return pattern.Select(this.month, this.year);
+        return pattern.Select({
+            month: this.month,
+            year: this.year
+        });
+    }
+}
+
+class Unselect extends Stage {
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.Unselect();
     }
 }
 
 export abstract class Action {
     protected static update(action: Action, state: State): Stage {
         return action.update(state);
+    }
+
+    public toJSON() {
+        return {
+            ...this,
+            type: this.constructor.name
+        };
+    }
+
+    public toString() {
+        return this.constructor.name;
     }
 
     protected abstract update(state: State): Stage;
@@ -122,6 +147,12 @@ class SelectMonth extends Action {
     }
 }
 
+class UnselectMonth extends Action {
+    protected update(): Stage {
+        return new Unselect();
+    }
+}
+
 abstract class PhantomAction extends Action {
     public static update(action: Action, state: State): Stage {
         return super.update(action, state);
@@ -130,10 +161,23 @@ abstract class PhantomAction extends Action {
 
 export const update = PhantomAction.update;
 
-export interface Selected {
+export type Selected = Readonly<{
     month: Month;
     year: number;
-}
+}>;
+
+const MonthView: React.FC<{
+    selected: boolean;
+    month: Month;
+    dispatch(action: Action): void;
+}> = ({ selected, month, dispatch }) => (
+    <li
+        onClick={() => dispatch(selected ? new UnselectMonth() : new SelectMonth(month))}
+    >{selected ? (
+        <b>{month.toShortName()}</b>
+    ) : month.toShortName()}
+    </li>
+);
 
 export const View: React.FC<{
     selected: Maybe<Selected>;
@@ -156,15 +200,14 @@ export const View: React.FC<{
         </header>
         <ul>
             {Month.year().map((month: Month) => (
-                <li
+                <MonthView
                     key={month.toShortName()}
-                    onClick={() => dispatch(new SelectMonth(month))}
-                >{selected.cata({
-                    Nothing: () => month.toShortName(),
-                    Just: (val: Selected) => val.year === state.year && val.month.isEqual(month)
-                        ? <b>{month.toShortName()}</b>
-                        : month.toShortName()
-                })}</li>
+                    selected={selected.map(
+                        (selected: Selected) => selected.year === state.year && selected.month.isEqual(month)
+                    ).getOrElse(false)}
+                    month={month}
+                    dispatch={dispatch}
+                />
             ))}
         </ul>
     </div>

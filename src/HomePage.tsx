@@ -8,11 +8,9 @@ import {
 } from 'react-bootstrap';
 import * as Router from './Router';
 import { Cmd } from 'Cmd';
-import {
-    Nothing,
-    Just
-} from 'frctl/dist/src/Maybe';
+import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import * as MonthPicker from './MonthPicker';
+import { compose } from 'redux';
 
 export type Action
     = Readonly<{ type: 'CHANGE_QUERY'; q: string }>
@@ -26,12 +24,18 @@ const ActionMonthPicker = (action: MonthPicker.Action): Action => ({ type: 'ACTI
 
 export type State = Readonly<{
     query: string;
+    brewedAfter: Maybe<MonthPicker.Selected>;
     monthPicker: MonthPicker.State;
 }>;
+
+const selectedMonthToString = (selected: MonthPicker.Selected): string => {
+    return `${selected.month.toIndex().toString().padStart(2, '0')}/${selected.year}`;
+};
 
 export const init = (): [ State, Cmd<Action> ] => [
     {
         query: '',
+        brewedAfter: Nothing,
         monthPicker: MonthPicker.init(2019)
     },
     Cmd.none
@@ -49,7 +53,12 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
         case 'SEARCH': {
             return [
                 state,
-                Router.push(Router.ToBeerSearch(Just(state.query), Nothing))
+                Router.push(Router.ToBeerSearch(
+                    Just(state.query),
+                    state.brewedAfter.map(
+                        (selected: MonthPicker.Selected): Date => selected.month.toDate(selected.year)
+                    )
+                ))
             ];
         }
 
@@ -61,7 +70,15 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
                         monthPicker: nextMonthPicker
                     }),
 
-                    Select: () => state
+                    Select: (brewedAfter: MonthPicker.Selected) => ({
+                        ...state,
+                        brewedAfter: Just(brewedAfter)
+                    }),
+
+                    Unselect: () => ({
+                        ...state,
+                        brewedAfter: Nothing
+                    })
                 }),
                 Cmd.none
             ];
@@ -103,8 +120,23 @@ export const View: React.FC<{
                     </Button>
                 </InputGroup.Append>
             </InputGroup>
+            <InputGroup>
+                <FormControl
+                    type="text"
+                    value={state.brewedAfter.map(selectedMonthToString).getOrElse('')}
+                    tabIndex={0}
+                    onChange={() => {
+                        // tslint:disable-next-line:no-console
+                        console.log('change');
+                    }}
+                    placeholder="mm/yyyy"
+                />
+            </InputGroup>
         </form>
         <MonthPicker.View
+            selected={state.brewedAfter}
+            state={state.monthPicker}
+            dispatch={compose(dispatch, ActionMonthPicker)}
         />
     </Container>
 );

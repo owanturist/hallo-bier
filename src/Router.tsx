@@ -54,6 +54,10 @@ export const ToBeerSearch = (name: Maybe<string>, brewedAfter: Maybe<Date>): Rou
 });
 export const ToBeerItem = (id: number): Route => ({ type: 'TO_BEER_ITEM', id });
 
+const brewedDateToString = (date: Date): string => {
+    return date.toLocaleDateString().slice(3).replace('/', '_');
+};
+
 const routeToPath = (route: Route): string => {
     switch (route.type) {
         case 'TO_HOME': {
@@ -63,7 +67,7 @@ const routeToPath = (route: Route): string => {
         case 'TO_BEER_SEARCH': {
             const queryBuilder: Array<[ string, Maybe<string> ]> = [
                 [ 'name', route.name.chain(spacesToUnderscore).map(percentEncode) ],
-                [ 'bra', route.brewedAfter.map((brewedAfter: Date) => brewedAfter.toLocaleDateString().slice(3)) ]
+                [ 'bra', route.brewedAfter.map(brewedDateToString) ]
             ];
             const queryList = queryBuilder.reduce(
                 (acc, [ key, value ]) => value.map((val: string) => [ `${key}=${val}`, ...acc ]).getOrElse(acc),
