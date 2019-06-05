@@ -2,7 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
     RemoteData,
-    Loading
+    NotAsked,
+    Loading,
+    Failure
 } from 'frctl/dist/src/RemoteData';
 import {
     Maybe
@@ -53,40 +55,73 @@ const load = (filtering: LoadFiltering, beersPerPage: number, pageNumber: number
 };
 
 export type Action
-    = Readonly<{ type: 'LOAD' }>
+    = Readonly<{ type: 'RELOAD' }>
+    | Readonly<{ type: 'LOAD_MORE' }>
     | Readonly<{ type: 'LOAD_DONE'; response: Either<Http.Error, Array<Beer>> }>
     ;
 
-const Load: Action = { type: 'LOAD' };
+const Reload: Action = { type: 'RELOAD' };
+const LoadMore: Action = { type: 'LOAD_MORE' };
 const LoadDone = (response: Either<Http.Error, Array<Beer>>): Action => ({ type: 'LOAD_DONE', response });
 
 export type State = Readonly<{
-    filtering: LoadFiltering;
+    hasMore: boolean;
     beersPerPage: number;
-    beerList: RemoteData<Http.Error, Array<Beer>>;
+    filtering: LoadFiltering;
+    beerList: Array<Beer>;
+    loading: RemoteData<Http.Error, never>;
 }>;
 
 export const init = (beersPerPage: number, filtering: LoadFiltering): [ State, Cmd<Action> ] => [
     {
-        filtering,
         beersPerPage,
-        beerList: Loading
+        filtering,
+        hasMore: true,
+        beerList: [],
+        loading: Loading
     },
     load(filtering, beersPerPage, 1).send(LoadDone)
 ];
 
 export const update = (action: Action, state: State): [ State, Cmd<Action> ] => {
     switch (action.type) {
-        case 'LOAD': {
+        case 'RELOAD': {
             return [
-                { ...state, beerList: Loading },
-                load(state.filtering, state.beersPerPage, 1).send(LoadDone)
+                { ...state, loading: Loading },
+                load(
+                    state.filtering,
+                    state.beersPerPage,
+                    state.beerList.length / state.beersPerPage
+                ).send(LoadDone)
+            ];
+        }
+
+        case 'LOAD_MORE': {
+            return [
+                state,
+                load(
+                    state.filtering,
+                    state.beersPerPage,
+                    state.beerList.length / state.beersPerPage + 1
+                ).send(LoadDone)
             ];
         }
 
         case 'LOAD_DONE': {
             return [
-                { ...state, beerList: RemoteData.fromEither(action.response) },
+                action.response.cata({
+                    Left: (error: Http.Error): State => ({
+                        ...state,
+                        loading: Failure(error)
+                    }),
+
+                    Right: (beerList: Array<Beer>): State => ({
+                        ...state,
+                        hasMore: beerList.length === state.beersPerPage,
+                        loading: NotAsked,
+                        beerList: state.beerList.concat(beerList)
+                    })
+                }),
                 Cmd.none
             ];
         }
@@ -106,13 +141,27 @@ const BeerView: React.FC<{
 );
 
 const PageSucceed: React.FC<{
+    hasMore: boolean;
     beerList: Array<Beer>;
-}> = ({ beerList }) => (
-    <ul>
-        {beerList.map((beer: Beer) => (
-            <li key={beer.id}><BeerView beer={beer}/></li>
-        ))}
-    </ul>
+    dispatch(action: Action): void;
+}> = ({ hasMore, beerList, dispatch }) => (
+    <div>
+        <ul>
+            {beerList.map((beer: Beer) => (
+                <li key={beer.id}><BeerView beer={beer}/></li>
+            ))}
+        </ul>
+        {hasMore ? (
+            <div>
+                <button
+                    type="button"
+                    onClick={() => dispatch(LoadMore)}
+                >Load More Beer!</button>
+            </div>
+        ) : (
+            <div>There aren't more beer.</div>
+        )}
+    </div>
 );
 
 const PageFailure: React.FC<{
@@ -138,13 +187,13 @@ const PageFailure: React.FC<{
             BadStatus: (response: Http.Response<string>) => (
                 <div>
                     <p>Server error: {response.statusCode}</p>
-                    <button onClick={() => dispatch(Load)}>Try again</button>
+                    <button onClick={() => dispatch(Reload)}>Try again</button>
                 </div>
             ),
 
             BadBody: (error: Decode.Error) => (
                 <div>
-                    <p>Client app erro:</p>
+                    <p>Client app error:</p>
                     <code>{error.stringify(4)}</code>
                 </div>
             )
@@ -159,12 +208,24 @@ const PageLoading: React.FC = () => (
 export const View: React.FC<{
     state: State;
     dispatch(action: Action): void;
-}> = ({ state, dispatch }) => state.beerList.cata({
-    NotAsked: () => <div>Never happens</div>,
+}> = ({ state, dispatch }) => (
+    <div>
+        <h1>Beer List:</h1>
 
-    Loading: () => <PageLoading />,
+        {state.beerList.length > 0 && (
+            <PageSucceed
+                hasMore={state.hasMore}
+                beerList={state.beerList}
+                dispatch={dispatch}
+            />
+        )}
 
-    Failure: (error: Http.Error) => <PageFailure error={error} dispatch={dispatch} />,
+        {state.loading.cata({
+            Loading: () => <PageLoading />,
 
-    Succeed: (beerList: Array<Beer>) => <PageSucceed beerList={beerList} />
-});
+            Failure: (error: Http.Error) => <PageFailure error={error} dispatch={dispatch} />,
+
+            _: () => null
+        })}
+    </div>
+);
