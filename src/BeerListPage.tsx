@@ -8,72 +8,32 @@ import {
     Failure
 } from 'frctl/dist/src/RemoteData';
 import {
-    Maybe
-} from 'frctl/dist/src/Maybe';
-import {
     Either
 } from 'frctl/dist/src/Either';
 import * as Decode from 'frctl/dist/src/Json/Decode';
 import * as Http from 'Http';
 import { Cmd } from 'Cmd';
-
-const PUNK_ENDPOINT = 'https://api.punkapi.com/v2/beers';
-
-type Beer = Readonly<{
-    id: number;
-    name: string;
-    description: string;
-    tagline: string;
-    image: string;
-    firstBrewed: Date;
-}>;
-
-const beerDecoder: Decode.Decoder<Beer> = Decode.props({
-    id: Decode.field('id', Decode.number),
-    name: Decode.field('name', Decode.string),
-    description: Decode.field('description', Decode.string),
-    tagline: Decode.field('tagline', Decode.string),
-    image: Decode.field('image_url', Decode.string),
-    firstBrewed: Decode.field('first_brewed', Decode.string.map((shortDate: string) => new Date(`01/${shortDate}`)))
-});
-
-export type LoadFiltering = Readonly<{
-    name: Maybe<string>;
-    brewedAfter: Maybe<Date>;
-}>;
-
-const load = (filtering: LoadFiltering, beersPerPage: number, pageNumber: number): Http.Request<Array<Beer>> => {
-    return Http.get(PUNK_ENDPOINT)
-        .withQueryParam('page', pageNumber.toString())
-        .withQueryParam('per_page', beersPerPage.toString())
-        .withQueryParams(filtering.name.map((name: string): Array<[string, string]> => [
-            ['beer_name', name]
-        ]).getOrElse([]))
-        .withQueryParams(filtering.brewedAfter.map((brewedAfter: Date): Array<[ string, string ]> => [
-            [ 'brewed_after', brewedAfter.toLocaleDateString().slice(3) ]
-        ]).getOrElse([]))
-        .withExpect(Http.expectJson(Decode.list(beerDecoder)));
-};
+import * as Api from './Api';
 
 export type Action
     = Readonly<{ type: 'RELOAD' }>
     | Readonly<{ type: 'LOAD_MORE' }>
-    | Readonly<{ type: 'LOAD_DONE'; response: Either<Http.Error, Array<Beer>> }>
+    | Readonly<{ type: 'LOAD_DONE'; response: Either<Http.Error, Array<Api.Beer>> }>
     ;
 
 const Reload: Action = { type: 'RELOAD' };
 const LoadMore: Action = { type: 'LOAD_MORE' };
-const LoadDone = (response: Either<Http.Error, Array<Beer>>): Action => ({ type: 'LOAD_DONE', response });
+const LoadDone = (response: Either<Http.Error, Array<Api.Beer>>): Action => ({ type: 'LOAD_DONE', response });
 
 export type State = Readonly<{
     hasMore: boolean;
     beersPerPage: number;
-    filtering: LoadFiltering;
-    beerList: Array<Beer>;
+    filtering: Api.LoadFilter;
+    beerList: Array<Api.Beer>;
     loading: RemoteData<Http.Error, never>;
 }>;
 
-export const init = (beersPerPage: number, filtering: LoadFiltering): [ State, Cmd<Action> ] => [
+export const init = (beersPerPage: number, filtering: Api.LoadFilter): [ State, Cmd<Action> ] => [
     {
         beersPerPage,
         filtering,
@@ -81,7 +41,7 @@ export const init = (beersPerPage: number, filtering: LoadFiltering): [ State, C
         beerList: [],
         loading: Loading
     },
-    load(filtering, beersPerPage, 1).send(LoadDone)
+    Api.loadBeerList(filtering, beersPerPage, 1).send(LoadDone)
 ];
 
 export const update = (action: Action, state: State): [ State, Cmd<Action> ] => {
@@ -89,7 +49,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
         case 'RELOAD': {
             return [
                 { ...state, loading: Loading },
-                load(
+                Api.loadBeerList(
                     state.filtering,
                     state.beersPerPage,
                     state.beerList.length / state.beersPerPage
@@ -104,7 +64,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
 
             return [
                 state,
-                load(
+                Api.loadBeerList(
                     state.filtering,
                     state.beersPerPage,
                     state.beerList.length / state.beersPerPage + 1
@@ -120,7 +80,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
                         loading: Failure(error)
                     }),
 
-                    Right: (beerList: Array<Beer>): State => ({
+                    Right: (beerList: Array<Api.Beer>): State => ({
                         ...state,
                         hasMore: beerList.length === state.beersPerPage,
                         loading: NotAsked,
@@ -134,10 +94,15 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
 };
 
 const BeerView: React.FC<{
-    beer: Beer;
+    beer: Api.Beer;
 }> = ({ beer }) => (
     <div>
-        <img src={beer.image} alt={beer.name} />
+        {beer.image.cata({
+            Nothing: () => null,
+            Just: (src: string) => (
+                <img src={src} alt={beer.name} />
+            )
+        })}
         <h3>{beer.name}</h3>
         <small>{beer.tagline}</small>
         <p>{beer.description}</p>
@@ -146,10 +111,10 @@ const BeerView: React.FC<{
 );
 
 const BeerListView: React.FC<{
-    beerList: Array<Beer>;
+    beerList: Array<Api.Beer>;
 }> = ({ beerList }) => (
     <ul>
-        {beerList.map((beer: Beer) => (
+        {beerList.map((beer: Api.Beer) => (
             <li key={beer.id}><BeerView beer={beer}/></li>
         ))}
     </ul>
