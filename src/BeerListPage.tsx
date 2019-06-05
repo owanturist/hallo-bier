@@ -2,8 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
     RemoteData,
-    Loading,
+    Loading
 } from 'frctl/dist/src/RemoteData';
+import {
+    Maybe
+} from 'frctl/dist/src/Maybe';
 import {
     Either
 } from 'frctl/dist/src/Either';
@@ -31,10 +34,21 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     firstBrewed: Decode.field('first_brewed', Decode.string.map((shortDate: string) => new Date(`01/${shortDate}`)))
 });
 
-const load = (pageNumber: number): Http.Request<Array<Beer>> => {
+export type LoadFiltering = Readonly<{
+    name: Maybe<string>;
+    brewedAfter: Maybe<Date>;
+}>;
+
+const load = (filtering: LoadFiltering, beersPerPage: number, pageNumber: number): Http.Request<Array<Beer>> => {
     return Http.get(PUNK_ENDPOINT)
         .withQueryParam('page', pageNumber.toString())
-        .withQueryParam('per_page', '10')
+        .withQueryParam('per_page', beersPerPage.toString())
+        .withQueryParams(filtering.name.map((name: string): Array<[string, string]> => [
+            ['beer_name', name]
+        ]).getOrElse([]))
+        .withQueryParams(filtering.brewedAfter.map((brewedAfter: Date): Array<[ string, string ]> => [
+            [ 'brewed_after', brewedAfter.toLocaleDateString().slice(3) ]
+        ]).getOrElse([]))
         .withExpect(Http.expectJson(Decode.list(beerDecoder)));
 };
 
@@ -47,16 +61,18 @@ const Load: Action = { type: 'LOAD' };
 const LoadDone = (response: Either<Http.Error, Array<Beer>>): Action => ({ type: 'LOAD_DONE', response });
 
 export type State = Readonly<{
-    pageNumber: number;
+    filtering: LoadFiltering;
+    beersPerPage: number;
     beerList: RemoteData<Http.Error, Array<Beer>>;
 }>;
 
-export const init = (pageNumber: number): [ State, Cmd<Action> ] => [
+export const init = (beersPerPage: number, filtering: LoadFiltering): [ State, Cmd<Action> ] => [
     {
-        pageNumber,
+        filtering,
+        beersPerPage,
         beerList: Loading
     },
-    load(pageNumber).send(LoadDone)
+    load(filtering, beersPerPage, 1).send(LoadDone)
 ];
 
 export const update = (action: Action, state: State): [ State, Cmd<Action> ] => {
@@ -64,7 +80,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
         case 'LOAD': {
             return [
                 { ...state, beerList: Loading },
-                load(state.pageNumber).send(LoadDone)
+                load(state.filtering, state.beersPerPage, 1).send(LoadDone)
             ];
         }
 

@@ -45,7 +45,10 @@ const initPage = (route: Router.Route): [ Page, Cmd<Action> ] => {
         }
 
         case 'TO_BEER_LIST': {
-            const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(route.page);
+            const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(10, {
+                name: route.name,
+                brewedAfter: route.brewedAfter
+            });
 
             return [
                 PageBeerList(initialBeerList),
