@@ -1,31 +1,87 @@
 import React from 'react';
 import {
+    Router,
     Route as ReactRoute,
     RouteProps,
     Switch,
     match
 } from 'react-router-dom';
 import {
-    Location
+    Location,
+    createBrowserHistory
 } from 'history';
 import queryString from 'query-string';
 import {
-    Maybe, Nothing, Just
+    Maybe,
+    Nothing,
+    Just
 } from 'frctl/dist/src/Maybe';
+import { Cmd } from 'Cmd';
+
+const spacesToUnderscore = (str: string): Maybe<string> => {
+    const trimmed = str.trim();
+
+    if (!trimmed.length) {
+        return Nothing;
+    }
+
+    return Just(trimmed.replace(/\s+/g, '_'));
+};
+
+const percentDecode = (str: string): Maybe<string> => {
+    try {
+        return Just(decodeURIComponent(str));
+    } catch (err) {
+        return Nothing;
+    }
+};
+
+const percentEncode = (str: string): string => {
+    return encodeURIComponent(str);
+};
 
 export type Route
     = { type: 'TO_HOME' }
-    | { type: 'TO_BEER_LIST'; name: Maybe<string>; brewedAfter: Maybe<Date> }
+    | { type: 'TO_BEER_SEARCH'; name: Maybe<string>; brewedAfter: Maybe<Date> }
     | { type: 'TO_BEER_ITEM'; id: number }
     ;
 
-const ToHome: Route = { type: 'TO_HOME' };
-const ToBeerList = (name: Maybe<string>, brewedAfter: Maybe<Date>): Route => ({
-    type: 'TO_BEER_LIST',
+export const ToHome: Route = { type: 'TO_HOME' };
+export const ToBeerSearch = (name: Maybe<string>, brewedAfter: Maybe<Date>): Route => ({
+    type: 'TO_BEER_SEARCH',
     name,
     brewedAfter
 });
-const ToBeerItem = (id: number): Route => ({ type: 'TO_BEER_ITEM', id });
+export const ToBeerItem = (id: number): Route => ({ type: 'TO_BEER_ITEM', id });
+
+const routeToPath = (route: Route): string => {
+    switch (route.type) {
+        case 'TO_HOME': {
+            return '/';
+        }
+
+        case 'TO_BEER_SEARCH': {
+            const queryBuilder: Array<[ string, Maybe<string> ]> = [
+                [ 'name', route.name.chain(spacesToUnderscore).map(percentEncode) ],
+                [ 'bra', route.brewedAfter.map((brewedAfter: Date) => brewedAfter.toLocaleDateString().slice(3)) ]
+            ];
+            const queryList = queryBuilder.reduce(
+                (acc, [ key, value ]) => value.map((val: string) => [ `${key}=${val}`, ...acc ]).getOrElse(acc),
+                []
+            );
+
+            if (queryList.length === 0) {
+                return '/search';
+            }
+
+            return '/search?' + queryList.join('&');
+        }
+
+        case 'TO_BEER_ITEM': {
+            return `/beer/${route.id}`;
+        }
+    }
+};
 
 interface PathProps<P> extends RouteProps {
     computedMatch?: match<P>;
@@ -46,41 +102,59 @@ class Path<P> extends ReactRoute<PathProps<P>> {
     }
 }
 
+const history = createBrowserHistory();
+
+export const push = (route: Route): Cmd<never> => {
+    return Cmd.of((): void => {
+        history.push(routeToPath(route));
+    });
+};
+
+export const replace = (route: Route): Cmd<never> => {
+    return Cmd.of((): void => {
+        history.replace(routeToPath(route));
+    });
+};
+
 export const View: React.FC<{
+    children: React.ReactNode;
     onChange(route: Route): void;
-}> = ({ onChange }) => (
-    <Switch>
-        <Path
-            exact
-            path="/"
-            onEnter={() => onChange(ToHome)}
-        />
+}> = ({ children, onChange }) => (
+    <Router history={history}>
+        <Switch>
+            <Path
+                exact
+                path="/"
+                onEnter={() => onChange(ToHome)}
+            />
 
-        <Path
-            path="/search"
-            onEnter={(_match: match, loc: Location) => {
-                const qs = queryString.parse(loc.search);
-                const name = Array.isArray(qs.name) ? qs.name[0] : qs.name;
-                const bra = Array.isArray(qs.bra) ? qs.bra[0] : qs.bra;
+            <Path
+                path="/search"
+                onEnter={(_match: match, loc: Location) => {
+                    const qs = queryString.parse(loc.search);
+                    const name = Array.isArray(qs.name) ? qs.name[0] : qs.name;
+                    const bra = Array.isArray(qs.bra) ? qs.bra[0] : qs.bra;
 
-                onChange(ToBeerList(
-                    Maybe.fromNullable(name).chain((val: string) => val === '' ? Nothing : Just(val)),
-                    Maybe.fromNullable(bra).chain((val: string) => {
-                        const fr = val.split('_');
+                    onChange(ToBeerSearch(
+                        Maybe.fromNullable(name).chain((val: string) => val ? percentDecode(val) : Nothing),
+                        Maybe.fromNullable(bra).chain((val: string) => {
+                            const fr = val.split('_');
 
-                        if (fr.length !== 2) {
-                            return Nothing;
-                        }
+                            if (fr.length !== 2) {
+                                return Nothing;
+                            }
 
-                        return Just(new Date([ '01' ].concat(fr).join('/')));
-                    })
-                ));
-            }}
-        />
+                            return Just(new Date([ '01' ].concat(fr).join('/')));
+                        })
+                    ));
+                }}
+            />
 
-        <Path
-            path="/beer/:id"
-            onEnter={(match: match<{ id: string }>) => onChange(ToBeerItem(Number(match.params.id)))}
-        />
-    </Switch>
+            <Path
+                path="/beer/:id"
+                onEnter={(match: match<{ id: string }>) => onChange(ToBeerItem(Number(match.params.id)))}
+            />
+        </Switch>
+        {children}
+    </Router>
 );

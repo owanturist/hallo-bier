@@ -1,14 +1,17 @@
 import React from 'react';
 import {
     Container,
-    Row,
-    Col,
     InputGroup,
     FormControl,
     Button,
     FormControlProps
 } from 'react-bootstrap';
+import * as Router from './Router';
 import { Cmd } from 'Cmd';
+import {
+    Nothing,
+    Just
+} from 'frctl/dist/src/Maybe';
 
 export type Action
     = Readonly<{ type: 'CHANGE_QUERY'; q: string }>
@@ -39,7 +42,10 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
         }
 
         case 'SEARCH': {
-            return [ state, Cmd.none ];
+            return [
+                state,
+                Router.push(Router.ToBeerSearch(Just(state.query), Nothing))
+            ];
         }
     }
 };
@@ -49,41 +55,35 @@ export const View: React.FC<{
     dispatch(action: Action): void;
 }> = ({ state, dispatch }) => (
     <Container>
-        <Row>
-            <Col
-                sm={{ span: 10, offset: 1 }}
-            >
-                <form
-                    noValidate
-                    onSubmit={(event: React.FormEvent) => {
-                        dispatch(Search);
+        <form
+            noValidate
+            onSubmit={(event: React.FormEvent) => {
+                dispatch(Search);
 
-                        event.preventDefault();
+                event.preventDefault();
+            }}
+        >
+            <InputGroup>
+                <FormControl
+                    type="search"
+                    value={state.query}
+                    tabIndex={0}
+                    onChange={(event: React.ChangeEvent<FormControlProps>) => {
+                        dispatch(ChangeQuery(event.currentTarget.value || ''));
                     }}
-                >
-                    <InputGroup>
-                        <FormControl
-                            type="search"
-                            value={state.query}
-                            tabIndex={1}
-                            onChange={(event: React.ChangeEvent<FormControlProps>) => {
-                                dispatch(ChangeQuery(event.currentTarget.value || ''));
-                            }}
-                            placeholder="Search for a beer"
-                        />
-                        <InputGroup.Append>
-                            <Button
-                                type="submit"
-                                variant="outline-primary"
-                                tabIndex={1}
-                                disabled={state.query.trim().length === 0}
-                            >
-                                Search
-                            </Button>
-                        </InputGroup.Append>
-                    </InputGroup>
-                </form>
-            </Col>
-        </Row>
+                    placeholder="Search for a beer"
+                />
+                <InputGroup.Append>
+                    <Button
+                        type="submit"
+                        variant="outline-primary"
+                        tabIndex={0}
+                        disabled={state.query.trim().length === 0}
+                    >
+                        Search
+                    </Button>
+                </InputGroup.Append>
+            </InputGroup>
+        </form>
     </Container>
 );

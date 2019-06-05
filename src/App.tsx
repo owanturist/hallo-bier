@@ -44,7 +44,7 @@ const initPage = (route: Router.Route): [ Page, Cmd<Action> ] => {
             ];
         }
 
-        case 'TO_BEER_LIST': {
+        case 'TO_BEER_SEARCH': {
             const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(10, {
                 name: route.name,
                 brewedAfter: route.brewedAfter
@@ -181,8 +181,7 @@ export const View: React.FC<{
     state: State;
     dispatch(action: Action): void;
 }> = ({ state, dispatch }) => (
-    <div>
-        <Router.View onChange={compose(dispatch, RouteChanged)}/>
+    <Router.View onChange={compose(dispatch, RouteChanged)}>
         <ViewPage page={state.page} dispatch={dispatch} />
-    </div>
+    </Router.View>
 );
