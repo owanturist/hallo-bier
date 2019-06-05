@@ -63,7 +63,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
             }
 
             return [
-                state,
+                { ...state, loading: Loading },
                 Api.loadBeerList(
                     state.filtering,
                     state.beersPerPage,
