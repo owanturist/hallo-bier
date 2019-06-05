@@ -12,22 +12,27 @@ import {
     Nothing,
     Just
 } from 'frctl/dist/src/Maybe';
+import * as MonthPicker from './MonthPicker';
 
 export type Action
     = Readonly<{ type: 'CHANGE_QUERY'; q: string }>
     | Readonly<{ type: 'SEARCH' }>
+    | Readonly<{ type: 'ACTION_MONTH_PICKER'; action: MonthPicker.Action }>
     ;
 
 const Search: Action = { type: 'SEARCH' };
 const ChangeQuery = (q: string): Action => ({ type: 'CHANGE_QUERY', q });
+const ActionMonthPicker = (action: MonthPicker.Action): Action => ({ type: 'ACTION_MONTH_PICKER', action });
 
 export type State = Readonly<{
     query: string;
+    monthPicker: MonthPicker.State;
 }>;
 
 export const init = (): [ State, Cmd<Action> ] => [
     {
-        query: ''
+        query: '',
+        monthPicker: MonthPicker.init(2019)
     },
     Cmd.none
 ];
@@ -45,6 +50,20 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
             return [
                 state,
                 Router.push(Router.ToBeerSearch(Just(state.query), Nothing))
+            ];
+        }
+
+        case 'ACTION_MONTH_PICKER': {
+            return [
+                MonthPicker.update(action.action, state.monthPicker).cata({
+                    Update: (nextMonthPicker: MonthPicker.State) => ({
+                        ...state,
+                        monthPicker: nextMonthPicker
+                    }),
+
+                    Select: () => state
+                }),
+                Cmd.none
             ];
         }
     }
@@ -85,5 +104,7 @@ export const View: React.FC<{
                 </InputGroup.Append>
             </InputGroup>
         </form>
+        <MonthPicker.View
+        />
     </Container>
 );
