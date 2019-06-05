@@ -248,7 +248,21 @@ export class View extends React.Component<{
 
                     Failure: (error: Http.Error) => <ErrorView error={error} dispatch={dispatch} />,
 
-                    _: () => <LoadMoreView dispatch={dispatch} />
+                    _: () => {
+                        if (state.hasMore) {
+                            return (
+                                <LoadMoreView dispatch={dispatch} />
+                            );
+                        }
+
+                        if (state.beerList.length !== 0) {
+                            return null;
+                        }
+
+                        return (
+                            <div>There are no beer for the current filters</div>
+                        );
+                    }
                 })}
             </div>
         );
