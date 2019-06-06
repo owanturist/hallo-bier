@@ -107,7 +107,7 @@ export const update = (action: Action, { page }: State): [ State, Cmd<Action> ] 
                 return [{ page }, Cmd.none ];
             }
 
-            const [ nextBeerListPage, cmdOfBeerList ] = BeerListPage.update(action.action, page.state);
+            const [ nextBeerListPage, cmdOfBeerList ] = action.action.update(page.state);
 
             return [
                 {

@@ -146,8 +146,6 @@ class ActionMonthPicker extends Action {
     }
 }
 
-export const update = (action: Action, state: State): Stage => action.update(state);
-
 export const View: React.FC<{
     disabled?: boolean;
     state: State;
