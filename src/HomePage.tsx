@@ -2,10 +2,11 @@ import React from 'react';
 import {
     Container
 } from 'react-bootstrap';
+import { compose } from 'redux';
 import { Cmd } from 'Cmd';
 import { Nothing } from 'frctl/dist/src/Maybe';
 import * as SearchBuilder from './SearchBuilder';
-import { compose } from 'redux';
+import * as Router from './Router';
 
 export type Action
     = Readonly<{ type: 'ACTION_SEARCH_BUILDER'; action: SearchBuilder.Action }>
@@ -24,12 +25,17 @@ export const init = (): State => ({
 export const update = (action: Action, state: State): [ State, Cmd<Action> ] => {
     switch (action.type) {
         case 'ACTION_SEARCH_BUILDER': {
-            const [ nextSearchBuilder, cmdOfSearchBuilder ] = SearchBuilder.update(action.action, state.searchBuilder);
+            return action.action.update(state.searchBuilder).cata({
+                Update: (nextSearchBuilder): [ State, Cmd<Action> ] => [
+                    { ...state, searchBuilder: nextSearchBuilder },
+                    Cmd.none
+                ],
 
-            return [
-                { ...state, searchBuilder: nextSearchBuilder },
-                cmdOfSearchBuilder.map(ActionSearchBuilder)
-            ];
+                Search: (search): [ State, Cmd<Action> ] => [
+                    state,
+                    Router.push(Router.ToBeerSearch(search.name, search.brewedAfter))
+                ]
+            });
         }
     }
 };

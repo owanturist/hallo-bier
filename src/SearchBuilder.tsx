@@ -6,7 +6,6 @@ import {
     FormControlProps
 } from 'react-bootstrap';
 import * as Router from './Router';
-import { Cmd } from 'Cmd';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import * as MonthPicker from './MonthPicker';
 import * as Utils from './Utils';
@@ -49,18 +48,60 @@ export const init = (
     monthPicker: MonthPicker.init(initialBrewAfter.map(selected => selected.year).getOrElse(2010))
 });
 
-export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
+interface SearchConfig {
+    name: Maybe<string>;
+    brewedAfter: Maybe<Date>;
+}
+
+interface StagePattern<R> {
+    Update(nextSearchBuilder: State): R;
+    Search(config: SearchConfig): R;
+}
+
+export abstract class Stage {
+    public abstract cata<R>(pattern: StagePattern<R>): R;
+}
+
+class Update extends Stage {
+    public constructor(private readonly state: State) {
+        super();
+    }
+
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.Update(this.state);
+    }
+}
+
+class Search extends Stage {
+    private readonly name: Maybe<string>;
+    private readonly brewedAfter: Maybe<Date>;
+
+    public constructor({ name, brewedAfter }: State) {
+        super();
+
+        const trimmedName = name.trim();
+
+        this.name = trimmedName ? Just(trimmedName) : Nothing;
+        this.brewedAfter = selectedMonthFromString(brewedAfter).map(({ month, year }) => month.toDate(year));
+    }
+
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.Search({
+            name: this.name,
+            brewedAfter: this.brewedAfter
+        });
+    }
+}
+
+export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
 class ChangeName extends Action {
     public constructor(private readonly name: string) {
         super();
     }
 
-    public update(state: State): [ State, Cmd<Action> ] {
-        return [
-            { ...state, name: this.name },
-            Cmd.none
-        ];
+    public update(state: State): Stage {
+        return new Update({ ...state, name: this.name });
     }
 }
 
@@ -69,25 +110,14 @@ class ChangeBrewedAfter extends Action {
         super();
     }
 
-    public update(state: State): [ State, Cmd<Action> ] {
-        return [
-            { ...state, brewedAfter: this.brewedAfter },
-            Cmd.none
-        ];
+    public update(state: State): Stage {
+        return new Update({ ...state, brewedAfter: this.brewedAfter });
     }
 }
 
-class Search extends Action {
-    public update(state: State): [ State, Cmd<Action> ] {
-        return [
-            state,
-            Router.push(Router.ToBeerSearch(
-                Just(state.name),
-                selectedMonthFromString(state.brewedAfter).map(
-                    (selected: MonthPicker.Selected): Date => selected.month.toDate(selected.year)
-                )
-            ))
-        ];
+class SearchBeer extends Action {
+    public update(state: State): Stage {
+        return new Search(state);
     }
 }
 
@@ -96,30 +126,27 @@ class ActionMonthPicker extends Action {
         super();
     }
 
-    public update(state: State): [ State, Cmd<Action> ] {
-        return [
-            this.action.update(state.monthPicker).cata({
-                Update: (nextMonthPicker: MonthPicker.State) => ({
-                    ...state,
-                    monthPicker: nextMonthPicker
-                }),
-
-                Select: (brewedAfter: MonthPicker.Selected) => ({
-                    ...state,
-                    brewedAfter: selectedMonthToString(brewedAfter)
-                }),
-
-                Unselect: () => ({
-                    ...state,
-                    brewedAfter: ''
-                })
+    public update(state: State): Stage {
+        return new Update(this.action.update(state.monthPicker).cata({
+            Update: (nextMonthPicker: MonthPicker.State) => ({
+                ...state,
+                monthPicker: nextMonthPicker
             }),
-            Cmd.none
-        ];
+
+            Select: (brewedAfter: MonthPicker.Selected) => ({
+                ...state,
+                brewedAfter: selectedMonthToString(brewedAfter)
+            }),
+
+            Unselect: () => ({
+                ...state,
+                brewedAfter: ''
+            })
+        }));
     }
 }
 
-export const update = (action: Action, state: State): [ State, Cmd<Action> ] => action.update(state);
+export const update = (action: Action, state: State): Stage => action.update(state);
 
 export const View: React.FC<{
     state: State;
@@ -128,7 +155,7 @@ export const View: React.FC<{
     <form
         noValidate
         onSubmit={(event: React.FormEvent) => {
-            dispatch(new Search());
+            dispatch(new SearchBeer());
 
             event.preventDefault();
         }}
