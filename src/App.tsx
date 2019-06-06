@@ -2,11 +2,13 @@ import React from 'react';
 import { compose } from 'redux';
 import { Cmd } from 'Cmd';
 import { Cata } from 'frctl/dist/src/Basics';
+import Container from 'react-bootstrap/Container';
 import * as Utils from './Utils';
 import * as Router from './Router';
 import * as HomePage from './HomePage';
 import * as BeerPage from './BeerPage';
 import * as BeerListPage from './BeerListPage';
+import styles from 'App.module.css';
 
 type PagePattern<R> = Cata<{
     PageVoid(): R;
@@ -246,9 +248,7 @@ const PageView: React.FC<{
     page: Page;
     dispatch(action: Action): void;
 }> = ({ page, dispatch }) => page.cata({
-    PageVoid: () => (
-        <div>Initialising...</div>
-    ),
+    PageVoid: () => null,
 
     PageHome: homePage => (
         <HomePage.View
@@ -274,6 +274,8 @@ export const View: React.FC<{
     dispatch(action: Action): void;
 }> = ({ state, dispatch }) => (
     <Router.View onChange={compose(dispatch, RouteChanged.cons)}>
-        <PageView page={state.page} dispatch={dispatch} />
+        <Container fluid className={styles.container}>
+            <PageView page={state.page} dispatch={dispatch} />
+        </Container>
     </Router.View>
 );

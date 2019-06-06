@@ -1,8 +1,5 @@
 import React from 'react';
 import { compose } from 'redux';
-import {
-    Container
-} from 'react-bootstrap';
 import { Cmd } from 'Cmd';
 import { Nothing } from 'frctl/dist/src/Maybe';
 import * as Utils from './Utils';
@@ -47,10 +44,8 @@ export const View: React.FC<{
     state: State;
     dispatch(action: Action): void;
 }> = ({ state, dispatch }) => (
-    <Container>
-        <SearchBuilder.View
-            state={state.searchBuilder}
-            dispatch={compose(dispatch, ActionSearchBuilder.cons)}
-        />
-    </Container>
+    <SearchBuilder.View
+        state={state.searchBuilder}
+        dispatch={compose(dispatch, ActionSearchBuilder.cons)}
+    />
 );
