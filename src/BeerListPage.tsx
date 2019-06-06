@@ -19,13 +19,11 @@ import * as SearchBuilder from './SearchBuilder';
 import { Month } from './MonthPicker';
 
 export type Action
-    = Readonly<{ type: 'RELOAD' }>
-    | Readonly<{ type: 'LOAD_MORE' }>
+    = Readonly<{ type: 'LOAD_MORE' }>
     | Readonly<{ type: 'LOAD_DONE'; response: Either<Http.Error, Array<Api.Beer>> }>
     | Readonly<{ type: 'ACTION_SEARCH_BUILDER'; action: SearchBuilder.Action }>
     ;
 
-const Reload: Action = { type: 'RELOAD' };
 const LoadMore: Action = { type: 'LOAD_MORE' };
 const LoadDone = (response: Either<Http.Error, Array<Api.Beer>>): Action => ({ type: 'LOAD_DONE', response });
 const ActionSearchBuilder = (action: SearchBuilder.Action): Action => ({ type: 'ACTION_SEARCH_BUILDER', action });
@@ -53,17 +51,6 @@ export const init = (beersPerPage: number, filtering: Api.LoadFilter): [ State, 
 
 export const update = (action: Action, state: State): [ State, Cmd<Action> ] => {
     switch (action.type) {
-        case 'RELOAD': {
-            return [
-                { ...state, loading: Loading },
-                Api.loadBeerList(
-                    state.filtering,
-                    state.beersPerPage,
-                    state.beerList.length / state.beersPerPage
-                ).send(LoadDone)
-            ];
-        }
-
         case 'LOAD_MORE': {
             if (!state.hasMore || state.loading.isLoading()) {
                 return [ state, Cmd.none ];
@@ -156,8 +143,7 @@ const BeerListView: React.FC<{
 
 const ErrorView: React.FC<{
     error: Http.Error;
-    dispatch(action: Action): void;
-}> = ({ error, dispatch }) => (
+}> = ({ error }) => (
     <div>
         <h2>Error was occupied:</h2>
 
@@ -175,10 +161,7 @@ const ErrorView: React.FC<{
             ),
 
             BadStatus: (response: Http.Response<string>) => (
-                <div>
-                    <p>Server error: {response.statusCode}</p>
-                    <button onClick={() => dispatch(Reload)}>Try again</button>
-                </div>
+                <p>Server error: {response.statusCode}</p>
             ),
 
             BadBody: (error: Decode.Error) => (
@@ -245,7 +228,7 @@ export class View extends React.Component<{
                 {state.loading.cata({
                     Loading: () => <LoadMoreView busy dispatch={dispatch} />,
 
-                    Failure: (error: Http.Error) => <ErrorView error={error} dispatch={dispatch} />,
+                    Failure: (error: Http.Error) => <ErrorView error={error} />,
 
                     _: () => {
                         if (state.hasMore) {

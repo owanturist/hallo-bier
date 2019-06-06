@@ -160,7 +160,7 @@ const MonthView: React.FC<{
 }> = ({ disabled, selected, month, dispatch }) => (
     <button
         type="button"
-        disabled={disabled || selected}
+        disabled={disabled}
         onClick={() => dispatch(selected ? new UnselectMonth() : new SelectMonth(month))}
     >
         {selected ? (
