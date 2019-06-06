@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider, connect } from 'react-redux';
-import { createStore } from 'redux';
+import { createStore, compose } from 'redux';
 import * as App from './App';
 import './index.css';
 import 'bootstrap/dist/css/bootstrap.css';
@@ -10,7 +10,14 @@ import { Cmd, Done } from 'Cmd';
 
 const reduxDevtools = (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__();
 
-let dispatch: Done<App.Action> = () => {
+interface Action {
+    type: 'SELF';
+    payload: App.Action;
+}
+
+const Self = (payload: App.Action): Action => ({ type: 'SELF', payload });
+
+let loopDispatch: Done<App.Action> = () => {
     // do nothing
 };
 
@@ -20,23 +27,23 @@ abstract class CmdExecutor extends Cmd<never> {
     }
 }
 
-function reducer(state: App.State, action: App.Action): App.State {
-    const tuple = App.update(action, state);
-
+function reducer(state: App.State, action: Action): App.State {
     // @INIT Redux action
-    if (!tuple) {
+    if (action.type !== 'SELF') {
         return state;
     }
 
-    CmdExecutor.execute(tuple[1], dispatch);
+    const [ nextState, cmd ] = action.payload.update(state);
 
-    return tuple[0];
+    CmdExecutor.execute(cmd, loopDispatch);
+
+    return nextState;
 }
 
 function init(): App.State {
     const [ initialState, initialCmd ] = App.init();
 
-    CmdExecutor.execute(initialCmd, dispatch);
+    CmdExecutor.execute(initialCmd, loopDispatch);
 
     return initialState;
 }
@@ -47,11 +54,11 @@ const store = createStore(
     reduxDevtools
 );
 
-dispatch = store.dispatch;
+loopDispatch = compose(store.dispatch, Self);
 
 const Root = connect(
     (state: App.State) => ({ state }),
-    (dispatch: (action: App.Action) => void) => ({ dispatch })
+    { dispatch: Self }
 )(({ state, dispatch }) => (
     <App.View state={state} dispatch={dispatch} />
 ));

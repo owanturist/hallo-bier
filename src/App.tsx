@@ -1,168 +1,279 @@
 import React from 'react';
 import { compose } from 'redux';
 import { Cmd } from 'Cmd';
+import { Cata } from 'frctl/dist/src/Basics';
+import * as Utils from './Utils';
 import * as Router from './Router';
 import * as HomePage from './HomePage';
 import * as BeerPage from './BeerPage';
 import * as BeerListPage from './BeerListPage';
 
-export type Action
-    = Readonly<{ type: 'ROUTE_CHANGED'; route: Router.Route }>
-    | Readonly<{ type: 'ACTION_HOME_PAGE'; action: HomePage.Action }>
-    | Readonly<{ type: 'ACTION_BEER_PAGE'; action: BeerPage.Action }>
-    | Readonly<{ type: 'ACTION_BEER_LIST_PAGE'; action: BeerListPage.Action }>
-    ;
-
-const RouteChanged = (route: Router.Route): Action => ({ type: 'ROUTE_CHANGED', route });
-const ActionHomePage = (action: HomePage.Action): Action => ({ type: 'ACTION_HOME_PAGE', action });
-const ActionBeerPage = (action: BeerPage.Action): Action => ({ type: 'ACTION_BEER_PAGE', action });
-const ActionBeerListPage = (action: BeerListPage.Action): Action => ({ type: 'ACTION_BEER_LIST_PAGE', action });
-
-type Page
-    = Readonly<{ type: 'PAGE_VOID' }>
-    | Readonly<{ type: 'PAGE_HOME'; state: HomePage.State }>
-    | Readonly<{ type: 'PAGE_BEER'; state: BeerPage.State }>
-    | Readonly<{ type: 'PAGE_BEER_LIST'; state: BeerListPage.State }>
-    ;
-
-const PageVoid: Page = { type: 'PAGE_VOID' };
-const PageHome = (state: HomePage.State): Page => ({ type: 'PAGE_HOME', state });
-const PageBeer = (state: BeerPage.State): Page => ({ type: 'PAGE_BEER', state });
-const PageBeerList = (state: BeerListPage.State): Page => ({ type: 'PAGE_BEER_LIST', state });
-
-const initPage = (route: Router.Route): [ Page, Cmd<Action> ] => route.cata({
-    ToHome: (): [ Page, Cmd<Action> ] => [
-        PageHome(HomePage.init()),
-        Cmd.none
-    ],
-
-    ToBeer: (beerId): [ Page, Cmd<Action> ] => {
-        const [ initialBeerPage, cmdOfBeerPage ] = BeerPage.init(beerId);
-
-        return [
-            PageBeer(initialBeerPage),
-            cmdOfBeerPage.map(ActionBeerPage)
-        ];
-    },
-
-    ToBeerSearch: (name, brewedAfter): [ Page, Cmd<Action> ] => {
-        const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(10, { name, brewedAfter });
-
-        return [
-            PageBeerList(initialBeerList),
-            cmdOfBeerList.map(ActionBeerListPage)
-        ];
-    }
-});
-
-export type State = Readonly<{
-    page: Page;
+type PagePattern<R> = Cata<{
+    PageVoid(): R;
+    PageHome(homePage: HomePage.State): R;
+    PageBeer(beerPage: BeerPage.State): R;
+    PageBeerList(beerListPage: BeerListPage.State): R;
 }>;
 
+abstract class Page {
+    public static init(route: Router.Route): [ Page, Cmd<Action> ] {
+        return route.cata({
+            ToHome: (): [ Page, Cmd<Action> ] => [
+                new PageHome(HomePage.init()),
+                Cmd.none
+            ],
+
+            ToBeer: (beerId): [ Page, Cmd<Action> ] => {
+                const [ initialBeerPage, cmdOfBeerPage ] = BeerPage.init(beerId);
+
+                return [
+                    new PageBeer(initialBeerPage),
+                    cmdOfBeerPage.map(ActionBeerPage.cons)
+                ];
+            },
+
+            ToBeerSearch: (name, brewedAfter): [ Page, Cmd<Action> ] => {
+                const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(10, { name, brewedAfter });
+
+                return [
+                    new PageBeerList(initialBeerList),
+                    cmdOfBeerList.map(ActionBeerListPage.cons)
+                ];
+            }
+        });
+    }
+
+    public abstract cata<R>(pattern: PagePattern<R>): R;
+
+    public updateHomePage(_action: HomePage.Action): [ State, Cmd<Action> ] {
+        return this.noop();
+    }
+
+    public updateBeerPage(_action: BeerPage.Action): [ State, Cmd<Action> ] {
+        return this.noop();
+    }
+
+    public updateBeerListPage(_action: BeerListPage.Action): [ State, Cmd<Action> ] {
+        return this.noop();
+    }
+
+    private noop(): [ State, Cmd<Action> ] {
+        return [
+            { page: this },
+            Cmd.none
+        ];
+    }
+}
+
+class VoidPage extends Page {
+    public cata<R>(pattern: PagePattern<R>): R {
+        if (typeof pattern.PageVoid === 'function') {
+            return pattern.PageVoid();
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+class PageHome extends Page {
+    public constructor(private readonly homePage: HomePage.State) {
+        super();
+    }
+
+    public updateHomePage(action: HomePage.Action): [ State, Cmd<Action> ] {
+        const [ nextHomePage, cmdOfHomePage ] = action.update(this.homePage);
+
+        return [
+            { page: new PageHome(nextHomePage) },
+            cmdOfHomePage.map(ActionHomePage.cons)
+        ];
+    }
+
+    public cata<R>(pattern: PagePattern<R>): R {
+        if (typeof pattern.PageHome === 'function') {
+            return pattern.PageHome(this.homePage);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+class PageBeer extends Page {
+    public constructor(private readonly beerPage: BeerPage.State) {
+        super();
+    }
+
+    public updateBeerPage(action: BeerPage.Action): [ State, Cmd<Action> ] {
+        return [
+            { page: new PageBeer(action.update(this.beerPage)) },
+            Cmd.none
+        ];
+    }
+
+    public cata<R>(pattern: PagePattern<R>): R {
+        if (typeof pattern.PageBeer === 'function') {
+            return pattern.PageBeer(this.beerPage);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+class PageBeerList extends Page {
+    public constructor(private readonly beerListPage: BeerListPage.State) {
+        super();
+    }
+
+    public updateBeerListPage(action: BeerListPage.Action): [ State, Cmd<Action> ] {
+        const [ nextBeerListPage, cmdOfBeerListPage ] = action.update(this.beerListPage);
+
+        return [
+            { page: new PageBeerList(nextBeerListPage) },
+            cmdOfBeerListPage.map(ActionBeerListPage.cons)
+        ];
+    }
+
+    public cata<R>(pattern: PagePattern<R>): R {
+        if (typeof pattern.PageBeerList === 'function') {
+            return pattern.PageBeerList(this.beerListPage);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+export interface State {
+    page: Page;
+}
+
 export const init = (): [ State, Cmd<Action> ] => [
-    {
-        page: PageVoid
-    },
+    { page: new VoidPage() },
     Cmd.none
 ];
 
-export const update = (action: Action, { page }: State): [ State, Cmd<Action> ] => {
-    switch (action.type) {
-        case 'ROUTE_CHANGED': {
-            const [ nextPage, cmd ] = initPage(action.route);
+export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
-            return [{ page: nextPage }, cmd ];
-        }
-
-        case 'ACTION_HOME_PAGE': {
-            if (page.type !== 'PAGE_HOME') {
-                return [{ page }, Cmd.none ];
-            }
-
-            const [ nextHomePage, cmdOfHome ] = action.action.update(page.state);
-
-            return [
-                {
-                    page: PageHome(nextHomePage)
-                },
-                cmdOfHome.map(ActionHomePage)
-            ];
-        }
-
-        case 'ACTION_BEER_PAGE': {
-            if (page.type !== 'PAGE_BEER') {
-                return [{ page }, Cmd.none ];
-            }
-
-            return [
-                {
-                    page: PageBeer(action.action.update(page.state))
-                },
-                Cmd.none
-            ];
-        }
-
-        case 'ACTION_BEER_LIST_PAGE': {
-            if (page.type !== 'PAGE_BEER_LIST') {
-                return [{ page }, Cmd.none ];
-            }
-
-            const [ nextBeerListPage, cmdOfBeerList ] = action.action.update(page.state);
-
-            return [
-                {
-                    page: PageBeerList(nextBeerListPage)
-                },
-                cmdOfBeerList.map(ActionBeerListPage)
-            ];
-        }
+class RouteChanged extends Action {
+    public static cons(route: Router.Route): Action {
+        return new RouteChanged(route);
     }
-};
 
-const ViewPage: React.FC<{
+    private constructor(private readonly route: Router.Route) {
+        super();
+    }
+
+    public update(): [ State, Cmd<Action> ] {
+        const [ nextPage, cmd ] = Page.init(this.route);
+
+        return [{ page: nextPage }, cmd ];
+    }
+}
+
+class ActionHomePage extends Action {
+    public static cons(action: HomePage.Action): Action {
+        return new ActionHomePage(action);
+    }
+
+    private constructor(private readonly action: HomePage.Action) {
+        super();
+    }
+
+    public update(state: State): [ State, Cmd<Action> ] {
+        return state.page.cata<[ State, Cmd<Action> ]>({
+            PageHome: homePage => {
+                const [ nextHomePage, cmdOfHomePage ] = this.action.update(homePage);
+
+                return [
+                    { page: new PageHome(nextHomePage) },
+                    cmdOfHomePage.map(action => new ActionHomePage(action))
+                ];
+            },
+
+            _: () => [ state, Cmd.none ]
+        });
+    }
+}
+
+class ActionBeerPage extends Action {
+    public static cons(action: BeerPage.Action): Action {
+        return new ActionBeerPage(action);
+    }
+
+    private constructor(private readonly action: BeerPage.Action) {
+        super();
+    }
+
+    public update(state: State): [ State, Cmd<Action> ] {
+        return state.page.cata<[ State, Cmd<Action> ]>({
+            PageBeer: beerPage => {
+                return [
+                    { page: new PageBeer(this.action.update(beerPage)) },
+                    Cmd.none
+                ];
+            },
+
+            _: () => [ state, Cmd.none ]
+        });
+    }
+}
+
+class ActionBeerListPage extends Action {
+    public static cons(action: BeerListPage.Action): Action {
+        return new ActionBeerListPage(action);
+    }
+
+    private constructor(private readonly action: BeerListPage.Action) {
+        super();
+    }
+
+    public update(state: State): [ State, Cmd<Action> ] {
+        return state.page.cata<[ State, Cmd<Action> ]>({
+            PageBeerList: beerListPage => {
+                const [ nextBeerListPage, cmdOfBeerListPage ] = this.action.update(beerListPage);
+
+                return [
+                    { page: new PageBeerList(nextBeerListPage) },
+                    cmdOfBeerListPage.map(action => new ActionBeerListPage(action))
+                ];
+            },
+
+            _: () => [ state, Cmd.none ]
+        });
+    }
+}
+
+const PageView: React.FC<{
     page: Page;
     dispatch(action: Action): void;
-}> = ({ page, dispatch }) => {
-    switch (page.type) {
-        case 'PAGE_VOID': {
-            return (
-                <div>Loading...</div>
-            );
-        }
+}> = ({ page, dispatch }) => page.cata({
+    PageVoid: () => (
+        <div>Initialising...</div>
+    ),
 
-        case 'PAGE_HOME': {
-            return (
-                <HomePage.View
-                    state={page.state}
-                    dispatch={compose(dispatch, ActionHomePage)}
-                />
-            );
-        }
+    PageHome: homePage => (
+        <HomePage.View
+            state={homePage}
+            dispatch={compose(dispatch, ActionHomePage.cons)}
+        />
+    ),
 
-        case 'PAGE_BEER': {
-            return (
-                <BeerPage.View
-                    state={page.state}
-                />
-            );
-        }
+    PageBeer: beerPage => (
+        <BeerPage.View state={beerPage} />
+    ),
 
-        case 'PAGE_BEER_LIST': {
-            return (
-                <BeerListPage.View
-                    state={page.state}
-                    dispatch={compose(dispatch, ActionBeerListPage)}
-                />
-            );
-        }
-    }
-};
+    PageBeerList: beerListPage => (
+        <BeerListPage.View
+            state={beerListPage}
+            dispatch={compose(dispatch, ActionBeerListPage.cons)}
+        />
+    )
+});
 
 export const View: React.FC<{
     state: State;
     dispatch(action: Action): void;
 }> = ({ state, dispatch }) => (
-    <Router.View onChange={compose(dispatch, RouteChanged)}>
-        <ViewPage page={state.page} dispatch={dispatch} />
+    <Router.View onChange={compose(dispatch, RouteChanged.cons)}>
+        <PageView page={state.page} dispatch={dispatch} />
     </Router.View>
 );
