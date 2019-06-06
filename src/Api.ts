@@ -2,7 +2,7 @@ import { Maybe, Just, Nothing } from 'frctl/dist/src/Maybe';
 import * as Decode from 'frctl/dist/src/Json/Decode';
 import * as Http from './Http';
 
-const PUNK_ENDPOINT = 'https://api.punkapi.com/v2/beers';
+const PUNK_ENDPOINT = 'https://api.punkapi.com/v2';
 
 export type Beer = Readonly<{
     id: number;
@@ -50,7 +50,7 @@ export const loadBeerList = (
     beersPerPage: number,
     pageNumber: number
 ): Http.Request<Array<Beer>> => {
-    return Http.get(PUNK_ENDPOINT)
+    return Http.get(`${PUNK_ENDPOINT}/beers`)
         .withQueryParam('page', pageNumber.toString())
         .withQueryParam('per_page', beersPerPage.toString())
         .withQueryParams(
@@ -71,6 +71,6 @@ export const loadBeerList = (
 };
 
 export const loadBeer = (beerId: number): Http.Request<Beer> => {
-    return Http.get(`${PUNK_ENDPOINT}/beer/${beerId}`)
-        .withExpect(Http.expectJson(beerDecoder));
+    return Http.get(`${PUNK_ENDPOINT}/beers/${beerId}`)
+        .withExpect(Http.expectJson(Decode.index(0, beerDecoder)));
 };

@@ -34,8 +34,8 @@ const percentEncode = (str: string): string => {
 
 export type Route
     = { type: 'TO_HOME' }
+    | { type: 'TO_BEER'; id: number }
     | { type: 'TO_BEER_SEARCH'; name: Maybe<string>; brewedAfter: Maybe<Date> }
-    | { type: 'TO_BEER_ITEM'; id: number }
     ;
 
 export const ToHome: Route = { type: 'TO_HOME' };
@@ -44,7 +44,7 @@ export const ToBeerSearch = (name: Maybe<string>, brewedAfter: Maybe<Date>): Rou
     name,
     brewedAfter
 });
-export const ToBeerItem = (id: number): Route => ({ type: 'TO_BEER_ITEM', id });
+export const ToBeer = (id: number): Route => ({ type: 'TO_BEER', id });
 
 const brewedDateToString = (date: Date): string => {
     return date.toLocaleDateString().slice(3);
@@ -73,7 +73,7 @@ const routeToPath = (route: Route): string => {
             return '/search?' + queryList.join('&');
         }
 
-        case 'TO_BEER_ITEM': {
+        case 'TO_BEER': {
             return `/beer/${route.id}`;
         }
     }
@@ -148,7 +148,7 @@ export const View: React.FC<{
 
             <Path
                 path="/beer/:id"
-                onEnter={(match: match<{ id: string }>) => onChange(ToBeerItem(Number(match.params.id)))}
+                onEnter={(match: match<{ id: string }>) => onChange(ToBeer(Number(match.params.id)))}
             />
         </Switch>
         {children}

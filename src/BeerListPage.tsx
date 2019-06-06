@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import throttle from 'lodash.throttle';
 import { compose } from 'redux';
 import {
@@ -10,7 +9,6 @@ import {
 } from 'frctl/dist/src/RemoteData';
 import { Either } from 'frctl/dist/src/Either';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
-import * as Decode from 'frctl/dist/src/Json/Decode';
 import * as Http from 'Http';
 import { Cmd } from 'Cmd';
 import * as Router from './Router';
@@ -114,7 +112,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
     }
 };
 
-const BeerView: React.FC<{
+const ViewBeer: React.FC<{
     beer: Api.Beer;
 }> = ({ beer }) => (
     <div>
@@ -127,21 +125,21 @@ const BeerView: React.FC<{
         <h3>{beer.name}</h3>
         <small>{beer.tagline}</small>
         <p>{beer.description}</p>
-        <Link to={`/beer/${beer.id}`}>See more</Link>
+        <Router.Link to={Router.ToBeer(beer.id)}>See more</Router.Link>
     </div>
 );
 
-const BeerListView: React.FC<{
+const ViewBeerList: React.FC<{
     beerList: Array<Api.Beer>;
 }> = ({ beerList }) => (
     <ul>
         {beerList.map((beer: Api.Beer) => (
-            <li key={beer.id}><BeerView beer={beer}/></li>
+            <li key={beer.id}><ViewBeer beer={beer}/></li>
         ))}
     </ul>
 );
 
-const ErrorView: React.FC<{
+const ViewError: React.FC<{
     error: Http.Error;
 }> = ({ error }) => (
     <div>
@@ -164,17 +162,17 @@ const ErrorView: React.FC<{
                 <p>Server error: {response.statusCode}</p>
             ),
 
-            BadBody: (error: Decode.Error) => (
+            BadBody: decodeError => (
                 <div>
                     <p>Client app error:</p>
-                    <code>{error.stringify(4)}</code>
+                    <code>{decodeError.stringify(4)}</code>
                 </div>
             )
         })}
     </div>
 );
 
-const LoadMoreView: React.FC<{
+const ViewLoadMore: React.FC<{
     busy?: boolean;
     dispatch(action: Action): void;
 }> = ({ busy, dispatch }) => (
@@ -222,18 +220,18 @@ export class View extends React.Component<{
                 <h1>Beer List:</h1>
 
                 {state.beerList.length > 0 && (
-                    <BeerListView beerList={state.beerList} />
+                    <ViewBeerList beerList={state.beerList} />
                 )}
 
                 {state.loading.cata({
-                    Loading: () => <LoadMoreView busy dispatch={dispatch} />,
+                    Loading: () => <ViewLoadMore busy dispatch={dispatch} />,
 
-                    Failure: (error: Http.Error) => <ErrorView error={error} />,
+                    Failure: (error: Http.Error) => <ViewError error={error} />,
 
                     _: () => {
                         if (state.hasMore) {
                             return (
-                                <LoadMoreView dispatch={dispatch} />
+                                <ViewLoadMore dispatch={dispatch} />
                             );
                         }
 
