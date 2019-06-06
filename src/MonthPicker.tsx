@@ -5,7 +5,7 @@ import * as Utils from './Utils';
 
 export class Month {
     public static fromIndex(index: number): Maybe<Month> {
-        if (index % 1 !== 0 || index < 0 || index > 12) {
+        if (index % 1 !== 0 || index < 1 || index > 12) {
             return Nothing;
         }
 
