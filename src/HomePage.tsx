@@ -33,7 +33,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
 
                 Search: (search): [ State, Cmd<Action> ] => [
                     state,
-                    Router.push(Router.ToBeerSearch(search.name, search.brewedAfter))
+                    Router.ToBeerSearch(search.name, search.brewedAfter).push()
                 ]
             });
         }

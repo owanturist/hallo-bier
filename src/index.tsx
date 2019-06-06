@@ -49,7 +49,7 @@ const store = createStore(
 
 dispatch = store.dispatch;
 
-const Connector = connect(
+const Root = connect(
     (state: App.State) => ({ state }),
     (dispatch: (action: App.Action) => void) => ({ dispatch })
 )(({ state, dispatch }) => (
@@ -58,7 +58,7 @@ const Connector = connect(
 
 ReactDOM.render(
     <Provider store={store}>
-            <Connector />
+        <Root />
     </Provider>,
     document.getElementById('root')
 );

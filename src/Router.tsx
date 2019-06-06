@@ -18,66 +18,156 @@ import {
     Nothing,
     Just
 } from 'frctl/dist/src/Maybe';
+import { Cata } from 'frctl/dist/src/Basics';
 import { Cmd } from 'Cmd';
 
-const percentDecode = (str: string): Maybe<string> => {
-    try {
-        return Just(decodeURIComponent(str));
-    } catch (err) {
-        return Nothing;
-    }
-};
+const history = createBrowserHistory();
 
-const percentEncode = (str: string): string => {
-    return encodeURIComponent(str);
-};
+type RouterPattern<R> = Cata<{
+    ToHome(): R;
+    ToBeer(beerId: number): R;
+    ToBeerSearch(name: Maybe<string>, brewedAfter: Maybe<Date>): R;
+}>;
 
-export type Route
-    = { type: 'TO_HOME' }
-    | { type: 'TO_BEER'; id: number }
-    | { type: 'TO_BEER_SEARCH'; name: Maybe<string>; brewedAfter: Maybe<Date> }
-    ;
-
-export const ToHome: Route = { type: 'TO_HOME' };
-export const ToBeerSearch = (name: Maybe<string>, brewedAfter: Maybe<Date>): Route => ({
-    type: 'TO_BEER_SEARCH',
-    name,
-    brewedAfter
-});
-export const ToBeer = (id: number): Route => ({ type: 'TO_BEER', id });
-
-const brewedDateToString = (date: Date): string => {
-    return date.toLocaleDateString().slice(3);
-};
-
-const routeToPath = (route: Route): string => {
-    switch (route.type) {
-        case 'TO_HOME': {
-            return '/';
-        }
-
-        case 'TO_BEER_SEARCH': {
-            const queryBuilder: Array<[ string, Maybe<string> ]> = [
-                [ 'name', route.name.map(percentEncode) ],
-                [ 'bra', route.brewedAfter.map(brewedDateToString).map(percentEncode) ]
-            ];
-            const queryList = queryBuilder.reduce(
-                (acc, [ key, value ]) => value.map((val: string) => [ `${key}=${val}`, ...acc ]).getOrElse(acc),
-                []
-            );
-
-            if (queryList.length === 0) {
-                return '/search';
-            }
-
-            return '/search?' + queryList.join('&');
-        }
-
-        case 'TO_BEER': {
-            return `/beer/${route.id}`;
+export abstract class Route {
+    protected static percentDecode(str: string): Maybe<string> {
+        try {
+            return Just(decodeURIComponent(str));
+        } catch (err) {
+            return Nothing;
         }
     }
+
+    protected static percentEncode(str: string): string {
+        return encodeURIComponent(str);
+    }
+
+    public abstract toPath(): string;
+
+    public abstract cata<R>(pattern: RouterPattern<R>): R;
+
+    public push(): Cmd<never> {
+        return Cmd.of((): void => {
+            history.push(this.toPath());
+        });
+    }
+
+    public replace(): Cmd<never> {
+        return Cmd.of((): void => {
+            history.replace(this.toPath());
+        });
+    }
+}
+
+class ToHomeRoute extends Route {
+    public static schema = '/';
+
+    public toPath(): string {
+        return '/';
+    }
+
+    public cata<R>(pattern: RouterPattern<R>): R {
+        if (typeof pattern.ToHome === 'function') {
+            return pattern.ToHome();
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+export const ToHome: Route = new ToHomeRoute();
+
+class ToBeerRoute extends Route {
+    public static schema = '/beer/:id';
+
+    public static parse(match: match<{ id: string }>): Route {
+        return new ToBeerRoute(Number(match.params.id));
+    }
+
+    public constructor(private readonly id: number) {
+        super();
+    }
+
+    public toPath(): string {
+        return `/beer/${this.id}`;
+    }
+
+    public cata<R>(pattern: RouterPattern<R>): R {
+        if (typeof pattern.ToBeer === 'function') {
+            return pattern.ToBeer(this.id);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+export const ToBeer = (beerId: number): Route => {
+    return new ToBeerRoute(beerId);
 };
+
+class ToBeerSearchRoute extends Route {
+    public static schema = '/search';
+
+    public static parse(loc: Location): Route {
+        const qs = queryString.parse(loc.search);
+        const name = Array.isArray(qs.name) ? qs.name[0] : qs.name;
+        const bra = Array.isArray(qs.bra) ? qs.bra[0] : qs.bra;
+
+        return new ToBeerSearchRoute(
+            Maybe.fromNullable(name).chain(Route.percentDecode),
+            Maybe.fromNullable(bra).chain(Route.percentDecode).chain((val: string) => {
+                const fr = val.split('/');
+
+                if (fr.length !== 2) {
+                    return Nothing;
+                }
+
+                return Just(new Date([ '01' ].concat(fr).join('/')));
+            })
+        );
+    }
+
+    private static brewedDateToString(date: Date): string {
+        return date.toLocaleDateString().slice(3);
+    }
+
+    public constructor(
+        private readonly name: Maybe<string>,
+        private readonly brewedAfter: Maybe<Date>
+    ) {
+        super();
+    }
+
+    public toPath(): string {
+        const queryBuilder: Array<[ string, Maybe<string> ]> = [
+            [ 'name', this.name.map(Route.percentEncode) ],
+            [ 'bra', this.brewedAfter.map(ToBeerSearchRoute.brewedDateToString).map(Route.percentEncode) ]
+        ];
+        const queryList = queryBuilder.reduce(
+            (acc, [ key, value ]) => value.map((val: string) => [ `${key}=${val}`, ...acc ]).getOrElse(acc),
+            []
+        );
+
+        if (queryList.length === 0) {
+            return '/search';
+        }
+
+        return '/search?' + queryList.join('&');
+    }
+
+    public cata<R>(pattern: RouterPattern<R>): R {
+        if (typeof pattern.ToBeerSearch === 'function') {
+            return pattern.ToBeerSearch(this.name, this.brewedAfter);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+export const ToBeerSearch = (name: Maybe<string>, brewedAfter: Maybe<Date>): Route => {
+    return new ToBeerSearchRoute(name, brewedAfter);
+};
+
 
 interface PathProps<P> extends RouteProps {
     computedMatch?: match<P>;
@@ -98,20 +188,6 @@ class Path<P> extends ReactRoute<PathProps<P>> {
     }
 }
 
-const history = createBrowserHistory();
-
-export const push = (route: Route): Cmd<never> => {
-    return Cmd.of((): void => {
-        history.push(routeToPath(route));
-    });
-};
-
-export const replace = (route: Route): Cmd<never> => {
-    return Cmd.of((): void => {
-        history.replace(routeToPath(route));
-    });
-};
-
 export const View: React.FC<{
     children: React.ReactNode;
     onChange(route: Route): void;
@@ -125,30 +201,13 @@ export const View: React.FC<{
             />
 
             <Path
-                path="/search"
-                onEnter={(_match: match, loc: Location) => {
-                    const qs = queryString.parse(loc.search);
-                    const name = Array.isArray(qs.name) ? qs.name[0] : qs.name;
-                    const bra = Array.isArray(qs.bra) ? qs.bra[0] : qs.bra;
-
-                    onChange(ToBeerSearch(
-                        Maybe.fromNullable(name).chain(percentDecode),
-                        Maybe.fromNullable(bra).chain(percentDecode).chain((val: string) => {
-                            const fr = val.split('/');
-
-                            if (fr.length !== 2) {
-                                return Nothing;
-                            }
-
-                            return Just(new Date([ '01' ].concat(fr).join('/')));
-                        })
-                    ));
-                }}
+                path="/beer/:id"
+                onEnter={(match: match<{ id: string }>) => onChange(ToBeerRoute.parse(match))}
             />
 
             <Path
-                path="/beer/:id"
-                onEnter={(match: match<{ id: string }>) => onChange(ToBeer(Number(match.params.id)))}
+                path="/search"
+                onEnter={(_match, loc: Location) => onChange(ToBeerSearchRoute.parse(loc))}
             />
         </Switch>
         {children}
@@ -160,5 +219,5 @@ type LinkProps = Pick<ReactLinkProps, Exclude<keyof ReactLinkProps, 'to'>> & {
 };
 
 export const Link: React.FC<LinkProps> = props => (
-    <ReactLink {...props} to={routeToPath(props.to)} />
+    <ReactLink {...props} to={props.to.toPath()} />
 );

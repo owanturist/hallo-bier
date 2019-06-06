@@ -30,37 +30,30 @@ const PageHome = (state: HomePage.State): Page => ({ type: 'PAGE_HOME', state })
 const PageBeer = (state: BeerPage.State): Page => ({ type: 'PAGE_BEER', state });
 const PageBeerList = (state: BeerListPage.State): Page => ({ type: 'PAGE_BEER_LIST', state });
 
-const initPage = (route: Router.Route): [ Page, Cmd<Action> ] => {
-    switch (route.type) {
-        case 'TO_HOME': {
-            return [
-                PageHome(HomePage.init()),
-                Cmd.none
-            ];
-        }
+const initPage = (route: Router.Route): [ Page, Cmd<Action> ] => route.cata({
+    ToHome: (): [ Page, Cmd<Action> ] => [
+        PageHome(HomePage.init()),
+        Cmd.none
+    ],
 
-        case 'TO_BEER': {
-            const [ initialBeerPage, cmdOfBeerPage ] = BeerPage.init(route.id);
+    ToBeer: (beerId): [ Page, Cmd<Action> ] => {
+        const [ initialBeerPage, cmdOfBeerPage ] = BeerPage.init(beerId);
 
-            return [
-                PageBeer(initialBeerPage),
-                cmdOfBeerPage.map(ActionBeerPage)
-            ];
-        }
+        return [
+            PageBeer(initialBeerPage),
+            cmdOfBeerPage.map(ActionBeerPage)
+        ];
+    },
 
-        case 'TO_BEER_SEARCH': {
-            const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(10, {
-                name: route.name,
-                brewedAfter: route.brewedAfter
-            });
+    ToBeerSearch: (name, brewedAfter): [ Page, Cmd<Action> ] => {
+        const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(10, { name, brewedAfter });
 
-            return [
-                PageBeerList(initialBeerList),
-                cmdOfBeerList.map(ActionBeerListPage)
-            ];
-        }
+        return [
+            PageBeerList(initialBeerList),
+            cmdOfBeerList.map(ActionBeerListPage)
+        ];
     }
-};
+});
 
 export type State = Readonly<{
     page: Page;
