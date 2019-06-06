@@ -110,7 +110,7 @@ class Unselect extends Stage {
     }
 }
 
-export abstract class Action extends Utils.Action<State, Stage> {}
+export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
 class ChangeYear extends Action {
     public static readonly PREV: Action = new ChangeYear(-1);

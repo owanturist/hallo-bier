@@ -36,11 +36,9 @@ const PageBeerItem = (state: Counter.State): Page => ({ type: 'PAGE_BEER_ITEM', 
 const initPage = (route: Router.Route): [ Page, Cmd<Action> ] => {
     switch (route.type) {
         case 'TO_HOME': {
-            const [ initialHome, cmdOfHome ] = HomePage.init();
-
             return [
-                PageHome(initialHome),
-                cmdOfHome.map(ActionHome)
+                PageHome(HomePage.init()),
+                Cmd.none
             ];
         }
 
