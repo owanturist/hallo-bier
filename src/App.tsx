@@ -79,7 +79,7 @@ export const update = (action: Action, { page }: State): [ State, Cmd<Action> ] 
                 return [{ page }, Cmd.none ];
             }
 
-            const [ nextHomePage, cmdOfHome ] = HomePage.update(action.action, page.state);
+            const [ nextHomePage, cmdOfHome ] = action.action.update(page.state);
 
             return [
                 {
