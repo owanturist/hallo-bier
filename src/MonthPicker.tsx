@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
+import * as Utils from './Utils';
 
 export class Month {
     public static fromIndex(index: number): Maybe<Month> {
@@ -109,24 +110,7 @@ class Unselect extends Stage {
     }
 }
 
-export abstract class Action {
-    protected static update(action: Action, state: State): Stage {
-        return action.update(state);
-    }
-
-    public toJSON() {
-        return {
-            ...this,
-            type: this.constructor.name
-        };
-    }
-
-    public toString() {
-        return this.constructor.name;
-    }
-
-    protected abstract update(state: State): Stage;
-}
+export abstract class Action extends Utils.Action<State, Stage> {}
 
 class ChangeYear extends Action {
     public static readonly PREV: Action = new ChangeYear(-1);
@@ -136,7 +120,7 @@ class ChangeYear extends Action {
         super();
     }
 
-    protected update(state: State): Stage {
+    public update(state: State): Stage {
         return new Update({ ...state, year: state.year + this.delta });
     }
 }
@@ -146,24 +130,18 @@ class SelectMonth extends Action {
         super();
     }
 
-    protected update(state: State): Stage {
+    public update(state: State): Stage {
         return new Select(this.month, state.year);
     }
 }
 
 class UnselectMonth extends Action {
-    protected update(): Stage {
+    public update(): Stage {
         return new Unselect();
     }
 }
 
-abstract class PhantomAction extends Action {
-    public static update(action: Action, state: State): Stage {
-        return super.update(action, state);
-    }
-}
-
-export const update = PhantomAction.update;
+export const update = (action: Action, state: State): Stage => action.update(state);
 
 export type Selected = Readonly<{
     month: Month;
