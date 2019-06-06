@@ -1,4 +1,5 @@
 import React from 'react';
+import { compose } from 'redux';
 import {
     Container
 } from 'react-bootstrap';
@@ -19,9 +20,11 @@ export const init = (): State => ({
 export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
 class ActionSearchBuilder extends Action {
-    public constructor(
-        private readonly action: SearchBuilder.Action
-    ) {
+    public static cons(action: SearchBuilder.Action) {
+        return new ActionSearchBuilder(action);
+    }
+
+    private constructor(private readonly action: SearchBuilder.Action) {
         super();
     }
 
@@ -47,7 +50,7 @@ export const View: React.FC<{
     <Container>
         <SearchBuilder.View
             state={state.searchBuilder}
-            dispatch={action => dispatch(new ActionSearchBuilder(action))}
+            dispatch={compose(dispatch, ActionSearchBuilder.cons)}
         />
     </Container>
 );

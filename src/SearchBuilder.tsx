@@ -5,6 +5,7 @@ import {
     Button,
     FormControlProps
 } from 'react-bootstrap';
+import { compose } from 'redux';
 import * as Router from './Router';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import * as MonthPicker from './MonthPicker';
@@ -122,7 +123,11 @@ class SearchBeer extends Action {
 }
 
 class ActionMonthPicker extends Action {
-    public constructor(private readonly action: MonthPicker.Action) {
+    public static cons(action: MonthPicker.Action): Action {
+        return new ActionMonthPicker(action);
+    }
+
+    private constructor(private readonly action: MonthPicker.Action) {
         super();
     }
 
@@ -198,7 +203,7 @@ export const View: React.FC<{
             selected={selectedMonthFromString(state.brewedAfter)}
             disabled={disabled}
             state={state.monthPicker}
-            dispatch={action => dispatch(new ActionMonthPicker(action))}
+            dispatch={compose(dispatch, ActionMonthPicker.cons)}
         />
         <Router.Link
             to={Router.ToBeerSearch(Nothing, Nothing)}

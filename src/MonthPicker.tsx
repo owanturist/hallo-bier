@@ -66,9 +66,9 @@ export class Month {
     }
 }
 
-export type State = Readonly<{
+export interface State {
     year: number;
-}>;
+}
 
 export const init = (year: number): State => ({ year });
 
@@ -147,10 +147,10 @@ class UnselectMonth extends Action {
 
 export const update = (action: Action, state: State): Stage => action.update(state);
 
-export type Selected = Readonly<{
+export interface Selected {
     month: Month;
     year: number;
-}>;
+}
 
 const MonthView: React.FC<{
     disabled?: boolean;

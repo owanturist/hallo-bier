@@ -185,7 +185,7 @@ class ActionHomePage extends Action {
 
                 return [
                     { page: new PageHome(nextHomePage) },
-                    cmdOfHomePage.map(action => new ActionHomePage(action))
+                    cmdOfHomePage.map(ActionHomePage.cons)
                 ];
             },
 
@@ -233,7 +233,7 @@ class ActionBeerListPage extends Action {
 
                 return [
                     { page: new PageBeerList(nextBeerListPage) },
-                    cmdOfBeerListPage.map(action => new ActionBeerListPage(action))
+                    cmdOfBeerListPage.map(ActionBeerListPage.cons)
                 ];
             },
 

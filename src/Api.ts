@@ -4,14 +4,14 @@ import * as Http from './Http';
 
 const PUNK_ENDPOINT = 'https://api.punkapi.com/v2';
 
-export type Beer = Readonly<{
+export interface Beer {
     id: number;
     name: string;
     description: string;
     tagline: string;
     image: Maybe<string>;
     firstBrewed: Date;
-}>;
+}
 
 const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     id: Decode.field('id', Decode.number),
@@ -22,10 +22,10 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     firstBrewed: Decode.field('first_brewed', Decode.string.map((shortDate: string) => new Date(`01/${shortDate}`)))
 });
 
-export type LoadFilter = Readonly<{
+export interface LoadFilter {
     name: Maybe<string>;
     brewedAfter: Maybe<Date>;
-}>;
+}
 
 const nameToQuery = (name: string): Maybe<string> => {
     const trimmed = name.trim();

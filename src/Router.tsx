@@ -23,7 +23,7 @@ import { Cmd } from 'Cmd';
 
 const history = createBrowserHistory();
 
-type RouterPattern<R> = Cata<{
+export type RouterPattern<R> = Cata<{
     ToHome(): R;
     ToBeer(beerId: number): R;
     ToBeerSearch(name: Maybe<string>, brewedAfter: Maybe<Date>): R;

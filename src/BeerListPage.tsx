@@ -1,11 +1,7 @@
 import React from 'react';
+import { compose } from 'redux';
 import throttle from 'lodash.throttle';
-import {
-    RemoteData,
-    NotAsked,
-    Loading,
-    Failure
-} from 'frctl/dist/src/RemoteData';
+import { RemoteData, NotAsked, Loading, Failure } from 'frctl/dist/src/RemoteData';
 import { Either } from 'frctl/dist/src/Either';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import * as Http from 'Http';
@@ -16,14 +12,14 @@ import * as Api from './Api';
 import * as SearchBuilder from './SearchBuilder';
 import { Month } from './MonthPicker';
 
-export type State = Readonly<{
+export interface State {
     hasMore: boolean;
     beersPerPage: number;
     filtering: Api.LoadFilter;
     beerList: Array<Api.Beer>;
     loading: RemoteData<Http.Error, never>;
     searchBuilder: Maybe<SearchBuilder.State>;
-}>;
+}
 
 export const init = (beersPerPage: number, filtering: Api.LoadFilter): [ State, Cmd<Action> ] => [
     {
@@ -34,12 +30,14 @@ export const init = (beersPerPage: number, filtering: Api.LoadFilter): [ State, 
         loading: Loading,
         searchBuilder: Nothing
     },
-    Api.loadBeerList(filtering, beersPerPage, 1).send(response => new LoadDone(response))
+    Api.loadBeerList(filtering, beersPerPage, 1).send(LoadDone.cons)
 ];
 
 export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
 class LoadMore extends Action {
+    public static inst: Action = new LoadMore();
+
     public update(state: State): [ State, Cmd<Action> ] {
         if (!state.hasMore || state.loading.isLoading()) {
             return [ state, Cmd.none ];
@@ -51,13 +49,17 @@ class LoadMore extends Action {
                 state.filtering,
                 state.beersPerPage,
                 state.beerList.length / state.beersPerPage + 1
-            ).send(response => new LoadDone(response))
+            ).send(LoadDone.cons)
         ];
     }
 }
 
 class LoadDone extends Action {
-    public constructor(
+    public static cons(response: Either<Http.Error, Array<Api.Beer>>): Action {
+        return new LoadDone(response);
+    }
+
+    private constructor(
         private readonly response: Either<Http.Error, Array<Api.Beer>>
     ) {
         super();
@@ -93,7 +95,11 @@ class LoadDone extends Action {
 }
 
 class ActionSearchBuilder extends Action {
-    public constructor(private readonly action: SearchBuilder.Action) {
+    public static cons(action: SearchBuilder.Action): Action {
+        return new ActionSearchBuilder(action);
+    }
+
+    private constructor(private readonly action: SearchBuilder.Action) {
         super();
     }
 
@@ -184,7 +190,7 @@ const ViewLoadMore: React.FC<{
         <button
             type="button"
             disabled={busy}
-            onClick={() => dispatch(new LoadMore())}
+            onClick={() => dispatch(LoadMore.inst)}
         >Load More Beer!</button>
     </div>
 );
@@ -203,7 +209,7 @@ export class View extends React.Component<{
             if (state.hasMore && !state.loading.isLoading()
             && el && el.scrollHeight - el.scrollTop < window.innerHeight * 2
             ) {
-                dispatch(new LoadMore());
+                dispatch(LoadMore.inst);
             }
         }, 300);
 
@@ -255,7 +261,7 @@ export class View extends React.Component<{
                         <SearchBuilder.View
                             disabled={state.loading.isLoading()}
                             state={searchBuilder}
-                            dispatch={action => dispatch(new ActionSearchBuilder(action))}
+                            dispatch={compose(dispatch, ActionSearchBuilder.cons)}
                         />
                     )
                 })}
