@@ -25,10 +25,14 @@ const ChangeBrewedAfter = (brewedAfter: string): Action => ({ type: 'CHANGE_BREW
 const ActionMonthPicker = (action: MonthPicker.Action): Action => ({ type: 'ACTION_MONTH_PICKER', action });
 
 export type State = Readonly<{
-    query: string;
+    name: string;
     brewedAfter: string;
     monthPicker: MonthPicker.State;
 }>;
+
+const isValid = (state: State): boolean => {
+    return state.name.trim().length > 0 || selectedMonthFromString(state.brewedAfter).isJust();
+};
 
 const selectedMonthToString = (selected: MonthPicker.Selected): string => {
     return `${selected.month.toIndex().toString().padStart(2, '0')}/${selected.year}`;
@@ -51,7 +55,7 @@ const selectedMonthFromString = (str: string): Maybe<MonthPicker.Selected> => {
 
 export const init = (): [ State, Cmd<Action> ] => [
     {
-        query: '',
+        name: '',
         brewedAfter: '',
         monthPicker: MonthPicker.init(2010)
     },
@@ -62,7 +66,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
     switch (action.type) {
         case 'CHANGE_NAME': {
             return [
-                { ...state, query: action.name },
+                { ...state, name: action.name },
                 Cmd.none
             ];
         }
@@ -78,7 +82,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
             return [
                 state,
                 Router.push(Router.ToBeerSearch(
-                    Just(state.query),
+                    Just(state.name),
                     selectedMonthFromString(state.brewedAfter).map(
                         (selected: MonthPicker.Selected): Date => selected.month.toDate(selected.year)
                     )
@@ -126,7 +130,7 @@ export const View: React.FC<{
             <InputGroup>
                 <FormControl
                     type="search"
-                    value={state.query}
+                    value={state.name}
                     tabIndex={0}
                     onChange={(event: React.ChangeEvent<FormControlProps>) => {
                         dispatch(ChangeName(event.currentTarget.value || ''));
@@ -138,7 +142,7 @@ export const View: React.FC<{
                         type="submit"
                         variant="outline-primary"
                         tabIndex={0}
-                        disabled={state.query.trim().length === 0}
+                        disabled={!isValid(state)}
                     >
                         Search
                     </Button>
@@ -161,5 +165,8 @@ export const View: React.FC<{
             state={state.monthPicker}
             dispatch={compose(dispatch, ActionMonthPicker)}
         />
+        <Router.Link
+            to={Router.ToBeerSearch(Nothing, Nothing)}
+        >Explore all beer</Router.Link>
     </Container>
 );

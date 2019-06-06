@@ -1,9 +1,11 @@
 import React from 'react';
 import {
     Router,
+    Switch,
     Route as ReactRoute,
     RouteProps,
-    Switch,
+    Link as ReactLink,
+    LinkProps as ReactLinkProps,
     match
 } from 'react-router-dom';
 import {
@@ -161,4 +163,12 @@ export const View: React.FC<{
         </Switch>
         {children}
     </Router>
+);
+
+type LinkProps = Pick<ReactLinkProps, Exclude<keyof ReactLinkProps, 'to'>> & {
+    to: Route;
+};
+
+export const Link: React.FC<LinkProps> = props => (
+    <ReactLink {...props} to={routeToPath(props.to)} />
 );
