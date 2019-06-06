@@ -149,9 +149,10 @@ class ActionMonthPicker extends Action {
 export const update = (action: Action, state: State): Stage => action.update(state);
 
 export const View: React.FC<{
+    disabled?: boolean;
     state: State;
     dispatch(action: Action): void;
-}> = ({ state, dispatch }) => (
+}> = ({ disabled, state, dispatch }) => (
     <form
         noValidate
         onSubmit={(event: React.FormEvent) => {
@@ -164,6 +165,7 @@ export const View: React.FC<{
             <FormControl
                 type="search"
                 value={state.name}
+                disabled={disabled}
                 tabIndex={0}
                 onChange={(event: React.ChangeEvent<FormControlProps>) => {
                     dispatch(new ChangeName(event.currentTarget.value || ''));
@@ -175,7 +177,7 @@ export const View: React.FC<{
                     type="submit"
                     variant="outline-primary"
                     tabIndex={0}
-                    disabled={!isValid(state)}
+                    disabled={disabled || !isValid(state)}
                 >
                     Search
                 </Button>
@@ -186,6 +188,7 @@ export const View: React.FC<{
                 type="text"
                 value={state.brewedAfter}
                 tabIndex={0}
+                disabled={disabled}
                 onChange={(event: React.ChangeEvent<FormControlProps>) => {
                     dispatch(new ChangeBrewedAfter(event.currentTarget.value || ''));
                 }}
@@ -195,6 +198,7 @@ export const View: React.FC<{
 
         <MonthPicker.View
             selected={selectedMonthFromString(state.brewedAfter)}
+            disabled={disabled}
             state={state.monthPicker}
             dispatch={action => dispatch(new ActionMonthPicker(action))}
         />

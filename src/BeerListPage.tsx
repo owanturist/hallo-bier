@@ -1,29 +1,34 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import throttle from 'lodash.throttle';
+import { compose } from 'redux';
 import {
     RemoteData,
     NotAsked,
     Loading,
     Failure
 } from 'frctl/dist/src/RemoteData';
-import {
-    Either
-} from 'frctl/dist/src/Either';
+import { Either } from 'frctl/dist/src/Either';
+import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import * as Decode from 'frctl/dist/src/Json/Decode';
 import * as Http from 'Http';
 import { Cmd } from 'Cmd';
+import * as Router from './Router';
 import * as Api from './Api';
+import * as SearchBuilder from './SearchBuilder';
+import { Month } from './MonthPicker';
 
 export type Action
     = Readonly<{ type: 'RELOAD' }>
     | Readonly<{ type: 'LOAD_MORE' }>
     | Readonly<{ type: 'LOAD_DONE'; response: Either<Http.Error, Array<Api.Beer>> }>
+    | Readonly<{ type: 'ACTION_SEARCH_BUILDER'; action: SearchBuilder.Action }>
     ;
 
 const Reload: Action = { type: 'RELOAD' };
 const LoadMore: Action = { type: 'LOAD_MORE' };
 const LoadDone = (response: Either<Http.Error, Array<Api.Beer>>): Action => ({ type: 'LOAD_DONE', response });
+const ActionSearchBuilder = (action: SearchBuilder.Action): Action => ({ type: 'ACTION_SEARCH_BUILDER', action });
 
 export type State = Readonly<{
     hasMore: boolean;
@@ -31,6 +36,7 @@ export type State = Readonly<{
     filtering: Api.LoadFilter;
     beerList: Array<Api.Beer>;
     loading: RemoteData<Http.Error, never>;
+    searchBuilder: Maybe<SearchBuilder.State>;
 }>;
 
 export const init = (beersPerPage: number, filtering: Api.LoadFilter): [ State, Cmd<Action> ] => [
@@ -39,7 +45,8 @@ export const init = (beersPerPage: number, filtering: Api.LoadFilter): [ State, 
         filtering,
         hasMore: true,
         beerList: [],
-        loading: Loading
+        loading: Loading,
+        searchBuilder: Nothing
     },
     Api.loadBeerList(filtering, beersPerPage, 1).send(LoadDone)
 ];
@@ -84,11 +91,38 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
                         ...state,
                         hasMore: beerList.length === state.beersPerPage,
                         loading: NotAsked,
-                        beerList: state.beerList.concat(beerList)
+                        beerList: state.beerList.concat(beerList),
+                        searchBuilder: beerList.length === 0 && state.beerList.length === 0
+                            ? Just(SearchBuilder.init(
+                                state.filtering.name.getOrElse(''),
+                                state.filtering.brewedAfter.map(date => ({
+                                    month: Month.fromDate(date),
+                                    year: date.getFullYear()
+                                }))
+                            ))
+                            : Nothing
                     })
                 }),
                 Cmd.none
             ];
+        }
+
+        case 'ACTION_SEARCH_BUILDER': {
+            return state.searchBuilder.cata({
+                Nothing: (): [ State, Cmd<Action> ] => [ state, Cmd.none ],
+
+                Just: searchBuilder => action.action.update(searchBuilder).cata({
+                    Update: (nextSearchBuilder): [ State, Cmd<Action> ] => [
+                        { ...state, searchBuilder: Just(nextSearchBuilder) },
+                        Cmd.none
+                    ],
+
+                    Search: (search): [ State, Cmd<Action> ] => [
+                        state,
+                        Router.push(Router.ToBeerSearch(search.name, search.brewedAfter))
+                    ]
+                })
+            });
         }
     }
 };
@@ -228,6 +262,17 @@ export class View extends React.Component<{
                             <div>There are no beer for the current filters</div>
                         );
                     }
+                })}
+
+                {state.searchBuilder.cata({
+                    Nothing: () => null,
+                    Just: searchBuilder => (
+                        <SearchBuilder.View
+                            disabled={state.loading.isLoading()}
+                            state={searchBuilder}
+                            dispatch={compose(dispatch, ActionSearchBuilder)}
+                        />
+                    )
                 })}
             </div>
         );

@@ -1,4 +1,4 @@
-import { Maybe } from 'frctl/dist/src/Maybe';
+import { Maybe, Just, Nothing } from 'frctl/dist/src/Maybe';
 import * as Decode from 'frctl/dist/src/Json/Decode';
 import * as Http from './Http';
 
@@ -27,6 +27,24 @@ export type LoadFilter = Readonly<{
     brewedAfter: Maybe<Date>;
 }>;
 
+const nameToQuery = (name: string): Maybe<string> => {
+    const trimmed = name.trim();
+
+    if (!trimmed.length) {
+        return Nothing;
+    }
+
+    return Just(trimmed.replace(/\s+/g, '_'));
+};
+
+const dateToQuery = (date: Date): string => {
+    return date.toLocaleDateString().slice(3).replace('/', '_');
+};
+
+const query = (key: string) => (value: string): [ string, string ] => [ key, value ];
+
+const arraySingleton = <T>(el: T): Array<T> => [ el ];
+
 export const loadBeerList = (
     filter: LoadFilter,
     beersPerPage: number,
@@ -35,12 +53,20 @@ export const loadBeerList = (
     return Http.get(PUNK_ENDPOINT)
         .withQueryParam('page', pageNumber.toString())
         .withQueryParam('per_page', beersPerPage.toString())
-        .withQueryParams(filter.name.map((name: string): Array<[string, string]> => [
-            ['beer_name', name]
-        ]).getOrElse([]))
-        .withQueryParams(filter.brewedAfter.map((brewedAfter: Date): Array<[ string, string ]> => [
-            [ 'brewed_after', brewedAfter.toLocaleDateString().slice(3) ]
-        ]).getOrElse([]))
+        .withQueryParams(
+            filter.name
+                .chain(nameToQuery)
+                .map(query('beer_name'))
+                .map(arraySingleton)
+                .getOrElse([])
+        )
+        .withQueryParams(
+            filter.brewedAfter
+                .map(dateToQuery)
+                .map(query('brewed_after'))
+                .map(arraySingleton)
+                .getOrElse([])
+        )
         .withExpect(Http.expectJson(Decode.list(beerDecoder)));
 };
 

@@ -9,7 +9,11 @@ export class Month {
             return Nothing;
         }
 
-        return Just(Month.YEAR[index - 1]);
+        return Just(Month.YEAR[ index - 1 ]);
+    }
+
+    public static fromDate(date: Date): Month {
+        return Month.YEAR[ date.getMonth() ];
     }
 
     public static year(): Array<Month> {
@@ -149,27 +153,33 @@ export type Selected = Readonly<{
 }>;
 
 const MonthView: React.FC<{
+    disabled?: boolean;
     selected: boolean;
     month: Month;
     dispatch(action: Action): void;
-}> = ({ selected, month, dispatch }) => (
-    <li
+}> = ({ disabled, selected, month, dispatch }) => (
+    <button
+        type="button"
+        disabled={disabled || selected}
         onClick={() => dispatch(selected ? new UnselectMonth() : new SelectMonth(month))}
-    >{selected ? (
-        <b>{month.toShortName()}</b>
-    ) : month.toShortName()}
-    </li>
+    >
+        {selected ? (
+            <b>{month.toShortName()}</b>
+        ) : month.toShortName()}
+    </button>
 );
 
 export const View: React.FC<{
+    disabled?: boolean;
     selected: Maybe<Selected>;
     state: State;
     dispatch(action: Action): void;
-}> = ({ selected, state, dispatch }) => (
+}> = ({ disabled, selected, state, dispatch }) => (
     <div>
         <header>
             <button
                 type="button"
+                disabled={disabled}
                 onClick={() => dispatch(ChangeYear.PREV)}
             >prev</button>
 
@@ -177,19 +187,22 @@ export const View: React.FC<{
 
             <button
                 type="button"
+                disabled={disabled}
                 onClick={() => dispatch(ChangeYear.NEXT)}
-                >next</button>
+            >next</button>
         </header>
         <ul>
             {Month.year().map((month: Month) => (
-                <MonthView
-                    key={month.toShortName()}
-                    selected={selected.map(
-                        (selected: Selected) => selected.year === state.year && selected.month.isEqual(month)
-                    ).getOrElse(false)}
-                    month={month}
-                    dispatch={dispatch}
-                />
+                <li key={month.toShortName()}>
+                    <MonthView
+                        disabled={disabled}
+                        selected={selected.map(
+                            (selected: Selected) => selected.year === state.year && selected.month.isEqual(month)
+                        ).getOrElse(false)}
+                        month={month}
+                        dispatch={dispatch}
+                    />
+                </li>
             ))}
         </ul>
     </div>

@@ -20,16 +20,6 @@ import {
 } from 'frctl/dist/src/Maybe';
 import { Cmd } from 'Cmd';
 
-const spacesToUnderscore = (str: string): Maybe<string> => {
-    const trimmed = str.trim();
-
-    if (!trimmed.length) {
-        return Nothing;
-    }
-
-    return Just(trimmed.replace(/\s+/g, '_'));
-};
-
 const percentDecode = (str: string): Maybe<string> => {
     try {
         return Just(decodeURIComponent(str));
@@ -57,7 +47,7 @@ export const ToBeerSearch = (name: Maybe<string>, brewedAfter: Maybe<Date>): Rou
 export const ToBeerItem = (id: number): Route => ({ type: 'TO_BEER_ITEM', id });
 
 const brewedDateToString = (date: Date): string => {
-    return date.toLocaleDateString().slice(3).replace('/', '_');
+    return date.toLocaleDateString().slice(3);
 };
 
 const routeToPath = (route: Route): string => {
@@ -68,8 +58,8 @@ const routeToPath = (route: Route): string => {
 
         case 'TO_BEER_SEARCH': {
             const queryBuilder: Array<[ string, Maybe<string> ]> = [
-                [ 'name', route.name.chain(spacesToUnderscore).map(percentEncode) ],
-                [ 'bra', route.brewedAfter.map(brewedDateToString) ]
+                [ 'name', route.name.map(percentEncode) ],
+                [ 'bra', route.brewedAfter.map(brewedDateToString).map(percentEncode) ]
             ];
             const queryList = queryBuilder.reduce(
                 (acc, [ key, value ]) => value.map((val: string) => [ `${key}=${val}`, ...acc ]).getOrElse(acc),
@@ -142,9 +132,9 @@ export const View: React.FC<{
                     const bra = Array.isArray(qs.bra) ? qs.bra[0] : qs.bra;
 
                     onChange(ToBeerSearch(
-                        Maybe.fromNullable(name).chain((val: string) => val ? percentDecode(val) : Nothing),
-                        Maybe.fromNullable(bra).chain((val: string) => {
-                            const fr = val.split('_');
+                        Maybe.fromNullable(name).chain(percentDecode),
+                        Maybe.fromNullable(bra).chain(percentDecode).chain((val: string) => {
+                            const fr = val.split('/');
 
                             if (fr.length !== 2) {
                                 return Nothing;
