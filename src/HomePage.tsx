@@ -13,18 +13,20 @@ import * as MonthPicker from './MonthPicker';
 import { compose } from 'redux';
 
 export type Action
-    = Readonly<{ type: 'CHANGE_QUERY'; q: string }>
+    = Readonly<{ type: 'CHANGE_NAME'; name: string }>
+    | Readonly<{ type: 'CHANGE_BREWED_AFTER'; brewedAfter: string }>
     | Readonly<{ type: 'SEARCH' }>
     | Readonly<{ type: 'ACTION_MONTH_PICKER'; action: MonthPicker.Action }>
     ;
 
 const Search: Action = { type: 'SEARCH' };
-const ChangeQuery = (q: string): Action => ({ type: 'CHANGE_QUERY', q });
+const ChangeName = (name: string): Action => ({ type: 'CHANGE_NAME', name });
+const ChangeBrewedAfter = (brewedAfter: string): Action => ({ type: 'CHANGE_BREWED_AFTER', brewedAfter });
 const ActionMonthPicker = (action: MonthPicker.Action): Action => ({ type: 'ACTION_MONTH_PICKER', action });
 
 export type State = Readonly<{
     query: string;
-    brewedAfter: Maybe<MonthPicker.Selected>;
+    brewedAfter: string;
     monthPicker: MonthPicker.State;
 }>;
 
@@ -32,20 +34,42 @@ const selectedMonthToString = (selected: MonthPicker.Selected): string => {
     return `${selected.month.toIndex().toString().padStart(2, '0')}/${selected.year}`;
 };
 
+const selectedMonthFromString = (str: string): Maybe<MonthPicker.Selected> => {
+    const fragments = str.trim().split(/\/|\s|-|_/g);
+
+    if (fragments.length !== 2) {
+        return Nothing;
+    }
+
+    const [ monthIndex, year ] = [ Number(fragments[0]), Number(fragments[1]) ];
+
+    return Maybe.props({
+        month: isNaN(monthIndex) ? Nothing : MonthPicker.Month.fromIndex(monthIndex),
+        year: isNaN(year) ? Nothing : Just(year)
+    });
+};
+
 export const init = (): [ State, Cmd<Action> ] => [
     {
         query: '',
-        brewedAfter: Nothing,
-        monthPicker: MonthPicker.init(2019)
+        brewedAfter: '',
+        monthPicker: MonthPicker.init(2010)
     },
     Cmd.none
 ];
 
 export const update = (action: Action, state: State): [ State, Cmd<Action> ] => {
     switch (action.type) {
-        case 'CHANGE_QUERY': {
+        case 'CHANGE_NAME': {
             return [
-                { ...state, query: action.q },
+                { ...state, query: action.name },
+                Cmd.none
+            ];
+        }
+
+        case 'CHANGE_BREWED_AFTER': {
+            return [
+                { ...state, brewedAfter: action.brewedAfter },
                 Cmd.none
             ];
         }
@@ -55,7 +79,7 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
                 state,
                 Router.push(Router.ToBeerSearch(
                     Just(state.query),
-                    state.brewedAfter.map(
+                    selectedMonthFromString(state.brewedAfter).map(
                         (selected: MonthPicker.Selected): Date => selected.month.toDate(selected.year)
                     )
                 ))
@@ -72,12 +96,12 @@ export const update = (action: Action, state: State): [ State, Cmd<Action> ] => 
 
                     Select: (brewedAfter: MonthPicker.Selected) => ({
                         ...state,
-                        brewedAfter: Just(brewedAfter)
+                        brewedAfter: selectedMonthToString(brewedAfter)
                     }),
 
                     Unselect: () => ({
                         ...state,
-                        brewedAfter: Nothing
+                        brewedAfter: ''
                     })
                 }),
                 Cmd.none
@@ -105,7 +129,7 @@ export const View: React.FC<{
                     value={state.query}
                     tabIndex={0}
                     onChange={(event: React.ChangeEvent<FormControlProps>) => {
-                        dispatch(ChangeQuery(event.currentTarget.value || ''));
+                        dispatch(ChangeName(event.currentTarget.value || ''));
                     }}
                     placeholder="Search for a beer"
                 />
@@ -123,18 +147,17 @@ export const View: React.FC<{
             <InputGroup>
                 <FormControl
                     type="text"
-                    value={state.brewedAfter.map(selectedMonthToString).getOrElse('')}
+                    value={state.brewedAfter}
                     tabIndex={0}
-                    onChange={() => {
-                        // tslint:disable-next-line:no-console
-                        console.log('change');
+                    onChange={(event: React.ChangeEvent<FormControlProps>) => {
+                        dispatch(ChangeBrewedAfter(event.currentTarget.value || ''));
                     }}
                     placeholder="mm/yyyy"
                 />
             </InputGroup>
         </form>
         <MonthPicker.View
-            selected={state.brewedAfter}
+            selected={selectedMonthFromString(state.brewedAfter)}
             state={state.monthPicker}
             dispatch={compose(dispatch, ActionMonthPicker)}
         />

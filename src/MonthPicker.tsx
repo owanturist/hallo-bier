@@ -1,10 +1,14 @@
 import React from 'react';
 
-import { Maybe } from 'frctl/dist/src/Maybe';
+import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 
 export class Month {
-    public static fromIndex(index: number) {
-        return Month.YEAR[Math.max(1, index - 1) % 12];
+    public static fromIndex(index: number): Maybe<Month> {
+        if (index % 1 !== 0 || index < 0 || index > 12) {
+            return Nothing;
+        }
+
+        return Just(Month.YEAR[index - 1]);
     }
 
     public static year(): Array<Month> {
