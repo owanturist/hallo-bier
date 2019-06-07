@@ -1,15 +1,14 @@
 import React from 'react';
-
-import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
+import Button from 'react-bootstrap/Button';
+import InputGroup from 'react-bootstrap/InputGroup';
+import FormControl, { FormControlProps } from 'react-bootstrap/FormControl';
+import { Maybe } from 'frctl/dist/src/Maybe';
 import * as Utils from './Utils';
+import styles from './MonthPicker.module.css';
 
 export class Month {
-    public static fromIndex(index: number): Maybe<Month> {
-        if (index % 1 !== 0 || index < 1 || index > 12) {
-            return Nothing;
-        }
-
-        return Just(Month.YEAR[ index - 1 ]);
+    public static fromIndex(index: number): Month {
+        return Month.YEAR[ Math.max(0, index - 1) % 12 ];
     }
 
     public static fromDate(date: Date): Month {
@@ -61,8 +60,16 @@ export class Month {
         return new Date(`${this.index}/01/${year}`);
     }
 
-    public isEqual(another: Month) {
+    public isEqual(another: Month): boolean {
         return this.index === another.index;
+    }
+
+    public isLess(another: Month): boolean {
+        return this.index < another.index;
+    }
+
+    public isMore(another: Month): boolean {
+        return this.index > another.index;
     }
 }
 
@@ -116,11 +123,33 @@ class Unselect extends Stage {
 
 export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
+class SetYear extends Action {
+    public constructor(
+        private readonly min: Maybe<number>,
+        private readonly max: Maybe<number>,
+        private readonly year: number
+    ) {
+        super();
+    }
+
+    public update(state: State): Stage {
+        return new Update({
+            ...state,
+            year: isNaN(this.year)
+                ? state.year
+                : Math.max(
+                    this.min.getOrElse(this.year),
+                    Math.min(this.max.getOrElse(this.year), this.year)
+                )
+        });
+    }
+}
+
 class ChangeYear extends Action {
     public static readonly PREV: Action = new ChangeYear(-1);
     public static readonly NEXT: Action = new ChangeYear(1);
 
-    public constructor(private readonly delta: number) {
+    private constructor(private readonly delta: number) {
         super();
     }
 
@@ -158,44 +187,71 @@ const MonthView: React.FC<{
     month: Month;
     dispatch(action: Action): void;
 }> = ({ disabled, selected, month, dispatch }) => (
-    <button
-        type="button"
+    <Button
+        block
+        variant={selected ? 'outline-success' : 'outline-dark'}
         disabled={disabled}
         onClick={() => dispatch(selected ? new UnselectMonth() : new SelectMonth(month))}
     >
         {selected ? (
             <b>{month.toShortName()}</b>
         ) : month.toShortName()}
-    </button>
+    </Button>
 );
 
 export const View: React.FC<{
+    min?: [ Month, number ];
+    max?: [ Month, number ];
     disabled?: boolean;
     selected: Maybe<Selected>;
     state: State;
     dispatch(action: Action): void;
-}> = ({ disabled, selected, state, dispatch }) => (
+}> = ({ min, max, disabled, selected, state, dispatch }) => (
     <div>
-        <header>
-            <button
-                type="button"
-                disabled={disabled}
-                onClick={() => dispatch(ChangeYear.PREV)}
-            >prev</button>
+        <InputGroup>
+            <InputGroup.Prepend>
+                <Button
+                    variant="outline-secondary"
+                    disabled={disabled || state.year <= (min ? min[1] : 0)}
+                    tabIndex={0}
+                    onClick={() => dispatch(ChangeYear.PREV)}
+                >&lt;</Button>
+            </InputGroup.Prepend>
 
-            <span>{state.year}</span>
+            <FormControl
+                className="text-center"
+                type="number"
+                min={min ? min[1] : 0}
+                max={max && max[1]}
+                value={state.year.toString()}
+                tabIndex={0}
+                onChange={(event: React.FormEvent<FormControlProps>) => {
+                    dispatch(new SetYear(
+                        Maybe.fromNullable(min).map(([ _, year ]) => year),
+                        Maybe.fromNullable(max).map(([ _, year ]) => year),
+                        Number(event.currentTarget.value)
+                    ));
+                }}
+            />
 
-            <button
-                type="button"
-                disabled={disabled}
-                onClick={() => dispatch(ChangeYear.NEXT)}
-            >next</button>
-        </header>
-        <ul>
+            <InputGroup.Append>
+                <Button
+                    variant="outline-secondary"
+                    disabled={disabled || (max && state.year >= max[1])}
+                    tabIndex={0}
+                    onClick={() => dispatch(ChangeYear.NEXT)}
+                >&gt;</Button>
+            </InputGroup.Append>
+        </InputGroup>
+
+        <ul className={styles.monthList}>
             {Month.year().map((month: Month) => (
-                <li key={month.toShortName()}>
+                <li key={month.toShortName()} className={styles.month}>
                     <MonthView
-                        disabled={disabled}
+                        disabled={disabled || Maybe.fromNullable(max)
+                                .map(([ m, y ]) => state.year >= y && month.isMore(m))
+                                .getOrElse(false)
+                        }
                         selected={selected.map(
                             (selected: Selected) => selected.year === state.year && selected.month.isEqual(month)
                         ).getOrElse(false)}

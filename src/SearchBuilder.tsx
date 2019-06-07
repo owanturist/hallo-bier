@@ -35,7 +35,9 @@ const selectedMonthFromString = (str: string): Maybe<MonthPicker.Selected> => {
     const [ monthIndex, year ] = [ Number(fragments[0]), Number(fragments[1]) ];
 
     return Maybe.props({
-        month: isNaN(monthIndex) ? Nothing : MonthPicker.Month.fromIndex(monthIndex),
+        month: isNaN(monthIndex) && monthIndex > 0 && monthIndex < 13
+            ? Nothing
+            : Just(MonthPicker.Month.fromIndex(monthIndex)),
         year: isNaN(year) ? Nothing : Just(year)
     });
 };
@@ -200,6 +202,8 @@ export const View: React.FC<{
         </InputGroup>
 
         <MonthPicker.View
+            min={[ MonthPicker.Month.fromIndex(1), 0 ]}
+            max={[ MonthPicker.Month.fromIndex(6), 2019 ]}
             selected={selectedMonthFromString(state.brewedAfter)}
             disabled={disabled}
             state={state.monthPicker}
