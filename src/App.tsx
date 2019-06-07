@@ -3,6 +3,7 @@ import { compose } from 'redux';
 import { Cmd } from 'Cmd';
 import { Cata } from 'frctl/dist/src/Basics';
 import Container from 'react-bootstrap/Container';
+import Navbar from 'react-bootstrap/Navbar';
 import * as Utils from './Utils';
 import * as Router from './Router';
 import * as HomePage from './HomePage';
@@ -274,8 +275,16 @@ export const View: React.FC<{
     dispatch(action: Action): void;
 }> = ({ state, dispatch }) => (
     <Router.View onChange={compose(dispatch, RouteChanged.cons)}>
-        <Container fluid className={styles.container}>
-            <PageView page={state.page} dispatch={dispatch} />
-        </Container>
+        <Navbar bg="warning" expand="lg">
+            <Container fluid className={styles.navbar}>
+                <Navbar.Brand as={Router.Link} to={Router.ToHome}>Hallo Bier</Navbar.Brand>
+            </Container>
+        </Navbar>
+
+        <div className={`bg-light ${styles.scroller}`}>
+            <Container fluid className={`bg-white pt-3 ${styles.container}`}>
+                <PageView page={state.page} dispatch={dispatch} />
+            </Container>
+        </div>
     </Router.View>
 );
