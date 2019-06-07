@@ -5,6 +5,7 @@ import { Nothing } from 'frctl/dist/src/Maybe';
 import * as Utils from './Utils';
 import * as SearchBuilder from './SearchBuilder';
 import * as Router from './Router';
+import * as MonthPicker from './MonthPicker';
 
 export interface State {
     searchBuilder: SearchBuilder.State;
@@ -45,6 +46,8 @@ export const View: React.FC<{
     dispatch(action: Action): void;
 }> = ({ state, dispatch }) => (
     <SearchBuilder.View
+        minBrewedAfter={[ MonthPicker.Month.Sep, 0 ]}
+        maxBrewedAfter={[ MonthPicker.Month.Jul, 2019 ]}
         state={state.searchBuilder}
         dispatch={compose(dispatch, ActionSearchBuilder.cons)}
     />

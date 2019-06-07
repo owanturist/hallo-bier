@@ -86,6 +86,8 @@ export interface State {
     year: number;
 }
 
+export const setYear = (year: number, state: State): State => ({ ...state, year });
+
 export const init = (year: number): State => ({ year });
 
 interface StagePattern<R> {
@@ -217,10 +219,10 @@ export const View: React.FC<{
     dispatch(action: Action): void;
 }> = ({ min, max, disabled, selected, state, dispatch }) => (
     <div>
-        <InputGroup>
+        <InputGroup className="mb-1">
             <InputGroup.Prepend>
                 <Button
-                    variant="outline-secondary"
+                    variant="outline-primary"
                     disabled={disabled || state.year <= (min ? min[1] : 0)}
                     tabIndex={0}
                     onClick={() => dispatch(ChangeYear.PREV)}
@@ -245,7 +247,7 @@ export const View: React.FC<{
 
             <InputGroup.Append>
                 <Button
-                    variant="outline-secondary"
+                    variant="outline-primary"
                     disabled={disabled || (max && state.year >= max[1])}
                     tabIndex={0}
                     onClick={() => dispatch(ChangeYear.NEXT)}
@@ -259,10 +261,10 @@ export const View: React.FC<{
                     <MonthView
                         disabled={disabled
                             || Maybe.fromNullable(min)
-                                .map(([ m, y ]) => state.year <= y && month.isLess(m))
+                                .map(([ m, y ]) => state.year < y || (state.year === y && month.isLess(m)))
                                 .getOrElse(false)
                             || Maybe.fromNullable(max)
-                                .map(([ m, y ]) => state.year >= y && month.isMore(m))
+                                .map(([ m, y ]) => state.year > y || (state.year === y && month.isMore(m)))
                                 .getOrElse(false)
                         }
                         selected={selected.map(
