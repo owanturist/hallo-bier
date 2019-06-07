@@ -2,13 +2,30 @@ import React from 'react';
 import Button from 'react-bootstrap/Button';
 import InputGroup from 'react-bootstrap/InputGroup';
 import FormControl, { FormControlProps } from 'react-bootstrap/FormControl';
-import { Maybe } from 'frctl/dist/src/Maybe';
+import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import * as Utils from './Utils';
 import styles from './MonthPicker.module.css';
 
 export class Month {
-    public static fromIndex(index: number): Month {
-        return Month.YEAR[ Math.max(0, index - 1) % 12 ];
+    public static Jan: Month = new Month(1, 'Jan', 'January');
+    public static Feb: Month = new Month(2, 'Feb', 'February');
+    public static Mar: Month = new Month(3, 'Mar', 'March');
+    public static Apr: Month = new Month(4, 'Apr', 'April');
+    public static May: Month = new Month(5, 'May', 'May');
+    public static Jun: Month = new Month(6, 'Jun', 'June');
+    public static Jul: Month = new Month(7, 'Jul', 'July');
+    public static Aug: Month = new Month(8, 'Aug', 'August');
+    public static Sep: Month = new Month(9, 'Sep', 'September');
+    public static Oct: Month = new Month(10, 'Oct', 'October');
+    public static Nov: Month = new Month(11, 'Nov', 'November');
+    public static Dec: Month = new Month(12, 'Dec', 'December');
+
+    public static fromIndex(index: number): Maybe<Month> {
+        if (index % 1 !== 0 || index < 1 || index > 12) {
+            return Nothing;
+        }
+
+        return Just(Month.YEAR[ index - 1 ]);
     }
 
     public static fromDate(date: Date): Month {
@@ -20,18 +37,10 @@ export class Month {
     }
 
     protected static YEAR: Array<Month> = [
-        new Month(1, 'Jan', 'January'),
-        new Month(2, 'Feb', 'February'),
-        new Month(3, 'Mar', 'March'),
-        new Month(4, 'Apr', 'April'),
-        new Month(5, 'May', 'May'),
-        new Month(6, 'Jun', 'June'),
-        new Month(7, 'Jul', 'July'),
-        new Month(8, 'Aug', 'August'),
-        new Month(9, 'Sep', 'September'),
-        new Month(10, 'Oct', 'October'),
-        new Month(11, 'Nov', 'November'),
-        new Month(12, 'Dec', 'December')
+        Month.Jan, Month.Feb, Month.Mar,
+        Month.Apr, Month.May, Month.Jun,
+        Month.Jul, Month.Aug, Month.Sep,
+        Month.Oct, Month.Nov, Month.Dec
     ];
 
     protected constructor(
@@ -189,7 +198,7 @@ const MonthView: React.FC<{
 }> = ({ disabled, selected, month, dispatch }) => (
     <Button
         block
-        variant={selected ? 'outline-success' : 'outline-dark'}
+        variant={selected ? 'dark' : 'outline-dark'}
         disabled={disabled}
         onClick={() => dispatch(selected ? new UnselectMonth() : new SelectMonth(month))}
     >
@@ -248,7 +257,11 @@ export const View: React.FC<{
             {Month.year().map((month: Month) => (
                 <li key={month.toShortName()} className={styles.month}>
                     <MonthView
-                        disabled={disabled || Maybe.fromNullable(max)
+                        disabled={disabled
+                            || Maybe.fromNullable(min)
+                                .map(([ m, y ]) => state.year <= y && month.isLess(m))
+                                .getOrElse(false)
+                            || Maybe.fromNullable(max)
                                 .map(([ m, y ]) => state.year >= y && month.isMore(m))
                                 .getOrElse(false)
                         }
