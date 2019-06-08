@@ -2,20 +2,30 @@ import React from 'react';
 import { compose } from 'redux';
 import { Cmd } from 'Cmd';
 import { Cata } from 'frctl/dist/src/Basics';
+import { Nothing, Just } from 'frctl/dist/src/Maybe';
 import Container from 'react-bootstrap/Container';
-import Navbar from 'react-bootstrap/Navbar';
 import * as Utils from './Utils';
 import * as Router from './Router';
+import * as Header from './Header';
 import * as HomePage from './HomePage';
 import * as BeerPage from './BeerPage';
 import * as BeerListPage from './BeerListPage';
+import { Month } from './MonthPicker';
 import styles from 'App.module.css';
+
+const brewedAfterLimits: {
+    minBrewedAfter: [ Month, number ];
+    maxBrewedAfter: [ Month, number ];
+} = {
+    minBrewedAfter: [ Month.Sep, 0 ],
+    maxBrewedAfter: [ Month.Jul, 2019 ]
+};
 
 type PagePattern<R> = Cata<{
     PageVoid(): R;
     PageHome(homePage: HomePage.State): R;
     PageBeer(beerPage: BeerPage.State): R;
-    PageBeerList(beerListPage: BeerListPage.State): R;
+    PageBeerList(filter: Router.SearchFilter, beerListPage: BeerListPage.State): R;
 }>;
 
 abstract class Page {
@@ -35,11 +45,11 @@ abstract class Page {
                 ];
             },
 
-            ToBeerSearch: (name, brewedAfter): [ Page, Cmd<Action> ] => {
-                const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(10, { name, brewedAfter });
+            ToBeerSearch: (filter): [ Page, Cmd<Action> ] => {
+                const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(10, filter);
 
                 return [
-                    new PageBeerList(initialBeerList),
+                    new PageBeerList(filter, initialBeerList),
                     cmdOfBeerList.map(ActionBeerListPage.cons)
                 ];
             }
@@ -47,25 +57,6 @@ abstract class Page {
     }
 
     public abstract cata<R>(pattern: PagePattern<R>): R;
-
-    public updateHomePage(_action: HomePage.Action): [ State, Cmd<Action> ] {
-        return this.noop();
-    }
-
-    public updateBeerPage(_action: BeerPage.Action): [ State, Cmd<Action> ] {
-        return this.noop();
-    }
-
-    public updateBeerListPage(_action: BeerListPage.Action): [ State, Cmd<Action> ] {
-        return this.noop();
-    }
-
-    private noop(): [ State, Cmd<Action> ] {
-        return [
-            { page: this },
-            Cmd.none
-        ];
-    }
 }
 
 class VoidPage extends Page {
@@ -83,15 +74,6 @@ class PageHome extends Page {
         super();
     }
 
-    public updateHomePage(action: HomePage.Action): [ State, Cmd<Action> ] {
-        const [ nextHomePage, cmdOfHomePage ] = action.update(this.homePage);
-
-        return [
-            { page: new PageHome(nextHomePage) },
-            cmdOfHomePage.map(ActionHomePage.cons)
-        ];
-    }
-
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageHome === 'function') {
             return pattern.PageHome(this.homePage);
@@ -106,13 +88,6 @@ class PageBeer extends Page {
         super();
     }
 
-    public updateBeerPage(action: BeerPage.Action): [ State, Cmd<Action> ] {
-        return [
-            { page: new PageBeer(action.update(this.beerPage)) },
-            Cmd.none
-        ];
-    }
-
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageBeer === 'function') {
             return pattern.PageBeer(this.beerPage);
@@ -123,22 +98,16 @@ class PageBeer extends Page {
 }
 
 class PageBeerList extends Page {
-    public constructor(private readonly beerListPage: BeerListPage.State) {
+    public constructor(
+        private readonly filter: Router.SearchFilter,
+        private readonly beerListPage: BeerListPage.State
+    ) {
         super();
-    }
-
-    public updateBeerListPage(action: BeerListPage.Action): [ State, Cmd<Action> ] {
-        const [ nextBeerListPage, cmdOfBeerListPage ] = action.update(this.beerListPage);
-
-        return [
-            { page: new PageBeerList(nextBeerListPage) },
-            cmdOfBeerListPage.map(ActionBeerListPage.cons)
-        ];
     }
 
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageBeerList === 'function') {
-            return pattern.PageBeerList(this.beerListPage);
+            return pattern.PageBeerList(this.filter, this.beerListPage);
         }
 
         return (pattern._ as () => R)();
@@ -146,11 +115,15 @@ class PageBeerList extends Page {
 }
 
 export interface State {
+    header: Header.State;
     page: Page;
 }
 
 export const init = (): [ State, Cmd<Action> ] => [
-    { page: new VoidPage() },
+    {
+        header: Header.init(),
+        page: new VoidPage()
+    },
     Cmd.none
 ];
 
@@ -165,10 +138,29 @@ class RouteChanged extends Action {
         super();
     }
 
-    public update(): [ State, Cmd<Action> ] {
+    public update(state: State): [ State, Cmd<Action> ] {
         const [ nextPage, cmd ] = Page.init(this.route);
 
-        return [{ page: nextPage }, cmd ];
+        return [{ ...state, page: nextPage }, cmd ];
+    }
+}
+
+class ActionHeader extends Action {
+    public static cons(action: Header.Action): Action {
+        return new ActionHeader(action);
+    }
+
+    private constructor(private readonly action: Header.Action) {
+        super();
+    }
+
+    public update(state: State): [ State, Cmd<Action> ] {
+        const [ nextHeader, cmdOfHeader ] = this.action.update(state.header);
+
+        return [
+            { ...state, header: nextHeader },
+            cmdOfHeader.map(ActionHeader.cons)
+        ];
     }
 }
 
@@ -187,7 +179,7 @@ class ActionHomePage extends Action {
                 const [ nextHomePage, cmdOfHomePage ] = this.action.update(homePage);
 
                 return [
-                    { page: new PageHome(nextHomePage) },
+                    { ...state, page: new PageHome(nextHomePage) },
                     cmdOfHomePage.map(ActionHomePage.cons)
                 ];
             },
@@ -210,7 +202,7 @@ class ActionBeerPage extends Action {
         return state.page.cata<[ State, Cmd<Action> ]>({
             PageBeer: beerPage => {
                 return [
-                    { page: new PageBeer(this.action.update(beerPage)) },
+                    { ...state, page: new PageBeer(this.action.update(beerPage)) },
                     Cmd.none
                 ];
             },
@@ -231,11 +223,11 @@ class ActionBeerListPage extends Action {
 
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({
-            PageBeerList: beerListPage => {
-                const [ nextBeerListPage, cmdOfBeerListPage ] = this.action.update(beerListPage);
+            PageBeerList: (filter, beerListPage) => {
+                const [ nextBeerListPage, cmdOfBeerListPage ] = this.action.update(filter, beerListPage);
 
                 return [
-                    { page: new PageBeerList(nextBeerListPage) },
+                    { ...state, page: new PageBeerList(filter, nextBeerListPage) },
                     cmdOfBeerListPage.map(ActionBeerListPage.cons)
                 ];
             },
@@ -256,6 +248,7 @@ const PageView: React.FC<{
         <HomePage.View
             state={homePage}
             dispatch={compose(dispatch, ActionHomePage.cons)}
+            {...brewedAfterLimits}
         />
     ),
 
@@ -263,7 +256,7 @@ const PageView: React.FC<{
         <BeerPage.View state={beerPage} />
     ),
 
-    PageBeerList: beerListPage => (
+    PageBeerList: (_filter, beerListPage) => (
         <BeerListPage.View
             scroller={scroller}
             state={beerListPage}
@@ -280,14 +273,19 @@ export class View extends React.PureComponent<{
 
     public render() {
         const { state, dispatch } = this.props;
+        const filter = state.page.cata({
+            PageBeerList: f => Just(f),
+            _: () => Nothing
+        });
 
         return (
             <Router.View onChange={compose(dispatch, RouteChanged.cons)}>
-                <Navbar bg="warning" expand="lg">
-                    <Container fluid className={styles.navbar}>
-                        <Navbar.Brand as={Router.Link} to={Router.ToHome}>Hallo Bier</Navbar.Brand>
-                    </Container>
-                </Navbar>
+                <Header.View
+                    filter={filter}
+                    state={state.header}
+                    dispatch={compose(dispatch, ActionHeader.cons)}
+                    {...brewedAfterLimits}
+                />
 
                 <div className={`bg-light ${styles.scroller}`} ref={this.scroller}>
                     <Container fluid className={`bg-white pt-3 ${styles.container}`}>

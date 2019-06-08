@@ -49,14 +49,9 @@ export const init = (
     monthPicker: Nothing
 });
 
-interface SearchConfig {
-    name: Maybe<string>;
-    brewedAfter: Maybe<Date>;
-}
-
 interface StagePattern<R> {
     Update(nextSearchBuilder: State): R;
-    Search(config: SearchConfig): R;
+    Search(config: Router.SearchFilter): R;
 }
 
 export abstract class Stage {
@@ -311,9 +306,10 @@ export const View: React.FC<{
     minBrewedAfter?: [ MonthPicker.Month, number ];
     maxBrewedAfter?: [ MonthPicker.Month, number ];
     disabled?: boolean;
+    compact?: boolean;
     state: State;
     dispatch(action: Action): void;
-}> = ({ minBrewedAfter, maxBrewedAfter, disabled, state, dispatch }) => (
+}> = ({ minBrewedAfter, maxBrewedAfter, disabled, compact, state, dispatch }) => (
     <Form
         noValidate
         onSubmit={(event: React.FormEvent) => {
@@ -323,8 +319,11 @@ export const View: React.FC<{
         }}
     >
         <Form.Row>
-            <Form.Group as={Col} sm="7">
-                <Form.Label>Beer name</Form.Label>
+            <Form.Group as={Col} sm="7" className="m-0">
+                {!compact && (
+                    <Form.Label>Beer name</Form.Label>
+                )}
+
                 <Form.Control
                     type="search"
                     value={state.name}
@@ -335,15 +334,24 @@ export const View: React.FC<{
                     }}
                     placeholder="Search for a beer"
                 />
-                <Form.Text>
-                    <Router.Link to={Router.ToBeerSearch(Nothing, Nothing)}>
-                        Explore all beer
-                    </Router.Link>
-                </Form.Text>
+
+                {!compact && (
+                    <Form.Text>
+                        <Router.Link to={Router.ToBeerSearch({
+                            name: Nothing,
+                            brewedAfter: Nothing
+                        })}>
+                            Explore all beer
+                        </Router.Link>
+                    </Form.Text>
+                )}
             </Form.Group>
 
-            <Form.Group as={Col} sm="3">
-                <Form.Label>Brewed after</Form.Label>
+            <Form.Group as={Col} sm="3" className="m-0">
+                {!compact && (
+                    <Form.Label>Brewed after</Form.Label>
+                )}
+
                 <ViewMonthpicker
                     disabled={disabled}
                     min={minBrewedAfter}
@@ -354,8 +362,11 @@ export const View: React.FC<{
                 />
             </Form.Group>
 
-            <Form.Group as={Col}>
-                <Form.Label>&nbsp;</Form.Label>
+            <Form.Group as={Col} className="m-0">
+                {!compact && (
+                    <Form.Label className="d-none d-sm-block">&nbsp;</Form.Label>
+                )}
+
                 <Button
                     type="submit"
                     block

@@ -13,20 +13,22 @@ import {
     createBrowserHistory
 } from 'history';
 import queryString from 'query-string';
-import {
-    Maybe,
-    Nothing,
-    Just
-} from 'frctl/dist/src/Maybe';
+import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import { Cata } from 'frctl/dist/src/Basics';
 import { Cmd } from 'Cmd';
 
 const history = createBrowserHistory();
 
+
+export interface SearchFilter {
+    name: Maybe<string>;
+    brewedAfter: Maybe<Date>;
+}
+
 export type RouterPattern<R> = Cata<{
     ToHome(): R;
     ToBeer(beerId: number): R;
-    ToBeerSearch(name: Maybe<string>, brewedAfter: Maybe<Date>): R;
+    ToBeerSearch(filter: SearchFilter): R;
 }>;
 
 export abstract class Route {
@@ -113,9 +115,9 @@ class ToBeerSearchRoute extends Route {
         const name = Array.isArray(qs.name) ? qs.name[0] : qs.name;
         const bra = Array.isArray(qs.bra) ? qs.bra[0] : qs.bra;
 
-        return new ToBeerSearchRoute(
-            Maybe.fromNullable(name).chain(Route.percentDecode),
-            Maybe.fromNullable(bra).chain(Route.percentDecode).chain((val: string) => {
+        return new ToBeerSearchRoute({
+            name: Maybe.fromNullable(name).chain(Route.percentDecode),
+            brewedAfter: Maybe.fromNullable(bra).chain(Route.percentDecode).chain((val: string) => {
                 const fr = val.split('/');
 
                 if (fr.length !== 2) {
@@ -124,24 +126,21 @@ class ToBeerSearchRoute extends Route {
 
                 return Just(new Date([ '01' ].concat(fr).join('/')));
             })
-        );
+        });
     }
 
     private static brewedDateToString(date: Date): string {
         return date.toLocaleDateString().slice(3);
     }
 
-    public constructor(
-        private readonly name: Maybe<string>,
-        private readonly brewedAfter: Maybe<Date>
-    ) {
+    public constructor(private readonly filter: SearchFilter) {
         super();
     }
 
     public toPath(): string {
         const queryBuilder: Array<[ string, Maybe<string> ]> = [
-            [ 'name', this.name.map(Route.percentEncode) ],
-            [ 'bra', this.brewedAfter.map(ToBeerSearchRoute.brewedDateToString).map(Route.percentEncode) ]
+            [ 'name', this.filter.name.map(Route.percentEncode) ],
+            [ 'bra', this.filter.brewedAfter.map(ToBeerSearchRoute.brewedDateToString).map(Route.percentEncode) ]
         ];
         const queryList = queryBuilder.reduce(
             (acc, [ key, value ]) => value.map((val: string) => [ `${key}=${val}`, ...acc ]).getOrElse(acc),
@@ -157,15 +156,15 @@ class ToBeerSearchRoute extends Route {
 
     public cata<R>(pattern: RouterPattern<R>): R {
         if (typeof pattern.ToBeerSearch === 'function') {
-            return pattern.ToBeerSearch(this.name, this.brewedAfter);
+            return pattern.ToBeerSearch(this.filter);
         }
 
         return (pattern._ as () => R)();
     }
 }
 
-export const ToBeerSearch = (name: Maybe<string>, brewedAfter: Maybe<Date>): Route => {
-    return new ToBeerSearchRoute(name, brewedAfter);
+export const ToBeerSearch = (filter: SearchFilter): Route => {
+    return new ToBeerSearchRoute(filter);
 };
 
 

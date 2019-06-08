@@ -3,47 +3,39 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Spinner from 'react-bootstrap/Spinner';
-import { compose } from 'redux';
 import throttle from 'lodash.throttle';
 import { RemoteData, NotAsked, Loading, Failure } from 'frctl/dist/src/RemoteData';
 import { Either } from 'frctl/dist/src/Either';
-import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import * as Http from 'Http';
 import { Cmd } from 'Cmd';
 import * as Utils from './Utils';
 import * as Router from './Router';
 import * as Api from './Api';
-import * as SearchBuilder from './SearchBuilder';
-import { Month } from './MonthPicker';
 import styles from './BeerListPage.module.css';
 
 export interface State {
     hasMore: boolean;
     beersPerPage: number;
-    filtering: Api.LoadFilter;
     beerList: Array<Api.Beer>;
     loading: RemoteData<Http.Error, never>;
-    searchBuilder: Maybe<SearchBuilder.State>;
 }
 
-export const init = (beersPerPage: number, filtering: Api.LoadFilter): [ State, Cmd<Action> ] => [
+export const init = (beersPerPage: number, filter: Router.SearchFilter): [ State, Cmd<Action> ] => [
     {
         beersPerPage,
-        filtering,
         hasMore: true,
         beerList: [],
-        loading: Loading,
-        searchBuilder: Nothing
+        loading: Loading
     },
-    Api.loadBeerList(filtering, beersPerPage, 1).send(LoadDone.cons)
+    Api.loadBeerList(filter, beersPerPage, 1).send(LoadDone.cons)
 ];
 
-export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
+export abstract class Action extends Utils.Action<[ Router.SearchFilter, State ], [ State, Cmd<Action> ]> {}
 
 class LoadMore extends Action {
     public static inst: Action = new LoadMore();
 
-    public update(state: State): [ State, Cmd<Action> ] {
+    public update(filter: Router.SearchFilter, state: State): [ State, Cmd<Action> ] {
         if (!state.hasMore || state.loading.isLoading()) {
             return [ state, Cmd.none ];
         }
@@ -51,7 +43,7 @@ class LoadMore extends Action {
         return [
             { ...state, loading: Loading },
             Api.loadBeerList(
-                state.filtering,
+                filter,
                 state.beersPerPage,
                 state.beerList.length / state.beersPerPage + 1
             ).send(LoadDone.cons)
@@ -70,7 +62,7 @@ class LoadDone extends Action {
         super();
     }
 
-    public update(state: State): [ State, Cmd<Action> ] {
+    public update(_filter: Router.SearchFilter, state: State): [ State, Cmd<Action> ] {
         return [
             this.response.cata({
                 Left: (error: Http.Error): State => ({
@@ -82,48 +74,11 @@ class LoadDone extends Action {
                     ...state,
                     hasMore: beerList.length === state.beersPerPage,
                     loading: NotAsked,
-                    beerList: state.beerList.concat(beerList),
-                    searchBuilder: beerList.length === 0 && state.beerList.length === 0
-                        ? Just(SearchBuilder.init(
-                            state.filtering.name.getOrElse(''),
-                            state.filtering.brewedAfter.map(date => ({
-                                month: Month.fromDate(date),
-                                year: date.getFullYear()
-                            }))
-                        ))
-                        : Nothing
+                    beerList: state.beerList.concat(beerList)
                 })
             }),
             Cmd.none
         ];
-    }
-}
-
-class ActionSearchBuilder extends Action {
-    public static cons(action: SearchBuilder.Action): Action {
-        return new ActionSearchBuilder(action);
-    }
-
-    private constructor(private readonly action: SearchBuilder.Action) {
-        super();
-    }
-
-    public update(state: State): [ State, Cmd<Action> ] {
-        return state.searchBuilder.cata({
-            Nothing: (): [ State, Cmd<Action> ] => [ state, Cmd.none ],
-
-            Just: searchBuilder => this.action.update(searchBuilder).cata({
-                Update: (nextSearchBuilder): [ State, Cmd<Action> ] => [
-                    { ...state, searchBuilder: Just(nextSearchBuilder) },
-                    Cmd.none
-                ],
-
-                Search: (search): [ State, Cmd<Action> ] => [
-                    state,
-                    Router.ToBeerSearch(search.name, search.brewedAfter).push()
-                ]
-            })
-        });
     }
 }
 
@@ -245,7 +200,7 @@ export class View extends React.Component<ViewProps> {
     }
 
     public render() {
-        const { state, dispatch } = this.props;
+        const { state } = this.props;
 
         return (
             <div>
@@ -273,17 +228,6 @@ export class View extends React.Component<ViewProps> {
                             <div>There are no beer for the current filters</div>
                         );
                     }
-                })}
-
-                {state.searchBuilder.cata({
-                    Nothing: () => null,
-                    Just: searchBuilder => (
-                        <SearchBuilder.View
-                            disabled={state.loading.isLoading()}
-                            state={searchBuilder}
-                            dispatch={compose(dispatch, ActionSearchBuilder.cons)}
-                        />
-                    )
                 })}
             </div>
         );

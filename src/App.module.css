@@ -3,11 +3,7 @@
     overflow-y: auto;
 }
 
-.navbar,
 .container {
     max-width: 600px;
-}
-
-.container {
     min-height: 100%;
 }

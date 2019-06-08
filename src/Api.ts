@@ -1,6 +1,7 @@
 import { Maybe, Just, Nothing } from 'frctl/dist/src/Maybe';
 import * as Decode from 'frctl/dist/src/Json/Decode';
 import * as Http from './Http';
+import { SearchFilter } from 'Router';
 
 const PUNK_ENDPOINT = 'https://api.punkapi.com/v2';
 
@@ -22,11 +23,6 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     firstBrewed: Decode.field('first_brewed', Decode.string.map((shortDate: string) => new Date(`01/${shortDate}`)))
 });
 
-export interface LoadFilter {
-    name: Maybe<string>;
-    brewedAfter: Maybe<Date>;
-}
-
 const nameToQuery = (name: string): Maybe<string> => {
     const trimmed = name.trim();
 
@@ -46,7 +42,7 @@ const query = (key: string) => (value: string): [ string, string ] => [ key, val
 const arraySingleton = <T>(el: T): Array<T> => [ el ];
 
 export const loadBeerList = (
-    filter: LoadFilter,
+    filter: SearchFilter,
     beersPerPage: number,
     pageNumber: number
 ): Http.Request<Array<Beer>> => {

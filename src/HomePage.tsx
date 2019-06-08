@@ -5,7 +5,7 @@ import { Nothing } from 'frctl/dist/src/Maybe';
 import * as Utils from './Utils';
 import * as SearchBuilder from './SearchBuilder';
 import * as Router from './Router';
-import * as MonthPicker from './MonthPicker';
+import { Month } from './MonthPicker';
 
 export interface State {
     searchBuilder: SearchBuilder.State;
@@ -33,21 +33,23 @@ class ActionSearchBuilder extends Action {
                 Cmd.none
             ],
 
-            Search: (search): [ State, Cmd<Action> ] => [
+            Search: (filter): [ State, Cmd<Action> ] => [
                 state,
-                Router.ToBeerSearch(search.name, search.brewedAfter).push()
+                Router.ToBeerSearch(filter).push()
             ]
         });
     }
 }
 
 export const View: React.FC<{
+    minBrewedAfter?: [ Month, number ];
+    maxBrewedAfter?: [ Month, number ];
     state: State;
     dispatch(action: Action): void;
-}> = ({ state, dispatch }) => (
+}> = ({ minBrewedAfter, maxBrewedAfter, state, dispatch }) => (
     <SearchBuilder.View
-        minBrewedAfter={[ MonthPicker.Month.Sep, 0 ]}
-        maxBrewedAfter={[ MonthPicker.Month.Jul, 2019 ]}
+        minBrewedAfter={minBrewedAfter}
+        maxBrewedAfter={maxBrewedAfter}
         state={state.searchBuilder}
         dispatch={compose(dispatch, ActionSearchBuilder.cons)}
     />
