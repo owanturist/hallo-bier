@@ -208,15 +208,20 @@ const ViewLoadMore: React.FC = () => (
     </div>
 );
 
-export class View extends React.Component<{
+interface ViewProps {
+    scroller: React.RefObject<HTMLElement>;
     state: State;
     dispatch(action: Action): void;
-}> {
-    private listener?: () => void;
+}
 
-    public componentDidMount() {
+export class View extends React.Component<ViewProps> {
+    protected readonly listener: () => void;
+
+    public constructor(props: ViewProps, context: any) {
+        super(props, context);
+
         this.listener = throttle(() => {
-            const el = document.scrollingElement;
+            const el = props.scroller.current;
             const { state, dispatch } = this.props;
 
             if (state.hasMore && !state.loading.isLoading()
@@ -225,13 +230,17 @@ export class View extends React.Component<{
                 dispatch(LoadMore.inst);
             }
         }, 300);
+    }
 
-        window.addEventListener('scroll', this.listener);
+    public componentDidMount() {
+        if (this.props.scroller.current) {
+            this.props.scroller.current.addEventListener('scroll', this.listener);
+        }
     }
 
     public componentWillUnmount() {
-        if (typeof this.listener === 'function') {
-            window.removeEventListener('scroll', this.listener);
+        if (this.props.scroller.current) {
+            this.props.scroller.current.removeEventListener('scroll', this.listener);
         }
     }
 

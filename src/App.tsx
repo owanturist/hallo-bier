@@ -246,9 +246,10 @@ class ActionBeerListPage extends Action {
 }
 
 const PageView: React.FC<{
+    scroller: React.RefObject<HTMLDivElement>;
     page: Page;
     dispatch(action: Action): void;
-}> = ({ page, dispatch }) => page.cata({
+}> = ({ scroller, page, dispatch }) => page.cata({
     PageVoid: () => null,
 
     PageHome: homePage => (
@@ -264,27 +265,40 @@ const PageView: React.FC<{
 
     PageBeerList: beerListPage => (
         <BeerListPage.View
+            scroller={scroller}
             state={beerListPage}
             dispatch={compose(dispatch, ActionBeerListPage.cons)}
         />
     )
 });
 
-export const View: React.FC<{
+export class View extends React.PureComponent<{
     state: State;
     dispatch(action: Action): void;
-}> = ({ state, dispatch }) => (
-    <Router.View onChange={compose(dispatch, RouteChanged.cons)}>
-        <Navbar bg="warning" expand="lg">
-            <Container fluid className={styles.navbar}>
-                <Navbar.Brand as={Router.Link} to={Router.ToHome}>Hallo Bier</Navbar.Brand>
-            </Container>
-        </Navbar>
+}> {
+    private readonly scroller = React.createRef<HTMLDivElement>();
 
-        <div className={`bg-light ${styles.scroller}`}>
-            <Container fluid className={`bg-white pt-3 ${styles.container}`}>
-                <PageView page={state.page} dispatch={dispatch} />
-            </Container>
-        </div>
-    </Router.View>
-);
+    public render() {
+        const { state, dispatch } = this.props;
+
+        return (
+            <Router.View onChange={compose(dispatch, RouteChanged.cons)}>
+                <Navbar bg="warning" expand="lg">
+                    <Container fluid className={styles.navbar}>
+                        <Navbar.Brand as={Router.Link} to={Router.ToHome}>Hallo Bier</Navbar.Brand>
+                    </Container>
+                </Navbar>
+
+                <div className={`bg-light ${styles.scroller}`} ref={this.scroller}>
+                    <Container fluid className={`bg-white pt-3 ${styles.container}`}>
+                        <PageView
+                            scroller={this.scroller}
+                            page={state.page}
+                            dispatch={dispatch}
+                        />
+                    </Container>
+                </div>
+            </Router.View>
+        );
+    }
+}
