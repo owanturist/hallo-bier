@@ -36,7 +36,7 @@ class LoadMore extends Action {
     public static inst: Action = new LoadMore();
 
     public update(filter: Router.SearchFilter, state: State): [ State, Cmd<Action> ] {
-        if (!state.hasMore || state.loading.isLoading()) {
+        if (!state.hasMore || !state.loading.isNotAsked()) {
             return [ state, Cmd.none ];
         }
 
@@ -179,7 +179,7 @@ export class View extends React.Component<ViewProps> {
             const el = props.scroller.current;
             const { state, dispatch } = this.props;
 
-            if (state.hasMore && !state.loading.isLoading()
+            if (state.hasMore && state.loading.isNotAsked()
             && el && el.scrollHeight - el.scrollTop < window.innerHeight * 2
             ) {
                 dispatch(LoadMore.inst);

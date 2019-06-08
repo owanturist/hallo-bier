@@ -111,34 +111,85 @@ const ViewBeer: React.FC<{
             <Col>
                 <Table responsive>
                     <tbody>
-                        <tr>
-                            <td>ABV</td>
-                            <td>{beer.abv}</td>
-                        </tr>
-                        <tr>
-                            <td>IBU</td>
-                            <td>{beer.ibu}</td>
-                        </tr>
-                        <tr>
-                            <td>Target FG</td>
-                            <td>{beer.targetFg}</td>
-                        </tr>
-                        <tr>
-                            <td>Target OG</td>
-                            <td>{beer.targetOg}</td>
-                        </tr>
-                        <tr>
-                            <td>EBC</td>
-                            <td>{beer.ebc}</td>
-                        </tr>
-                        <tr>
-                            <td>PH</td>
-                            <td>{beer.ph}</td>
-                        </tr>
-                        <tr>
-                            <td>Attenuation level</td>
-                            <td>{beer.attenuationLevel}</td>
-                        </tr>
+                        {beer.abv.cata({
+                            Nothing: () => null,
+                            Just: abv => (
+                                <tr>
+                                    <td>ABV</td>
+                                    <td>{abv}</td>
+                                </tr>
+                            )
+                        })}
+
+                        {beer.ibu.cata({
+                            Nothing: () => null,
+                            Just: ibu => (
+                                <tr>
+                                    <td>IBU</td>
+                                    <td>{ibu}</td>
+                                </tr>
+                            )
+                        })}
+
+                        {beer.targetFg.cata({
+                            Nothing: () => null,
+                            Just: targetFg => (
+                                <tr>
+                                    <td>arget FG</td>
+                                    <td>{targetFg}</td>
+                                </tr>
+                            )
+                        })}
+
+                        {beer.targetOg.cata({
+                            Nothing: () => null,
+                            Just: targetOg => (
+                                <tr>
+                                    <td>Target OG</td>
+                                    <td>{targetOg}</td>
+                                </tr>
+                            )
+                        })}
+
+                        {beer.ebc.cata({
+                            Nothing: () => null,
+                            Just: ebc => (
+                                <tr>
+                                    <td>EBC</td>
+                                    <td>{ebc}</td>
+                                </tr>
+                            )
+                        })}
+
+                        {beer.srm.cata({
+                            Nothing: () => null,
+                            Just: srm => (
+                                <tr>
+                                    <td>SRM</td>
+                                    <td>{srm}</td>
+                                </tr>
+                            )
+                        })}
+
+                        {beer.ph.cata({
+                            Nothing: () => null,
+                            Just: ph => (
+                                <tr>
+                                    <td>PH</td>
+                                    <td>{ph}</td>
+                                </tr>
+                            )
+                        })}
+
+                        {beer.attenuationLevel.cata({
+                            Nothing: () => null,
+                            Just: attenuationLevel => (
+                                <tr>
+                                    <td>Attenuation level</td>
+                                    <td>{attenuationLevel}</td>
+                                </tr>
+                            )
+                        })}
                     </tbody>
                 </Table>
             </Col>
