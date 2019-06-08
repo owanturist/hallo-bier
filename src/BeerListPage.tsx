@@ -2,6 +2,7 @@ import React from 'react';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import Spinner from 'react-bootstrap/Spinner';
 import { compose } from 'redux';
 import throttle from 'lodash.throttle';
 import { RemoteData, NotAsked, Loading, Failure } from 'frctl/dist/src/RemoteData';
@@ -134,7 +135,7 @@ const ViewBeer: React.FC<{
             {beer.image.cata({
                 Nothing: () => null,
                 Just: (src: string) => (
-                    <Col sm="4" className={`bg-light p-3 ${styles.previewCol}`}>
+                    <Col sm="4" className={`bg-light card-img p-3 ${styles.previewCol}`}>
                         <span
                             className={styles.preview}
                             style={{ backgroundImage: `url(${src})` }}
@@ -163,7 +164,7 @@ const ViewBeerList: React.FC<{
 }> = ({ beerList }) => (
     <ul className="list-unstyled m-0">
         {beerList.map((beer: Api.Beer) => (
-            <li key={beer.id} className="mt-2"><ViewBeer beer={beer}/></li>
+            <li key={beer.id} className="mb-2"><ViewBeer beer={beer}/></li>
         ))}
     </ul>
 );
@@ -201,16 +202,9 @@ const ViewError: React.FC<{
     </div>
 );
 
-const ViewLoadMore: React.FC<{
-    busy?: boolean;
-    dispatch(action: Action): void;
-}> = ({ busy, dispatch }) => (
-    <div>
-        <button
-            type="button"
-            disabled={busy}
-            onClick={() => dispatch(LoadMore.inst)}
-        >Load More Beer!</button>
+const ViewLoadMore: React.FC = () => (
+    <div className="text-center pt-2 pb-3">
+        <Spinner animation="border" variant="warning" />
     </div>
 );
 
@@ -251,14 +245,14 @@ export class View extends React.Component<{
                 )}
 
                 {state.loading.cata({
-                    Loading: () => <ViewLoadMore busy dispatch={dispatch} />,
+                    Loading: () => <ViewLoadMore />,
 
                     Failure: (error: Http.Error) => <ViewError error={error} />,
 
                     _: () => {
                         if (state.hasMore) {
                             return (
-                                <ViewLoadMore dispatch={dispatch} />
+                                <ViewLoadMore />
                             );
                         }
 
