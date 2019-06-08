@@ -10,8 +10,18 @@ export interface Beer {
     name: string;
     description: string;
     tagline: string;
+    contributor: string;
     image: Maybe<string>;
     firstBrewed: Date;
+    abv: number;
+    ibu: number;
+    targetFg: number;
+    targetOg: number;
+    ebc: number;
+    ph: number;
+    attenuationLevel: number;
+    foodPairing: Array<string>;
+    brewersTips: string;
 }
 
 const beerDecoder: Decode.Decoder<Beer> = Decode.props({
@@ -19,8 +29,18 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     name: Decode.field('name', Decode.string),
     description: Decode.field('description', Decode.string),
     tagline: Decode.field('tagline', Decode.string),
+    contributor: Decode.field('contributed_by', Decode.string),
     image: Decode.field('image_url', Decode.nullable(Decode.string)),
-    firstBrewed: Decode.field('first_brewed', Decode.string.map((shortDate: string) => new Date(`01/${shortDate}`)))
+    firstBrewed: Decode.field('first_brewed', Decode.string.map((shortDate: string) => new Date(`01/${shortDate}`))),
+    abv: Decode.field('abv', Decode.number),
+    ibu: Decode.field('ibu', Decode.number),
+    targetFg: Decode.field('target_fg', Decode.number),
+    targetOg: Decode.field('target_og', Decode.number),
+    ebc: Decode.field('ebc', Decode.number),
+    ph: Decode.field('ph', Decode.number),
+    attenuationLevel: Decode.field('attenuation_level', Decode.number),
+    foodPairing: Decode.field('food_pairing', Decode.list(Decode.string)),
+    brewersTips: Decode.field('brewers_tips', Decode.string)
 });
 
 const nameToQuery = (name: string): Maybe<string> => {
