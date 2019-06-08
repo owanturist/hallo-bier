@@ -1,0 +1,10 @@
+.preview {
+    display: block;
+    height: 100%;
+    background: no-repeat center;
+    background-size: contain;
+}
+
+.previewCol {
+    min-height: 200px;
+}

@@ -1,4 +1,7 @@
 import React from 'react';
+import Card from 'react-bootstrap/Card';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
 import { compose } from 'redux';
 import throttle from 'lodash.throttle';
 import { RemoteData, NotAsked, Loading, Failure } from 'frctl/dist/src/RemoteData';
@@ -11,6 +14,7 @@ import * as Router from './Router';
 import * as Api from './Api';
 import * as SearchBuilder from './SearchBuilder';
 import { Month } from './MonthPicker';
+import styles from './BeerListPage.module.css';
 
 export interface State {
     hasMore: boolean;
@@ -125,26 +129,41 @@ class ActionSearchBuilder extends Action {
 const ViewBeer: React.FC<{
     beer: Api.Beer;
 }> = ({ beer }) => (
-    <div>
-        {beer.image.cata({
-            Nothing: () => null,
-            Just: (src: string) => (
-                <img src={src} alt={beer.name} />
-            )
-        })}
-        <h3>{beer.name}</h3>
-        <small>{beer.tagline}</small>
-        <p>{beer.description}</p>
-        <Router.Link to={Router.ToBeer(beer.id)}>See more</Router.Link>
-    </div>
+    <Card>
+        <Row noGutters>
+            {beer.image.cata({
+                Nothing: () => null,
+                Just: (src: string) => (
+                    <Col sm="4" className={`bg-light p-3 ${styles.previewCol}`}>
+                        <span
+                            className={styles.preview}
+                            style={{ backgroundImage: `url(${src})` }}
+                        />
+                    </Col>
+                )
+            })}
+
+            <Col>
+                <Card.Body>
+                    <Card.Title>{beer.name}</Card.Title>
+                    <Card.Text>{beer.description}</Card.Text>
+                    <small className="text-muted">
+                        First brewed at {beer.firstBrewed.toLocaleDateString()}
+                        <br/>
+                        <Router.Link to={Router.ToBeer(beer.id)}>See more</Router.Link>
+                    </small>
+                </Card.Body>
+            </Col>
+        </Row>
+    </Card>
 );
 
 const ViewBeerList: React.FC<{
     beerList: Array<Api.Beer>;
 }> = ({ beerList }) => (
-    <ul>
+    <ul className="list-unstyled m-0">
         {beerList.map((beer: Api.Beer) => (
-            <li key={beer.id}><ViewBeer beer={beer}/></li>
+            <li key={beer.id} className="mt-2"><ViewBeer beer={beer}/></li>
         ))}
     </ul>
 );
@@ -227,8 +246,6 @@ export class View extends React.Component<{
 
         return (
             <div>
-                <h1>Beer List:</h1>
-
                 {state.beerList.length > 0 && (
                     <ViewBeerList beerList={state.beerList} />
                 )}
