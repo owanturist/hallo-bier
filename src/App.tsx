@@ -2,7 +2,7 @@ import React from 'react';
 import { compose } from 'redux';
 import { Cmd } from 'Cmd';
 import { Cata } from 'frctl/dist/src/Basics';
-import { Nothing, Just } from 'frctl/dist/src/Maybe';
+import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import Container from 'react-bootstrap/Container';
 import * as Utils from './Utils';
 import * as Router from './Router';
@@ -180,12 +180,26 @@ class ActionHeader extends Action {
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
-        const [ nextHeader, cmdOfHeader ] = this.action.update(state.header);
+        return  this.action.update(state.header).cata<[ State, Cmd<Action> ]>({
+            Idle: () => [ state, Cmd.none ],
 
-        return [
-            { ...state, header: nextHeader },
-            cmdOfHeader.map(ActionHeader.cons)
-        ];
+            Update: (nextHeader, cmdOfHeader) => [
+                { ...state, header: nextHeader },
+                cmdOfHeader.map(ActionHeader.cons)
+            ],
+
+            RollRandomBeer: () => {
+                const [ initialRandomBeerPage, cmdOfRandomBeerPage ] = RandomBeerPage.init();
+
+                return [
+                    {
+                        ...state,
+                        page: new PageRandomBeer(initialRandomBeerPage)
+                    },
+                    cmdOfRandomBeerPage.map(ActionRandomBeerPage.cons)
+                ];
+            }
+        });
     }
 }
 
@@ -335,15 +349,17 @@ export class View extends React.PureComponent<{
 
     public render() {
         const { state, dispatch } = this.props;
-        const filter = state.page.cata({
-            PageBeerList: f => Just(f),
-            _: () => Nothing
+        const [ filter, roll ] = state.page.cata<[ Maybe<Router.SearchFilter>, Maybe<boolean> ]>({
+            PageRandomBeer: randomBeer => [ Nothing, Just(RandomBeerPage.isLoading(randomBeer)) ],
+            PageBeerList: f => [ Just(f), Nothing ],
+            _: () => [ Nothing, Nothing ]
         });
 
         return (
             <Router.View onChange={compose(dispatch, RouteChanged.cons)}>
                 <Header.View
                     filter={filter}
+                    roll={roll}
                     state={state.header}
                     dispatch={compose(dispatch, ActionHeader.cons)}
                     {...brewedAfterLimits}

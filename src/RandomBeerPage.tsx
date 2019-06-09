@@ -18,6 +18,8 @@ export const init = (): [ State, Cmd<Action> ] => [
     Api.loadRandomBeer().send(LoadDone.cons)
 ];
 
+export const isLoading = (state: State): boolean => state.beer.isLoading();
+
 export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
 class LoadDone extends Action {

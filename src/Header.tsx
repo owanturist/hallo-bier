@@ -4,7 +4,7 @@ import Navbar from 'react-bootstrap/Navbar';
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFilter, faBeer } from '@fortawesome/free-solid-svg-icons';
+import { faFilter, faBeer, faDice } from '@fortawesome/free-solid-svg-icons';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import { Cmd } from 'Cmd';
 import * as Utils from 'Utils';
@@ -21,7 +21,42 @@ export const init = (): State => ({
     searchBuilder: Nothing
 });
 
-export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
+export interface StagePattern<R> {
+    Idle(): R;
+    Update(nextState: State, cmd: Cmd<Action>): R;
+    RollRandomBeer(): R;
+}
+
+export abstract class Stage {
+    public abstract cata<R>(pattern: StagePattern<R>): R;
+}
+
+class Idle extends Stage {
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.Idle();
+    }
+}
+
+class Update extends Stage {
+    public constructor(
+        private readonly state: State,
+        private readonly cmd: Cmd<Action>
+    ) {
+        super();
+    }
+
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.Update(this.state, this.cmd);
+    }
+}
+
+class RollRandomBeer extends Stage {
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.RollRandomBeer();
+    }
+}
+
+export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
 class ShowSearchBuilder extends Action {
     public static show(filter: Router.SearchFilter, state: State): State {
@@ -49,19 +84,25 @@ class ShowSearchBuilder extends Action {
         super();
     }
 
-    public update(state: State): [ State, Cmd<Action> ] {
-        return [
+    public update(state: State): Stage {
+        return new Update(
             ShowSearchBuilder.show(this.filter, state),
             Cmd.none
-        ];
+        );
     }
 }
 
 export const showSearchBuilder = ShowSearchBuilder.show;
 
+class RollBeer extends Action {
+    public update(): Stage {
+        return new RollRandomBeer();
+    }
+}
+
 class HideSearchBuilder extends Action {
-    public update(state: State): [ State, Cmd<Action> ] {
-        return [{ ...state, searchBuilder: Nothing }, Cmd.none ];
+    public update(state: State): Stage {
+        return new Update({ ...state, searchBuilder: Nothing }, Cmd.none);
     }
 }
 
@@ -74,20 +115,24 @@ class ActionSearchBuilder extends Action {
         super();
     }
 
-    public update(state: State): [ State, Cmd<Action> ] {
-        return state.searchBuilder.map(searchBuilder => {
-            return this.action.update(searchBuilder).cata({
-                Update: (nextSearchBuilder): [ State, Cmd<Action> ] => [
-                    { ...state, searchBuilder: Just(nextSearchBuilder) },
-                    Cmd.none
-                ],
+    public update(state: State): Stage {
+        return state.searchBuilder.cata({
+            Nothing: () => new Idle(),
 
-                Search: (filter): [ State, Cmd<Action> ] => [
-                    state,
-                    Router.ToBeerSearch(filter).push()
-                ]
-            });
-        }).getOrElse([ state, Cmd.none ]);
+            Just: searchBuilder => {
+                return this.action.update(searchBuilder).cata({
+                    Update: nextSearchBuilder => new Update(
+                        { ...state, searchBuilder: Just(nextSearchBuilder) },
+                        Cmd.none
+                    ),
+
+                    Search: filter => new Update(
+                        state,
+                        Router.ToBeerSearch(filter).push()
+                    )
+                });
+            }
+        });
     }
 }
 
@@ -96,9 +141,10 @@ export const View: React.FC<{
     minBrewedAfter?: [ Month, number ];
     maxBrewedAfter?: [ Month, number ];
     filter: Maybe<Router.SearchFilter>;
+    roll: Maybe<boolean>;
     state: State;
     dispatch(action: Action): void;
-}> = ({ minBrewedAfter, maxBrewedAfter, filter, state, dispatch }) => (
+}> = ({ minBrewedAfter, maxBrewedAfter, filter, roll, state, dispatch }) => (
     <div className={state.searchBuilder.isJust() ? 'border-bottom' : ''}>
         <Navbar bg="warning" expand="lg">
             <Container fluid className={styles.container}>
@@ -122,6 +168,20 @@ export const View: React.FC<{
                             )}
                         >
                             <FontAwesomeIcon icon={faFilter} />
+                        </Button>
+                    )
+                })}
+
+                {roll.cata({
+                    Nothing: () => null,
+                    Just: busy => (
+                        <Button
+                            variant="dark"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => dispatch(new RollBeer())}
+                        >
+                            <FontAwesomeIcon icon={faDice} />
                         </Button>
                     )
                 })}
