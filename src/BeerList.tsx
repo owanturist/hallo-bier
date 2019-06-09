@@ -3,7 +3,11 @@ import Alert from 'react-bootstrap/Alert';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import Button from 'react-bootstrap/Button';
 import Spinner from 'react-bootstrap/Spinner';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faHeart as faRegularHeart } from '@fortawesome/free-regular-svg-icons';
 import throttle from 'lodash.throttle';
 import { RemoteData, NotAsked, Loading, Failure } from 'frctl/dist/src/RemoteData';
 import { Either } from 'frctl/dist/src/Either';
@@ -35,20 +39,55 @@ export const isEmpty = (state: State): boolean => {
     return state.loading.isNotAsked() && state.beerList.length === 0;
 };
 
-export abstract class Action extends Utils.Action<[ Request, State ], [ State, Cmd<Action> ]> {}
+export interface StagePattern<R> {
+    Update(state: State, cmd: Cmd<Action>): R;
+    SetFavorites(checked: boolean, beerId: number): R;
+}
+
+export abstract class Stage {
+    public abstract cata<R>(patern: StagePattern<R>): R;
+}
+
+class Update extends Stage {
+    public constructor(
+        private readonly state: State,
+        private readonly cmd: Cmd<Action>
+    ) {
+        super();
+    }
+
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.Update(this.state, this.cmd);
+    }
+}
+
+class SetFavorites extends Stage {
+    public constructor(
+        private readonly checked: boolean,
+        private readonly beerId: number
+    ) {
+        super();
+    }
+
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.SetFavorites(this.checked, this.beerId);
+    }
+}
+
+export abstract class Action extends Utils.Action<[ Request, State ], Stage> {}
 
 class LoadMore extends Action {
     public static inst: Action = new LoadMore();
 
-    public update(request: Request, state: State): [ State, Cmd<Action> ] {
+    public update(request: Request, state: State): Stage {
         if (!state.hasMore || !state.loading.isNotAsked()) {
-            return [ state, Cmd.none ];
+            return new Update(state, Cmd.none);
         }
 
-        return [
+        return new Update(
             { ...state, loading: Loading },
             request(state.beerList.length).send(LoadDone.cons)
-        ];
+        );
     }
 }
 
@@ -63,32 +102,44 @@ class LoadDone extends Action {
         super();
     }
 
-    public update(_request: Request, state: State): [ State, Cmd<Action> ] {
-        return this.response.cata<[ State, Cmd<Action> ]>({
-            Left: error => [
-                {
+    public update(_request: Request, state: State): Stage {
+        return new Update(
+            this.response.cata({
+                Left: error => ({
                     ...state,
                     loading: Failure(error)
-                },
-                Cmd.none
-            ],
+                }),
 
-            Right: ([ hasMore, beerList ]) => [
-                {
+                Right: ([ hasMore, beerList ]) => ({
                     ...state,
                     hasMore,
                     loading: NotAsked,
                     beerList: state.beerList.concat(beerList)
-                },
-                Cmd.none
-            ]
-        });
+                })
+            }),
+            Cmd.none
+        );
+    }
+}
+
+class ToggleFavorite extends Action {
+    public constructor(
+        private readonly checked: boolean,
+        private readonly beerId: number
+    ) {
+        super();
+    }
+
+    public update(): Stage {
+        return new SetFavorites(this.checked, this.beerId);
     }
 }
 
 const ViewBeer: React.FC<{
+    favorite: boolean;
     beer: Api.Beer;
-}> = ({ beer }) => (
+    dispatch(action: Action): void;
+}> = ({ favorite, beer, dispatch }) => (
     <Card>
         <Row noGutters>
             {beer.image.cata({
@@ -105,8 +156,28 @@ const ViewBeer: React.FC<{
 
             <Col>
                 <Card.Body>
-                    <Card.Title>{beer.name}</Card.Title>
+                    <Card.Title className="d-flex justify-content-between">
+                        {beer.name}
+
+                        <Button
+                            className="ml-2 align-self-start"
+                            variant="light"
+                            size="sm"
+                            onClick={() => dispatch(new ToggleFavorite(!favorite, beer.id))}
+                        >
+                            {favorite
+                                ? (
+                                    <FontAwesomeIcon className="text-danger" icon={faHeart} />
+                                )
+                                : (
+                                    <FontAwesomeIcon icon={faRegularHeart} />
+                                )
+                            }
+                        </Button>
+                    </Card.Title>
+
                     <Card.Text>{beer.description}</Card.Text>
+
                     <small className="text-muted">
                         First brewed at {beer.firstBrewed.toLocaleDateString()}
                         <br/>
@@ -119,11 +190,19 @@ const ViewBeer: React.FC<{
 );
 
 const ViewBeerList: React.FC<{
+    favorites: Set<number>;
     beerList: Array<Api.Beer>;
-}> = ({ beerList }) => (
+    dispatch(action: Action): void;
+}> = ({ favorites, beerList, dispatch }) => (
     <ul className="list-unstyled m-0">
         {beerList.map((beer: Api.Beer) => (
-            <li key={beer.id} className="mb-2"><ViewBeer beer={beer}/></li>
+            <li key={beer.id} className="mb-2">
+                <ViewBeer
+                    favorite={favorites.has(beer.id)}
+                    beer={beer}
+                    dispatch={dispatch}
+                />
+            </li>
         ))}
     </ul>
 );
@@ -178,6 +257,7 @@ const ViewEmpty: React.FC = () => (
 
 export interface ViewProps {
     scroller: React.RefObject<HTMLElement>;
+    favorites: Set<number>;
     state: State;
     dispatch(action: Action): void;
 }
@@ -213,12 +293,16 @@ export class View extends React.Component<ViewProps> {
     }
 
     public render() {
-        const { state } = this.props;
+        const { favorites, state, dispatch } = this.props;
 
         return (
             <div>
                 {state.beerList.length > 0 && (
-                    <ViewBeerList beerList={state.beerList} />
+                    <ViewBeerList
+                        favorites={favorites}
+                        beerList={state.beerList}
+                        dispatch={dispatch}
+                    />
                 )}
 
                 {state.loading.cata({

@@ -11,7 +11,7 @@ import * as Header from './Header';
 import * as HomePage from './HomePage';
 import * as BeerPage from './BeerPage';
 import * as RandomBeerPage from './RandomBeerPage';
-import * as BeerListPage from './BeerListPage';
+import * as BeerList from './BeerList';
 import { Month } from './MonthPicker';
 import styles from 'App.module.css';
 
@@ -23,12 +23,14 @@ const brewedAfterLimits: {
     maxBrewedAfter: [ Month.Jul, 2019 ]
 };
 
+const BEERS_PER_PAGE = 10;
+
 type PagePattern<R> = Cata<{
     PageVoid(): R;
     PageHome(homePage: HomePage.State): R;
     PageBeer(beerId: number, beerPage: BeerPage.State): R;
     PageRandomBeer(randomBeerPage: RandomBeerPage.State): R;
-    PageBeerList(filter: Router.SearchFilter, beerListPage: BeerListPage.State): R;
+    PageBeerList(filter: Router.SearchFilter, beerList: BeerList.State): R;
 }>;
 
 abstract class Page {
@@ -58,7 +60,9 @@ abstract class Page {
             },
 
             ToBeerSearch: filter => {
-                const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(10, filter);
+                const [ initialBeerList, cmdOfBeerList ] = BeerList.init(
+                    count => Api.loadBeerList(filter, BEERS_PER_PAGE, count / BEERS_PER_PAGE + 1)
+                );
 
                 return [
                     new PageBeerList(filter, initialBeerList),
@@ -129,14 +133,14 @@ class PageRandomBeer extends Page {
 class PageBeerList extends Page {
     public constructor(
         private readonly filter: Router.SearchFilter,
-        private readonly beerListPage: BeerListPage.State
+        private readonly beerList: BeerList.State
     ) {
         super();
     }
 
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageBeerList === 'function') {
-            return pattern.PageBeerList(this.filter, this.beerListPage);
+            return pattern.PageBeerList(this.filter, this.beerList);
         }
 
         return (pattern._ as () => R)();
@@ -157,6 +161,17 @@ export const init = (): [ State, Cmd<Action> ] => [
     },
     Api.getListOfFavorites().map(GetListOfFavorites.cons)
 ];
+
+const setFavorites = (checked: boolean, beerId: number, state: State): [ State, Cmd<Action> ] => {
+    const nextFavorites = checked
+        ? [ beerId, ...state.favorites ]
+        : state.favorites.filter(id => beerId !== id);
+
+    return [
+        { ...state, favorites: nextFavorites },
+        Api.setListOfFavorites(nextFavorites)
+    ];
+};
 
 export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
@@ -233,14 +248,7 @@ class ActionHeader extends Action {
             },
 
             SetFavorites: (checked, beerId) => {
-                const nextFavorites = checked
-                    ? [ beerId, ...state.favorites ]
-                    : state.favorites.filter(id => beerId !== id);
-
-                return [
-                    { ...state, favorites: nextFavorites },
-                    Api.setListOfFavorites(nextFavorites)
-                ];
+                return setFavorites(checked, beerId, state);
             }
         });
     }
@@ -320,30 +328,35 @@ class ActionRandomBeerPage extends Action {
 }
 
 class ActionBeerListPage extends Action {
-    public static cons(action: BeerListPage.Action): Action {
+    public static cons(action: BeerList.Action): Action {
         return new ActionBeerListPage(action);
     }
 
-    private constructor(private readonly action: BeerListPage.Action) {
+    private constructor(private readonly action: BeerList.Action) {
         super();
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({
-            PageBeerList: (filter, beerListPage) => {
-                const [ nextBeerListPage, cmdOfBeerListPage ] = this.action.update(filter, beerListPage);
-
-                return [
+            PageBeerList: (filter, beerList) => this.action.update(
+                count => Api.loadBeerList(filter, BEERS_PER_PAGE, count / BEERS_PER_PAGE + 1),
+                beerList
+            ).cata<[ State, Cmd<Action> ]>({
+                Update: (nextBeerList, cmdOfBeerList) => [
                     {
                         ...state,
-                        header: BeerListPage.isEmpty(nextBeerListPage)
+                        header: BeerList.isEmpty(nextBeerList)
                             ? Header.showSearchBuilder(filter, state.header)
                             : state.header,
-                        page: new PageBeerList(filter, nextBeerListPage)
+                        page: new PageBeerList(filter, nextBeerList)
                     },
-                    cmdOfBeerListPage.map(ActionBeerListPage.cons)
-                ];
-            },
+                    cmdOfBeerList.map(ActionBeerListPage.cons)
+                ],
+
+                SetFavorites: (checked, beerId) => {
+                    return setFavorites(checked, beerId, state);
+                }
+            }),
 
             _: () => [ state, Cmd.none ]
         });
@@ -352,9 +365,10 @@ class ActionBeerListPage extends Action {
 
 const PageView: React.FC<{
     scroller: React.RefObject<HTMLDivElement>;
+    favorites: Set<number>;
     page: Page;
     dispatch(action: Action): void;
-}> = ({ scroller, page, dispatch }) => page.cata({
+}> = ({ scroller, favorites, page, dispatch }) => page.cata({
     PageVoid: () => null,
 
     PageHome: homePage => (
@@ -374,8 +388,9 @@ const PageView: React.FC<{
     ),
 
     PageBeerList: (_filter, beerListPage) => (
-        <BeerListPage.View
+        <BeerList.View
             scroller={scroller}
+            favorites={favorites}
             state={beerListPage}
             dispatch={compose(dispatch, ActionBeerListPage.cons)}
         />
@@ -418,6 +433,7 @@ export class View extends React.PureComponent<{
                     <Container fluid className={`bg-white pt-3 ${styles.container}`}>
                         <PageView
                             scroller={this.scroller}
+                            favorites={favoritesSet}
                             page={state.page}
                             dispatch={dispatch}
                         />

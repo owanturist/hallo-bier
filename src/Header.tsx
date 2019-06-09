@@ -281,16 +281,16 @@ const ViewTool: React.FC<{
         ),
 
         Just: beerId => {
-            const favorited = favorites.has(beerId);
+            const checked = favorites.has(beerId);
 
             return (
                 <Button
-                    className={'ml-2'}
+                    className="ml-2"
                     variant="dark"
                     size="sm"
-                    onClick={() => dispatch(new ToggleFavorite(!favorited, beerId))}
+                    onClick={() => dispatch(new ToggleFavorite(!checked, beerId))}
                 >
-                    {favorited
+                    {checked
                         ? (
                             <FontAwesomeIcon className="text-danger" icon={faHeart} />
                         )
