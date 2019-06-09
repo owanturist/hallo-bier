@@ -26,7 +26,7 @@ export const init = (): State => ({
 export interface StagePattern<R> {
     Update(nextState: State, cmd: Cmd<Action>): R;
     RollRandomBeer(): R;
-    UpdateFavorites(favorites: Array<number>): R;
+    SetFavorites(checked: boolean, beerId: number): R;
 }
 
 export abstract class Stage {
@@ -52,13 +52,16 @@ class RollRandomBeer extends Stage {
     }
 }
 
-class UpdateFavorites extends Stage {
-    public constructor(private readonly favorites: Array<number>) {
+class SetFavorites extends Stage {
+    public constructor(
+        private readonly checked: boolean,
+        private readonly beerId: number
+    ) {
         super();
     }
 
     public cata<R>(pattern: StagePattern<R>): R {
-        return pattern.UpdateFavorites(this.favorites);
+        return pattern.SetFavorites(this.checked, this.beerId);
     }
 }
 
@@ -121,18 +124,13 @@ export const hideSearchBuilder = HideSearchBuilder.hide;
 class ToggleFavorite extends Action {
     public constructor(
         private readonly checked: boolean,
-        private readonly favorites: Array<number>,
         private readonly beerId: number
     ) {
         super();
     }
 
     public update(): Stage {
-        if (this.checked) {
-            return new UpdateFavorites([ this.beerId, ...this.favorites ]);
-        }
-
-        return new UpdateFavorites(this.favorites.filter(id => this.beerId !== id));
+        return new SetFavorites(this.checked, this.beerId);
     }
 }
 
@@ -169,7 +167,7 @@ class ActionSearchBuilder extends Action {
 type ToolPattern<R> = Cata<{
     Filter(filter: Router.SearchFilter): R;
     Roll(busy: boolean): R;
-    Favorite(favorites: Array<number>, beerId: Maybe<number>): R;
+    Favorite(favorites: Set<number>, beerId: Maybe<number>): R;
 }>;
 
 export abstract class Tool {
@@ -181,7 +179,7 @@ export abstract class Tool {
         return new RollTool(busy);
     }
 
-    public static Favorite(favorites: Array<number>, beerId: Maybe<number>): Tool {
+    public static Favorite(favorites: Set<number>, beerId: Maybe<number>): Tool {
         return new FavoriteTool(favorites, beerId);
     }
 
@@ -222,7 +220,7 @@ class RollTool extends Tool {
 
 class FavoriteTool extends Tool {
     public constructor(
-        private readonly favorites: Array<number>,
+        private readonly favorites: Set<number>,
         private readonly beerId: Maybe<number>
     ) {
         super();
@@ -283,14 +281,14 @@ const ViewTool: React.FC<{
         ),
 
         Just: beerId => {
-            const favorited = favorites.indexOf(beerId) !== -1;
+            const favorited = favorites.has(beerId);
 
             return (
                 <Button
                     className={'ml-2'}
                     variant="dark"
                     size="sm"
-                    onClick={() => dispatch(new ToggleFavorite(!favorited, favorites, beerId))}
+                    onClick={() => dispatch(new ToggleFavorite(!favorited, beerId))}
                 >
                     {favorited
                         ? (

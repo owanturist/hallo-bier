@@ -232,10 +232,16 @@ class ActionHeader extends Action {
                 ];
             },
 
-            UpdateFavorites: nextFavorites => [
-                { ...state, favorites: nextFavorites },
-                Api.setListOfFavorites(nextFavorites)
-            ]
+            SetFavorites: (checked, beerId) => {
+                const nextFavorites = checked
+                    ? [ beerId, ...state.favorites ]
+                    : state.favorites.filter(id => beerId !== id);
+
+                return [
+                    { ...state, favorites: nextFavorites },
+                    Api.setListOfFavorites(nextFavorites)
+                ];
+            }
         });
     }
 }
@@ -384,13 +390,14 @@ export class View extends React.PureComponent<{
 
     public render() {
         const { state, dispatch } = this.props;
+        const favoritesSet = new Set(state.favorites);
         const headerTools = state.page.cata({
             PageBeer: beerId => [
-                Header.Tool.Favorite(state.favorites, Just(beerId))
+                Header.Tool.Favorite(favoritesSet, Just(beerId))
             ],
             PageRandomBeer: randomBeer => [
                 Header.Tool.Roll(RandomBeerPage.isLoading(randomBeer)),
-                Header.Tool.Favorite(state.favorites, randomBeer.beer.map(beer => beer.id).toMaybe())
+                Header.Tool.Favorite(favoritesSet, randomBeer.beer.map(beer => beer.id).toMaybe())
             ],
             PageBeerList: filter => [
                 Header.Tool.Filter(filter)
