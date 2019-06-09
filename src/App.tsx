@@ -2,7 +2,6 @@ import React from 'react';
 import { compose } from 'redux';
 import { Cmd } from 'Cmd';
 import { Cata } from 'frctl/dist/src/Basics';
-import { Nothing, Just } from 'frctl/dist/src/Maybe';
 import Container from 'react-bootstrap/Container';
 import * as Utils from './Utils';
 import * as Router from './Router';
@@ -165,8 +164,12 @@ class RouteChanged extends Action {
 
     public update(state: State): [ State, Cmd<Action> ] {
         const [ nextPage, cmd ] = Page.init(this.route);
+        const nextHeader = this.route.cata({
+            ToBeerSearch: () => state.header,
+            _: () => Header.hideSearchBuilder(state.header)
+        });
 
-        return [{ ...state, page: nextPage }, cmd ];
+        return [{ header: nextHeader, page: nextPage }, cmd ];
     }
 }
 
@@ -346,16 +349,24 @@ export class View extends React.PureComponent<{
 
     public render() {
         const { state, dispatch } = this.props;
-        const headerTool = state.page.cata({
-            PageRandomBeer: randomBeer => Just(Header.Tool.Roll(RandomBeerPage.isLoading(randomBeer))),
-            PageBeerList: filter => Just(Header.Tool.Filter(filter)),
-            _: () => Nothing
+        const headerTools = state.page.cata({
+            PageBeer: () => [
+                Header.Tool.Favorite(true)
+            ],
+            PageRandomBeer: randomBeer => [
+                Header.Tool.Roll(RandomBeerPage.isLoading(randomBeer)),
+                Header.Tool.Favorite(true)
+            ],
+            PageBeerList: filter => [
+                Header.Tool.Filter(filter)
+            ],
+            _: () => []
         });
 
         return (
             <Router.View onChange={compose(dispatch, RouteChanged.cons)}>
                 <Header.View
-                    tool={headerTool}
+                    tools={headerTools}
                     state={state.header}
                     dispatch={compose(dispatch, ActionHeader.cons)}
                     {...brewedAfterLimits}

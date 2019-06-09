@@ -4,7 +4,8 @@ import Navbar from 'react-bootstrap/Navbar';
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFilter, faBeer, faDice } from '@fortawesome/free-solid-svg-icons';
+import { faFilter, faBeer, faDice, faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faHeart as faRegularHeart } from '@fortawesome/free-regular-svg-icons';
 import { Cata } from 'frctl/dist/src/Basics';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import { Cmd } from 'Cmd';
@@ -59,6 +60,12 @@ class RollRandomBeer extends Stage {
 
 export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
+class RollBeer extends Action {
+    public update(): Stage {
+        return new RollRandomBeer();
+    }
+}
+
 class ShowSearchBuilder extends Action {
     public static show(filter: Router.SearchFilter, state: State): State {
         if (state.searchBuilder.isJust()) {
@@ -95,17 +102,17 @@ class ShowSearchBuilder extends Action {
 
 export const showSearchBuilder = ShowSearchBuilder.show;
 
-class RollBeer extends Action {
-    public update(): Stage {
-        return new RollRandomBeer();
+class HideSearchBuilder extends Action {
+    public static hide(state: State): State {
+        return { ...state, searchBuilder: Nothing };
+    }
+
+    public update(state: State): Stage {
+        return new Update(HideSearchBuilder.hide(state), Cmd.none);
     }
 }
 
-class HideSearchBuilder extends Action {
-    public update(state: State): Stage {
-        return new Update({ ...state, searchBuilder: Nothing }, Cmd.none);
-    }
-}
+export const hideSearchBuilder = HideSearchBuilder.hide;
 
 class ActionSearchBuilder extends Action {
     public static cons(action: SearchBuilder.Action) {
@@ -156,6 +163,10 @@ export abstract class Tool {
         return new FavoriteTool(checked);
     }
 
+    public toString(): string {
+        return this.constructor.name;
+    }
+
     public abstract cata<R>(pattern: ToolPattern<R>): R;
 }
 
@@ -201,13 +212,64 @@ class FavoriteTool extends Tool {
     }
 }
 
+const ViewTool: React.FC<{
+    tool: Tool;
+    state: State;
+    dispatch(action: Action): void;
+}> = ({ tool, state, dispatch }) => tool.cata({
+    Filter: filter => (
+        <Button
+            className="ml-2"
+            variant="outline-dark"
+            size="sm"
+            active={state.searchBuilder.isJust()}
+            onClick={() => dispatch(
+                state.searchBuilder.isJust()
+                    ? new HideSearchBuilder()
+                    : new ShowSearchBuilder(filter)
+            )}
+        >
+            <FontAwesomeIcon icon={faFilter} />
+        </Button>
+    ),
+
+    Roll: busy => (
+        <Button
+            className="ml-2"
+            variant="dark"
+            size="sm"
+            disabled={busy}
+            onClick={() => dispatch(new RollBeer())}
+        >
+            <FontAwesomeIcon icon={faDice} />
+        </Button>
+    ),
+
+    Favorite: checked => (
+        <Button
+            className={checked ? 'ml-2' : 'ml-2'}
+            variant="dark"
+            size="sm"
+        >
+            {checked
+                ? (
+                    <FontAwesomeIcon className="text-danger" icon={faHeart} />
+                )
+                : (
+                    <FontAwesomeIcon icon={faRegularHeart} />
+                )
+            }
+        </Button>
+    )
+});
+
 export const View: React.FC<{
     minBrewedAfter?: [ Month, number ];
     maxBrewedAfter?: [ Month, number ];
-    tool: Maybe<Tool>;
+    tools: Array<Tool>;
     state: State;
     dispatch(action: Action): void;
-}> = ({ minBrewedAfter, maxBrewedAfter, tool, state, dispatch }) => (
+}> = ({ minBrewedAfter, maxBrewedAfter, tools, state, dispatch }) => (
     <div className={state.searchBuilder.isJust() ? 'border-bottom' : ''}>
         <Navbar bg="warning" expand="lg">
             <Container fluid className={styles.container}>
@@ -217,63 +279,34 @@ export const View: React.FC<{
                     Bier
                 </Navbar.Brand>
 
-                {tool.cata({
-                    Nothing: () => null,
-
-                    Just: t => t.cata({
-                        Filter: filter => (
-                            <Button
-                                variant="outline-dark"
-                                size="sm"
-                                active={state.searchBuilder.isJust()}
-                                onClick={() => dispatch(
-                                    state.searchBuilder.isJust()
-                                        ? new HideSearchBuilder()
-                                        : new ShowSearchBuilder(filter)
-                                )}
-                            >
-                                <FontAwesomeIcon icon={faFilter} />
-                            </Button>
-                        ),
-
-                        Roll: busy => (
-                            <Button
-                                variant="dark"
-                                size="sm"
-                                disabled={busy}
-                                onClick={() => dispatch(new RollBeer())}
-                            >
-                                <FontAwesomeIcon icon={faDice} />
-                            </Button>
-                        ),
-
-                        Favorite: () => null
-                    })
-                })}
+                {tools.length > 0 && (
+                    <div>
+                        {tools.map(tool => (
+                            <ViewTool
+                                key={tool.toString()}
+                                state={state}
+                                tool={tool}
+                                dispatch={dispatch}
+                            />
+                        ))}
+                    </div>
+                )}
             </Container>
         </Navbar>
 
-        {tool.cata({
+        {state.searchBuilder.cata({
             Nothing: () => null,
-
-            Just: t => t.cata({
-                Filter: () => state.searchBuilder.cata({
-                    Nothing: () => null,
-                    Just: searchBuilder => (
-                        <Container fluid className={`${styles.container} py-2`}>
-                            <SearchBuilder.View
-                                compact
-                                minBrewedAfter={minBrewedAfter}
-                                maxBrewedAfter={maxBrewedAfter}
-                                state={searchBuilder}
-                                dispatch={compose(dispatch, ActionSearchBuilder.cons)}
-                            />
-                        </Container>
-                    )
-                }),
-
-                _: () => null
-            })
+            Just: searchBuilder => (
+                <Container fluid className={`${styles.container} py-2`}>
+                    <SearchBuilder.View
+                        compact
+                        minBrewedAfter={minBrewedAfter}
+                        maxBrewedAfter={maxBrewedAfter}
+                        state={searchBuilder}
+                        dispatch={compose(dispatch, ActionSearchBuilder.cons)}
+                    />
+                </Container>
+            )
         })}
     </div>
 );
