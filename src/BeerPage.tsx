@@ -1,4 +1,5 @@
 import React from 'react';
+import Skeleton from 'react-loading-skeleton';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Table from 'react-bootstrap/Table';
@@ -13,11 +14,13 @@ import * as Api from './Api';
 import styles from './BeerPage.module.css';
 
 export interface State {
+    show: boolean;
     beer: RemoteData<Http.Error, Api.Beer>;
 }
 
 export const init = (beerId: number): [ State, Cmd<Action> ] => [
     {
+        show: false,
         beer: Loading
     },
     Api.loadBeer(beerId).send(response => new LoadDone(response))
@@ -41,7 +44,66 @@ class LoadDone extends Action {
 export const update = (action: Action, state: State): State => action.update(state);
 
 const ViewLoading: React.FC = () => (
-    <div>Beer is under loading...</div>
+    <div className="pb-3">
+        <h1><Skeleton width="80%" /></h1>
+
+        <div className="d-flex justify-content-between">
+            <Skeleton width="150px" />
+
+            <blockquote className="text-right">
+                <Skeleton width="120px" />
+                <br />
+                <Skeleton width="70px" />
+            </blockquote>
+        </div>
+
+        <Row>
+            <Col sm="4">
+                <Skeleton height="300px" />
+            </Col>
+
+            <Col>
+                <Table responsive>
+                    <tbody>
+                        {'0123456'.split('').map(i => (
+                            <tr key={i}>
+                                <td><Skeleton width="50" /></td>
+                                <td><Skeleton width="30" /></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </Table>
+            </Col>
+        </Row>
+
+        <h3>
+            <Skeleton circle width="27px" height="27px" />
+            <span className="mr-2" />
+            <Skeleton width="200px" />
+        </h3>
+
+        <p><Skeleton count={4} /></p>
+
+        <h3>
+            <Skeleton circle width="27px" height="27px" />
+            <span className="mr-2" />
+            <Skeleton width="150px" />
+        </h3>
+
+        <ul>
+            <li><Skeleton width="30%" /></li>
+            <li><Skeleton width="50%" /></li>
+            <li><Skeleton width="50%" /></li>
+        </ul>
+
+        <h3>
+            <Skeleton circle width="27px" height="27px" />
+            <span className="mr-2" />
+            <Skeleton width="100px" />
+        </h3>
+
+        <p className="mb-0"><Skeleton count={2} /></p>
+    </div>
 );
 
 const ViewError: React.FC<{
