@@ -1,6 +1,7 @@
 import React from 'react';
 import { compose } from 'redux';
 import Navbar from 'react-bootstrap/Navbar';
+import Nav from 'react-bootstrap/Nav';
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -320,18 +321,23 @@ export const View: React.FC<{
                     Bier
                 </Navbar.Brand>
 
-                {tools.length > 0 && (
-                    <div>
-                        {tools.map(tool => (
-                            <ViewTool
-                                key={tool.toString()}
-                                state={state}
-                                tool={tool}
-                                dispatch={dispatch}
-                            />
-                        ))}
-                    </div>
-                )}
+                <Nav className="mr-auto">
+                    <Nav.Link
+                        as={Router.Link}
+                        to={Router.ToFavorites({ name: Nothing, brewedAfter: Nothing })}
+                    >Favorites</Nav.Link>
+                </Nav>
+
+                <div>
+                    {tools.length > 0 && tools.map(tool => (
+                        <ViewTool
+                            key={tool.toString()}
+                            state={state}
+                            tool={tool}
+                            dispatch={dispatch}
+                        />
+                    ))}
+                </div>
             </Container>
         </Navbar>
 

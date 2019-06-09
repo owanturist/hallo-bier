@@ -30,6 +30,7 @@ export type RouterPattern<R> = Cata<{
     ToBeer(beerId: number): R;
     ToRandomBeer(): R;
     ToBeerSearch(filter: SearchFilter): R;
+    ToFavorites(filter: SearchFilter): R;
 }>;
 
 export abstract class Route {
@@ -45,6 +46,8 @@ export abstract class Route {
         return encodeURIComponent(str);
     }
 
+    private readonly type: string = this.constructor.name;
+
     public abstract toPath(): string;
 
     public abstract cata<R>(pattern: RouterPattern<R>): R;
@@ -59,6 +62,10 @@ export abstract class Route {
         return Cmd.of((): void => {
             history.replace(this.toPath());
         });
+    }
+
+    protected toString(): string {
+        return this.type;
     }
 }
 
@@ -126,15 +133,13 @@ class ToRandomBeerRoute extends Route {
 
 export const ToRandomBeer: Route = new ToRandomBeerRoute();
 
-class ToBeerSearchRoute extends Route {
-    public static schema = '/search';
-
-    public static parse(loc: Location): Route {
+abstract class ToRouteWithFilter extends Route {
+    protected static parseFilter(loc: Location): SearchFilter {
         const qs = queryString.parse(loc.search);
         const name = Array.isArray(qs.name) ? qs.name[0] : qs.name;
         const bra = Array.isArray(qs.bra) ? qs.bra[0] : qs.bra;
 
-        return new ToBeerSearchRoute({
+        return {
             name: Maybe.fromNullable(name).chain(Route.percentDecode),
             brewedAfter: Maybe.fromNullable(bra).chain(Route.percentDecode).chain((val: string) => {
                 const fr = val.split('/');
@@ -145,21 +150,21 @@ class ToBeerSearchRoute extends Route {
 
                 return Just(new Date([ '01' ].concat(fr).join('/')));
             })
-        });
+        };
     }
 
     private static brewedDateToString(date: Date): string {
         return date.toLocaleDateString().slice(3);
     }
 
-    public constructor(private readonly filter: SearchFilter) {
+    public constructor(protected readonly filter: SearchFilter) {
         super();
     }
 
-    public toPath(): string {
+    protected toQueryString(): string {
         const queryBuilder: Array<[ string, Maybe<string> ]> = [
             [ 'name', this.filter.name.map(Route.percentEncode) ],
-            [ 'bra', this.filter.brewedAfter.map(ToBeerSearchRoute.brewedDateToString).map(Route.percentEncode) ]
+            [ 'bra', this.filter.brewedAfter.map(ToRouteWithFilter.brewedDateToString).map(Route.percentEncode) ]
         ];
         const queryList = queryBuilder.reduce(
             (acc, [ key, value ]) => value.map((val: string) => [ `${key}=${val}`, ...acc ]).getOrElse(acc),
@@ -167,10 +172,22 @@ class ToBeerSearchRoute extends Route {
         );
 
         if (queryList.length === 0) {
-            return '/search';
+            return '';
         }
 
-        return '/search?' + queryList.join('&');
+        return '?' + queryList.join('&');
+    }
+}
+
+class ToBeerSearchRoute extends ToRouteWithFilter {
+    public static schema = '/search';
+
+    public static parse(loc: Location): Route {
+        return new ToBeerSearchRoute(ToRouteWithFilter.parseFilter(loc));
+    }
+
+    public toPath(): string {
+        return '/search' + this.toQueryString();
     }
 
     public cata<R>(pattern: RouterPattern<R>): R {
@@ -184,6 +201,30 @@ class ToBeerSearchRoute extends Route {
 
 export const ToBeerSearch = (filter: SearchFilter): Route => {
     return new ToBeerSearchRoute(filter);
+};
+
+class ToFavoritesRoute extends ToRouteWithFilter {
+    public static schema = '/favorites';
+
+    public static parse(loc: Location): Route {
+        return new ToFavoritesRoute(ToRouteWithFilter.parseFilter(loc));
+    }
+
+    public toPath(): string {
+        return '/favorites' + this.toQueryString();
+    }
+
+    public cata<R>(pattern: RouterPattern<R>): R {
+        if (typeof pattern.ToFavorites === 'function') {
+            return pattern.ToFavorites(this.filter);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+export const ToFavorites = (filter: SearchFilter): Route => {
+    return new ToFavoritesRoute(filter);
 };
 
 interface PathProps<P> extends RouteProps {
@@ -230,6 +271,11 @@ export const View: React.FC<{
             <Path
                 path={ToBeerSearchRoute.schema}
                 onEnter={(_match, loc: Location) => onChange(ToBeerSearchRoute.parse(loc))}
+            />
+
+            <Path
+                path={ToFavoritesRoute.schema}
+                onEnter={(_match, loc: Location) => onChange(ToFavoritesRoute.parse(loc))}
             />
         </Switch>
         {children}

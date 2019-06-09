@@ -108,20 +108,13 @@ export const loadBeerList = (
 };
 
 export const loadBeerListByIds = (
+    filter: SearchFilter,
     ids: Array<number>,
     beersPerPage: number,
     pageNumber: number
 ): Http.Request<[ boolean, Array<Beer> ]> => {
-    return Http.get(`${PUNK_ENDPOINT}/beers`)
-        .withQueryParam('page', pageNumber.toString())
-        .withQueryParam('per_page', beersPerPage.toString())
-        .withQueryParam('ids', ids.join('|'))
-        .withExpect(Http.expectJson(
-            Decode.list(beerDecoder).map((beers): [ boolean, Array<Beer> ] => [
-                beers.length >= beersPerPage,
-                beers
-            ])
-        ));
+    return loadBeerList(filter, beersPerPage, pageNumber)
+        .withQueryParam('ids', ids.join('|'));
 };
 
 export const loadBeerById = (beerId: number): Http.Request<Beer> => {

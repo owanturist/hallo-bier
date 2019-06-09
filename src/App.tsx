@@ -31,10 +31,11 @@ type PagePattern<R> = Cata<{
     PageBeer(beerId: number, beerPage: BeerPage.State): R;
     PageRandomBeer(randomBeerPage: RandomBeerPage.State): R;
     PageBeerList(filter: Router.SearchFilter, beerList: BeerList.State): R;
+    PageFavorites(filter: Router.SearchFilter, beerList: BeerList.State): R;
 }>;
 
 abstract class Page {
-    public static init(route: Router.Route): [ Page, Cmd<Action> ] {
+    public static init(favorites: Array<number>, route: Router.Route): [ Page, Cmd<Action> ] {
         return route.cata<[ Page, Cmd<Action> ]>({
             ToHome: () => [
                 new PageHome(HomePage.init()),
@@ -67,6 +68,22 @@ abstract class Page {
                 return [
                     new PageBeerList(filter, initialBeerList),
                     cmdOfBeerList.map(ActionBeerListPage.cons)
+                ];
+            },
+
+            ToFavorites: filter => {
+                const [ initialBeerList, cmdOfBeerList ] = BeerList.init(
+                    count => Api.loadBeerListByIds(
+                        filter,
+                        favorites,
+                        BEERS_PER_PAGE,
+                        count / BEERS_PER_PAGE + 1
+                    )
+                );
+
+                return [
+                    new PageFavorites(filter, initialBeerList),
+                    cmdOfBeerList.map(ActionFavoritesPage.cons)
                 ];
             }
         });
@@ -147,6 +164,24 @@ class PageBeerList extends Page {
     }
 }
 
+class PageFavorites extends Page {
+    public constructor(
+        private readonly filter: Router.SearchFilter,
+        private readonly beerList: BeerList.State
+    ) {
+        super();
+    }
+
+    public cata<R>(pattern: PagePattern<R>): R {
+        if (typeof pattern.PageFavorites === 'function') {
+            return pattern.PageFavorites(this.filter, this.beerList);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+
 export interface State {
     header: Header.State;
     favorites: Array<number>;
@@ -185,7 +220,7 @@ class RouteChanged extends Action {
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
-        const [ nextPage, cmd ] = Page.init(this.route);
+        const [ nextPage, cmd ] = Page.init(state.favorites, this.route);
         const nextHeader = this.route.cata({
             ToBeerSearch: () => state.header,
             _: () => Header.hideSearchBuilder(state.header)
@@ -363,6 +398,47 @@ class ActionBeerListPage extends Action {
     }
 }
 
+class ActionFavoritesPage extends Action {
+    public static cons(action: BeerList.Action): Action {
+        return new ActionFavoritesPage(action);
+    }
+
+    private constructor(private readonly action: BeerList.Action) {
+        super();
+    }
+
+    public update(state: State): [ State, Cmd<Action> ] {
+        return state.page.cata<[ State, Cmd<Action> ]>({
+            PageFavorites: (filter, beerList) => this.action.update(
+                count => Api.loadBeerListByIds(
+                    filter,
+                    state.favorites,
+                    BEERS_PER_PAGE,
+                    count / BEERS_PER_PAGE + 1
+                ),
+                beerList
+            ).cata<[ State, Cmd<Action> ]>({
+                Update: (nextBeerList, cmdOfBeerList) => [
+                    {
+                        ...state,
+                        header: BeerList.isEmpty(nextBeerList)
+                            ? Header.showSearchBuilder(filter, state.header)
+                            : state.header,
+                        page: new PageFavorites(filter, nextBeerList)
+                    },
+                    cmdOfBeerList.map(ActionFavoritesPage.cons)
+                ],
+
+                SetFavorites: (checked, beerId) => {
+                    return setFavorites(checked, beerId, state);
+                }
+            }),
+
+            _: () => [ state, Cmd.none ]
+        });
+    }
+}
+
 const PageView: React.FC<{
     scroller: React.RefObject<HTMLDivElement>;
     favorites: Set<number>;
@@ -387,12 +463,21 @@ const PageView: React.FC<{
         <RandomBeerPage.View state={randomBeerPage} />
     ),
 
-    PageBeerList: (_filter, beerListPage) => (
+    PageBeerList: (_filter, beerList) => (
         <BeerList.View
             scroller={scroller}
             favorites={favorites}
-            state={beerListPage}
+            state={beerList}
             dispatch={compose(dispatch, ActionBeerListPage.cons)}
+        />
+    ),
+
+    PageFavorites: (_filter, beerList) => (
+        <BeerList.View
+            scroller={scroller}
+            favorites={favorites}
+            state={beerList}
+            dispatch={compose(dispatch, ActionFavoritesPage.cons)}
         />
     )
 });
