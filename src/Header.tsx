@@ -4,7 +4,7 @@ import Navbar from 'react-bootstrap/Navbar';
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFilter } from '@fortawesome/free-solid-svg-icons';
+import { faFilter, faBeer } from '@fortawesome/free-solid-svg-icons';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import { Cmd } from 'Cmd';
 import * as Utils from 'Utils';
@@ -24,30 +24,40 @@ export const init = (): State => ({
 export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
 class ShowSearchBuilder extends Action {
+    public static show(filter: Router.SearchFilter, state: State): State {
+        if (state.searchBuilder.isJust()) {
+            return state;
+        }
+
+        return {
+            ...state,
+            searchBuilder: Just(
+                SearchBuilder.init(
+                    filter.name.getOrElse(''),
+                    filter.brewedAfter.map(
+                        date => ({
+                            month: Month.fromDate(date),
+                            year: date.getFullYear()
+                        })
+                    )
+                )
+            )
+        };
+    }
+
     public constructor(private readonly filter: Router.SearchFilter) {
         super();
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
         return [
-            {
-                ...state,
-                searchBuilder: Just(
-                    SearchBuilder.init(
-                        this.filter.name.getOrElse(''),
-                        this.filter.brewedAfter.map(
-                            date => ({
-                                month: Month.fromDate(date),
-                                year: date.getFullYear()
-                            })
-                        )
-                    )
-                )
-            },
+            ShowSearchBuilder.show(this.filter, state),
             Cmd.none
         ];
     }
 }
+
+export const showSearchBuilder = ShowSearchBuilder.show;
 
 class HideSearchBuilder extends Action {
     public update(state: State): [ State, Cmd<Action> ] {
@@ -92,7 +102,11 @@ export const View: React.FC<{
     <div className={state.searchBuilder.isJust() ? 'border-bottom' : ''}>
         <Navbar bg="warning" expand="lg">
             <Container fluid className={styles.container}>
-                <Navbar.Brand as={Router.Link} to={Router.ToHome}>Hallo Bier</Navbar.Brand>
+                <Navbar.Brand as={Router.Link} to={Router.ToHome}>
+                    Hallo
+                    <FontAwesomeIcon icon={faBeer} className="text-white mx-1" />
+                    Bier
+                </Navbar.Brand>
 
                 {filter.cata({
                     Nothing: () => null,

@@ -1,4 +1,5 @@
 import React from 'react';
+import Alert from 'react-bootstrap/Alert';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -30,24 +31,63 @@ export const init = (beersPerPage: number, filter: Router.SearchFilter): [ State
     Api.loadBeerList(filter, beersPerPage, 1).send(LoadDone.cons)
 ];
 
-export abstract class Action extends Utils.Action<[ Router.SearchFilter, State ], [ State, Cmd<Action> ]> {}
+export interface StagePattern<R> {
+    Idle(): R;
+    Update(state: State, cmd: Cmd<Action>): R;
+    ShowFilters(state: State): R;
+}
+
+export abstract class Stage {
+    public abstract cata<R>(pattern: StagePattern<R>): R;
+}
+
+class Idle extends Stage {
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.Idle();
+    }
+}
+
+class Update extends Stage {
+    public constructor(
+        private readonly state: State,
+        private readonly cmd: Cmd<Action>
+    ) {
+        super();
+    }
+
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.Update(this.state, this.cmd);
+    }
+}
+
+class ShowFilters extends Stage {
+    public constructor(private readonly state: State) {
+        super();
+    }
+
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.ShowFilters(this.state);
+    }
+}
+
+export abstract class Action extends Utils.Action<[ Router.SearchFilter, State ], Stage> {}
 
 class LoadMore extends Action {
     public static inst: Action = new LoadMore();
 
-    public update(filter: Router.SearchFilter, state: State): [ State, Cmd<Action> ] {
+    public update(filter: Router.SearchFilter, state: State): Stage {
         if (!state.hasMore || !state.loading.isNotAsked()) {
-            return [ state, Cmd.none ];
+            return new Idle();
         }
 
-        return [
+        return new Update(
             { ...state, loading: Loading },
             Api.loadBeerList(
                 filter,
                 state.beersPerPage,
                 state.beerList.length / state.beersPerPage + 1
             ).send(LoadDone.cons)
-        ];
+        );
     }
 }
 
@@ -62,23 +102,26 @@ class LoadDone extends Action {
         super();
     }
 
-    public update(_filter: Router.SearchFilter, state: State): [ State, Cmd<Action> ] {
-        return [
-            this.response.cata({
-                Left: (error: Http.Error): State => ({
-                    ...state,
-                    loading: Failure(error)
-                }),
+    public update(_filter: Router.SearchFilter, state: State): Stage {
+        return this.response.cata({
+            Left: (error: Http.Error) => new Update({
+                ...state,
+                loading: Failure(error)
+            }, Cmd.none),
 
-                Right: (beerList: Array<Api.Beer>): State => ({
+            Right: (beerList: Array<Api.Beer>) => beerList.length === 0 && state.beerList.length === 0
+                ? new ShowFilters({
+                    ...state,
+                    hasMore: false,
+                    loading: NotAsked
+                })
+                : new Update({
                     ...state,
                     hasMore: beerList.length === state.beersPerPage,
                     loading: NotAsked,
                     beerList: state.beerList.concat(beerList)
-                })
-            }),
-            Cmd.none
-        ];
+                }, Cmd.none)
+        });
     }
 }
 
@@ -163,6 +206,15 @@ const ViewLoadMore: React.FC = () => (
     </div>
 );
 
+const ViewEmpty: React.FC = () => (
+    <Alert variant="warning" className="mb-0">
+        <Alert.Heading>There is no beer!</Alert.Heading>
+        <p>
+            For the current filters. Please try to change them.
+        </p>
+    </Alert>
+);
+
 interface ViewProps {
     scroller: React.RefObject<HTMLElement>;
     state: State;
@@ -225,7 +277,7 @@ export class View extends React.Component<ViewProps> {
                         }
 
                         return (
-                            <div>There are no beer for the current filters</div>
+                            <ViewEmpty />
                         );
                     }
                 })}

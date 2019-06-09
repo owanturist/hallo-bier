@@ -328,6 +328,7 @@ export const View: React.FC<{
                     type="search"
                     value={state.name}
                     disabled={disabled}
+                    autoFocus
                     tabIndex={0}
                     onChange={(event: React.ChangeEvent<FormControlProps>) => {
                         dispatch(new ChangeName(event.currentTarget.value || ''));
