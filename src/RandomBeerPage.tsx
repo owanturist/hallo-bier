@@ -47,7 +47,7 @@ export const View: React.FC<{
     ),
 
     Succeed: beer => (
-        <BeerInfo.View beer={beer} />
+        <BeerInfo.View random beer={beer} />
     ),
 
     _: () => (

@@ -4,9 +4,10 @@ import Col from 'react-bootstrap/Col';
 import Table from 'react-bootstrap/Table';
 import LoadingSkeleton from 'react-loading-skeleton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faInfoCircle, faUtensils, faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
+import { faInfoCircle, faUtensils, faQuestionCircle, faLink } from '@fortawesome/free-solid-svg-icons';
 import * as Http from 'frctl/dist/src/Http';
 import * as Api from './Api';
+import * as Router from './Router';
 import { Month } from './MonthPicker';
 import styles from './BeerInfo.module.css';
 
@@ -107,10 +108,18 @@ export const Error: React.FC<{
 );
 
 export const View: React.FC<{
+    random?: boolean;
     beer: Api.Beer;
-}> = ({ beer }) => (
+}> = ({ random, beer }) => (
     <div className="pb-3">
-        <h1>{beer.name}</h1>
+        <h1>
+            {random && (
+                <Router.Link className="text-secondary mr-2" to={Router.ToBeer(beer.id)}>
+                    <small><FontAwesomeIcon icon={faLink} /></small>
+                </Router.Link>
+            )}
+            {beer.name}
+        </h1>
 
         <div className="d-flex justify-content-between">
             <i className="text-muted">
