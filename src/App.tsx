@@ -287,22 +287,19 @@ class ActionBeerListPage extends Action {
 
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({
-            PageBeerList: (filter, beerListPage) => this.action.update(filter, beerListPage).cata({
-                Idle: (): [ State, Cmd<Action> ] => [ state, Cmd.none ],
+            PageBeerList: (filter, beerListPage) => {
+                const [ nextBeerListPage, cmdOfBeerListPage ] = this.action.update(filter, beerListPage);
 
-                Update: (nextBeerListPage, cmdOfBeerListPage): [ State, Cmd<Action> ] => [
-                    { ...state, page: new PageBeerList(filter, nextBeerListPage) },
-                    cmdOfBeerListPage.map(ActionBeerListPage.cons)
-                ],
-
-                ShowFilters: (nextBeerListPage): [ State, Cmd<Action> ] => [
+                return [
                     {
-                        header: Header.showSearchBuilder(filter, state.header),
+                        header: BeerListPage.isEmpty(nextBeerListPage)
+                            ? Header.showSearchBuilder(filter, state.header)
+                            : state.header,
                         page: new PageBeerList(filter, nextBeerListPage)
                     },
-                    Cmd.none
-                ]
-            }),
+                    cmdOfBeerListPage.map(ActionBeerListPage.cons)
+                ];
+            },
 
             _: () => [ state, Cmd.none ]
         });

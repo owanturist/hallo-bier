@@ -1,6 +1,9 @@
 import { Maybe, Just, Nothing } from 'frctl/dist/src/Maybe';
 import * as Decode from 'frctl/dist/src/Json/Decode';
-import * as Http from './Http';
+import * as Encode from 'frctl/dist/src/Json/Encode';
+import { Cmd } from 'Cmd';
+import * as Http from 'Http';
+import * as LocalStorage from 'LocalStorage';
 import { SearchFilter } from 'Router';
 
 const PUNK_ENDPOINT = 'https://api.punkapi.com/v2';
@@ -78,7 +81,7 @@ export const loadBeerList = (
     filter: SearchFilter,
     beersPerPage: number,
     pageNumber: number
-): Http.Request<Array<Beer>> => {
+): Http.Request<[ boolean, Array<Beer> ]> => {
     return Http.get(`${PUNK_ENDPOINT}/beers`)
         .withQueryParam('page', pageNumber.toString())
         .withQueryParam('per_page', beersPerPage.toString())
@@ -96,7 +99,29 @@ export const loadBeerList = (
                 .map(arraySingleton)
                 .getOrElse([])
         )
-        .withExpect(Http.expectJson(Decode.list(beerDecoder)));
+        .withExpect(Http.expectJson(
+            Decode.list(beerDecoder).map((beers): [ boolean, Array<Beer> ] => [
+                beers.length >= beersPerPage,
+                beers
+            ])
+        ));
+};
+
+export const loadBeerListByIds = (
+    ids: Array<number>,
+    beersPerPage: number,
+    pageNumber: number
+): Http.Request<[ boolean, Array<Beer> ]> => {
+    return Http.get(`${PUNK_ENDPOINT}/beers`)
+        .withQueryParam('page', pageNumber.toString())
+        .withQueryParam('per_page', beersPerPage.toString())
+        .withQueryParam('ids', ids.join('|'))
+        .withExpect(Http.expectJson(
+            Decode.list(beerDecoder).map((beers): [ boolean, Array<Beer> ] => [
+                beers.length >= beersPerPage,
+                beers
+            ])
+        ));
 };
 
 export const loadBeerById = (beerId: number): Http.Request<Beer> => {
@@ -107,4 +132,19 @@ export const loadBeerById = (beerId: number): Http.Request<Beer> => {
 export const loadRandomBeer = (): Http.Request<Beer> => {
     return Http.get(`${PUNK_ENDPOINT}/beers/random`)
         .withExpect(Http.expectJson(Decode.index(0, beerDecoder)));
+};
+
+export const getListOfFavorites = (): Cmd<Array<number>> => {
+    return LocalStorage.getItem('favorites').map(
+        mJSON => mJSON.chain(
+            json => Decode.list(Decode.number).decodeJSON(json).toMaybe()
+        ).getOrElse([])
+    );
+};
+
+export const setListOfFavorites = (beerIds: Array<number>): Cmd<never> => {
+    return LocalStorage.setItem(
+        'favorites',
+        Encode.listOf(Encode.number, beerIds).encode(0)
+    );
 };
