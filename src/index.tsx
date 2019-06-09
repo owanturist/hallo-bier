@@ -16,6 +16,7 @@ interface Action {
 }
 
 const Self = (payload: App.Action): Action => ({ type: 'SELF', payload });
+let initialAppCmd: Cmd<App.Action> = Cmd.none;
 
 let loopDispatch: Done<App.Action> = () => {
     // do nothing
@@ -43,7 +44,7 @@ function reducer(state: App.State, action: Action): App.State {
 function init(): App.State {
     const [ initialState, initialCmd ] = App.init();
 
-    CmdExecutor.execute(initialCmd, loopDispatch);
+    initialAppCmd = initialCmd;
 
     return initialState;
 }
@@ -55,6 +56,7 @@ const store = createStore(
 );
 
 loopDispatch = compose(store.dispatch, Self);
+CmdExecutor.execute(initialAppCmd, loopDispatch);
 
 const Root = connect(
     (state: App.State) => ({ state }),

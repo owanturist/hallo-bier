@@ -24,19 +24,13 @@ export const init = (): State => ({
 });
 
 export interface StagePattern<R> {
-    Idle(): R;
     Update(nextState: State, cmd: Cmd<Action>): R;
     RollRandomBeer(): R;
+    UpdateFavorites(favorites: Array<number>): R;
 }
 
 export abstract class Stage {
     public abstract cata<R>(pattern: StagePattern<R>): R;
-}
-
-class Idle extends Stage {
-    public cata<R>(pattern: StagePattern<R>): R {
-        return pattern.Idle();
-    }
 }
 
 class Update extends Stage {
@@ -55,6 +49,16 @@ class Update extends Stage {
 class RollRandomBeer extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.RollRandomBeer();
+    }
+}
+
+class UpdateFavorites extends Stage {
+    public constructor(private readonly favorites: Array<number>) {
+        super();
+    }
+
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.UpdateFavorites(this.favorites);
     }
 }
 
@@ -114,6 +118,24 @@ class HideSearchBuilder extends Action {
 
 export const hideSearchBuilder = HideSearchBuilder.hide;
 
+class ToggleFavorite extends Action {
+    public constructor(
+        private readonly checked: boolean,
+        private readonly favorites: Array<number>,
+        private readonly beerId: number
+    ) {
+        super();
+    }
+
+    public update(): Stage {
+        if (this.checked) {
+            return new UpdateFavorites([ this.beerId, ...this.favorites ]);
+        }
+
+        return new UpdateFavorites(this.favorites.filter(id => this.beerId !== id));
+    }
+}
+
 class ActionSearchBuilder extends Action {
     public static cons(action: SearchBuilder.Action) {
         return new ActionSearchBuilder(action);
@@ -125,7 +147,7 @@ class ActionSearchBuilder extends Action {
 
     public update(state: State): Stage {
         return state.searchBuilder.cata({
-            Nothing: () => new Idle(),
+            Nothing: () => new Update(state, Cmd.none),
 
             Just: searchBuilder => {
                 return this.action.update(searchBuilder).cata({
@@ -147,7 +169,7 @@ class ActionSearchBuilder extends Action {
 type ToolPattern<R> = Cata<{
     Filter(filter: Router.SearchFilter): R;
     Roll(busy: boolean): R;
-    Favorite(checked: boolean): R;
+    Favorite(favorites: Array<number>, beerId: Maybe<number>): R;
 }>;
 
 export abstract class Tool {
@@ -159,8 +181,8 @@ export abstract class Tool {
         return new RollTool(busy);
     }
 
-    public static Favorite(checked: boolean): Tool {
-        return new FavoriteTool(checked);
+    public static Favorite(favorites: Array<number>, beerId: Maybe<number>): Tool {
+        return new FavoriteTool(favorites, beerId);
     }
 
     public toString(): string {
@@ -199,13 +221,16 @@ class RollTool extends Tool {
 }
 
 class FavoriteTool extends Tool {
-    public constructor(private readonly checked: boolean) {
+    public constructor(
+        private readonly favorites: Array<number>,
+        private readonly beerId: Maybe<number>
+    ) {
         super();
     }
 
     public cata<R>(pattern: ToolPattern<R>): R {
         if (typeof pattern.Favorite === 'function') {
-            return pattern.Favorite(this.checked);
+            return pattern.Favorite(this.favorites, this.beerId);
         }
 
         return (pattern._ as () => R)();
@@ -245,22 +270,40 @@ const ViewTool: React.FC<{
         </Button>
     ),
 
-    Favorite: checked => (
-        <Button
-            className={checked ? 'ml-2' : 'ml-2'}
-            variant="dark"
-            size="sm"
-        >
-            {checked
-                ? (
-                    <FontAwesomeIcon className="text-danger" icon={faHeart} />
-                )
-                : (
-                    <FontAwesomeIcon icon={faRegularHeart} />
-                )
-            }
-        </Button>
-    )
+    Favorite: (favorites, beerId) => beerId.cata({
+        Nothing: () => (
+            <Button
+                className="ml-2"
+                variant="dark"
+                size="sm"
+                disabled
+            >
+                <FontAwesomeIcon icon={faRegularHeart} />
+            </Button>
+        ),
+
+        Just: beerId => {
+            const favorited = favorites.indexOf(beerId) !== -1;
+
+            return (
+                <Button
+                    className={'ml-2'}
+                    variant="dark"
+                    size="sm"
+                    onClick={() => dispatch(new ToggleFavorite(!favorited, favorites, beerId))}
+                >
+                    {favorited
+                        ? (
+                            <FontAwesomeIcon className="text-danger" icon={faHeart} />
+                        )
+                        : (
+                            <FontAwesomeIcon icon={faRegularHeart} />
+                        )
+                    }
+                </Button>
+            );
+        }
+    })
 });
 
 export const View: React.FC<{

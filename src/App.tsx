@@ -3,8 +3,10 @@ import { compose } from 'redux';
 import { Cmd } from 'Cmd';
 import { Cata } from 'frctl/dist/src/Basics';
 import Container from 'react-bootstrap/Container';
+import { Just } from 'frctl/dist/src/Maybe';
 import * as Utils from './Utils';
 import * as Router from './Router';
+import * as Api from './Api';
 import * as Header from './Header';
 import * as HomePage from './HomePage';
 import * as BeerPage from './BeerPage';
@@ -24,7 +26,7 @@ const brewedAfterLimits: {
 type PagePattern<R> = Cata<{
     PageVoid(): R;
     PageHome(homePage: HomePage.State): R;
-    PageBeer(beerPage: BeerPage.State): R;
+    PageBeer(beerId: number, beerPage: BeerPage.State): R;
     PageRandomBeer(randomBeerPage: RandomBeerPage.State): R;
     PageBeerList(filter: Router.SearchFilter, beerListPage: BeerListPage.State): R;
 }>;
@@ -41,7 +43,7 @@ abstract class Page {
                 const [ initialBeerPage, cmdOfBeerPage ] = BeerPage.init(beerId);
 
                 return [
-                    new PageBeer(initialBeerPage),
+                    new PageBeer(beerId, initialBeerPage),
                     cmdOfBeerPage.map(ActionBeerPage.cons)
                 ];
             },
@@ -94,13 +96,16 @@ class PageHome extends Page {
 }
 
 class PageBeer extends Page {
-    public constructor(private readonly beerPage: BeerPage.State) {
+    public constructor(
+        private readonly beerId: number,
+        private readonly beerPage: BeerPage.State
+    ) {
         super();
     }
 
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageBeer === 'function') {
-            return pattern.PageBeer(this.beerPage);
+            return pattern.PageBeer(this.beerId, this.beerPage);
         }
 
         return (pattern._ as () => R)();
@@ -140,15 +145,17 @@ class PageBeerList extends Page {
 
 export interface State {
     header: Header.State;
+    favorites: Array<number>;
     page: Page;
 }
 
 export const init = (): [ State, Cmd<Action> ] => [
     {
         header: Header.init(),
+        favorites: [],
         page: new VoidPage()
     },
-    Cmd.none
+    Api.getListOfFavorites().map(GetListOfFavorites.cons)
 ];
 
 export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
@@ -169,7 +176,31 @@ class RouteChanged extends Action {
             _: () => Header.hideSearchBuilder(state.header)
         });
 
-        return [{ header: nextHeader, page: nextPage }, cmd ];
+        return [
+            {
+                ...state,
+                header: nextHeader,
+                page: nextPage
+            },
+            cmd
+        ];
+    }
+}
+
+class GetListOfFavorites extends Action {
+    public static cons(favorites: Array<number>): Action {
+        return new GetListOfFavorites(favorites);
+    }
+
+    private constructor(private readonly favorites: Array<number>) {
+        super();
+    }
+
+    public update(state: State): [ State, Cmd<Action> ] {
+        return [
+            { ...state, favorites: this.favorites },
+            Cmd.none
+        ];
     }
 }
 
@@ -184,8 +215,6 @@ class ActionHeader extends Action {
 
     public update(state: State): [ State, Cmd<Action> ] {
         return  this.action.update(state.header).cata<[ State, Cmd<Action> ]>({
-            Idle: () => [ state, Cmd.none ],
-
             Update: (nextHeader, cmdOfHeader) => [
                 { ...state, header: nextHeader },
                 cmdOfHeader.map(ActionHeader.cons)
@@ -201,7 +230,12 @@ class ActionHeader extends Action {
                     },
                     cmdOfRandomBeerPage.map(ActionRandomBeerPage.cons)
                 ];
-            }
+            },
+
+            UpdateFavorites: nextFavorites => [
+                { ...state, favorites: nextFavorites },
+                Api.setListOfFavorites(nextFavorites)
+            ]
         });
     }
 }
@@ -242,9 +276,9 @@ class ActionBeerPage extends Action {
 
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({
-            PageBeer: beerPage => {
+            PageBeer: (beerId, beerPage) => {
                 return [
-                    { ...state, page: new PageBeer(this.action.update(beerPage)) },
+                    { ...state, page: new PageBeer(beerId, this.action.update(beerPage)) },
                     Cmd.none
                 ];
             },
@@ -295,6 +329,7 @@ class ActionBeerListPage extends Action {
 
                 return [
                     {
+                        ...state,
                         header: BeerListPage.isEmpty(nextBeerListPage)
                             ? Header.showSearchBuilder(filter, state.header)
                             : state.header,
@@ -324,7 +359,7 @@ const PageView: React.FC<{
         />
     ),
 
-    PageBeer: beerPage => (
+    PageBeer: (_beerId, beerPage) => (
         <BeerPage.View state={beerPage} />
     ),
 
@@ -350,12 +385,12 @@ export class View extends React.PureComponent<{
     public render() {
         const { state, dispatch } = this.props;
         const headerTools = state.page.cata({
-            PageBeer: () => [
-                Header.Tool.Favorite(true)
+            PageBeer: beerId => [
+                Header.Tool.Favorite(state.favorites, Just(beerId))
             ],
             PageRandomBeer: randomBeer => [
                 Header.Tool.Roll(RandomBeerPage.isLoading(randomBeer)),
-                Header.Tool.Favorite(true)
+                Header.Tool.Favorite(state.favorites, randomBeer.beer.map(beer => beer.id).toMaybe())
             ],
             PageBeerList: filter => [
                 Header.Tool.Filter(filter)
