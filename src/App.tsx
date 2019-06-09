@@ -223,6 +223,7 @@ class RouteChanged extends Action {
         const [ nextPage, cmd ] = Page.init(state.favorites, this.route);
         const nextHeader = this.route.cata({
             ToBeerSearch: () => state.header,
+            ToFavorites: () => state.header,
             _: () => Header.hideSearchBuilder(state.header)
         });
 
@@ -265,9 +266,9 @@ class ActionHeader extends Action {
 
     public update(state: State): [ State, Cmd<Action> ] {
         return  this.action.update(state.header).cata<[ State, Cmd<Action> ]>({
-            Update: (nextHeader, cmdOfHeader) => [
+            Update: nextHeader => [
                 { ...state, header: nextHeader },
-                cmdOfHeader.map(ActionHeader.cons)
+                Cmd.none
             ],
 
             RollRandomBeer: () => {
@@ -282,9 +283,16 @@ class ActionHeader extends Action {
                 ];
             },
 
-            SetFavorites: (checked, beerId) => {
-                return setFavorites(checked, beerId, state);
-            }
+            SetFavorites: (checked, beerId) => setFavorites(checked, beerId, state),
+
+            SetFilters: filters => [
+                state,
+                state.page.cata({
+                    PageBeerList: () => Router.ToBeerSearch(filters).push(),
+                    PageFavorites: () => Router.ToFavorites(filters).push(),
+                    _: () => Cmd.none
+                })
+            ]
         });
     }
 }
@@ -500,6 +508,9 @@ export class View extends React.PureComponent<{
                 Header.Tool.Favorite(favoritesSet, randomBeer.beer.map(beer => beer.id).toMaybe())
             ],
             PageBeerList: filter => [
+                Header.Tool.Filter(filter)
+            ],
+            PageFavorites: filter => [
                 Header.Tool.Filter(filter)
             ],
             _: () => []

@@ -9,7 +9,6 @@ import { faFilter, faBeer, faDice, faHeart } from '@fortawesome/free-solid-svg-i
 import { faHeart as faRegularHeart } from '@fortawesome/free-regular-svg-icons';
 import { Cata } from 'frctl/dist/src/Basics';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
-import { Cmd } from 'Cmd';
 import * as Utils from 'Utils';
 import * as Router from './Router';
 import * as SearchBuilder from './SearchBuilder';
@@ -25,9 +24,10 @@ export const init = (): State => ({
 });
 
 export interface StagePattern<R> {
-    Update(nextState: State, cmd: Cmd<Action>): R;
+    Update(nextState: State): R;
     RollRandomBeer(): R;
     SetFavorites(checked: boolean, beerId: number): R;
+    SetFilters(filters: Router.SearchFilter): R;
 }
 
 export abstract class Stage {
@@ -35,15 +35,12 @@ export abstract class Stage {
 }
 
 class Update extends Stage {
-    public constructor(
-        private readonly state: State,
-        private readonly cmd: Cmd<Action>
-    ) {
+    public constructor(private readonly state: State) {
         super();
     }
 
     public cata<R>(pattern: StagePattern<R>): R {
-        return pattern.Update(this.state, this.cmd);
+        return pattern.Update(this.state);
     }
 }
 
@@ -101,10 +98,21 @@ class ShowSearchBuilder extends Action {
     }
 
     public update(state: State): Stage {
-        return new Update(
-            ShowSearchBuilder.show(this.filter, state),
-            Cmd.none
-        );
+        return new Update(ShowSearchBuilder.show(this.filter, state));
+    }
+}
+
+class SetFilters extends Stage {
+    public static cons(filters: Router.SearchFilter): Stage {
+        return new SetFilters(filters);
+    }
+
+    private constructor(private readonly filters: Router.SearchFilter) {
+        super();
+    }
+
+    public cata<R>(pattern: StagePattern<R>): R {
+        return pattern.SetFilters(this.filters);
     }
 }
 
@@ -116,7 +124,7 @@ class HideSearchBuilder extends Action {
     }
 
     public update(state: State): Stage {
-        return new Update(HideSearchBuilder.hide(state), Cmd.none);
+        return new Update(HideSearchBuilder.hide(state));
     }
 }
 
@@ -146,19 +154,15 @@ class ActionSearchBuilder extends Action {
 
     public update(state: State): Stage {
         return state.searchBuilder.cata({
-            Nothing: () => new Update(state, Cmd.none),
+            Nothing: () => new Update(state),
 
             Just: searchBuilder => {
                 return this.action.update(searchBuilder).cata({
                     Update: nextSearchBuilder => new Update(
-                        { ...state, searchBuilder: Just(nextSearchBuilder) },
-                        Cmd.none
+                        { ...state, searchBuilder: Just(nextSearchBuilder) }
                     ),
 
-                    Search: filter => new Update(
-                        state,
-                        Router.ToBeerSearch(filter).push()
-                    )
+                    Search: SetFilters.cons
                 });
             }
         });
