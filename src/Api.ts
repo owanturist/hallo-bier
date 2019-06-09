@@ -32,7 +32,18 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     tagline: Decode.field('tagline', Decode.string),
     contributor: Decode.field('contributed_by', Decode.string),
     image: Decode.field('image_url', Decode.nullable(Decode.string)),
-    firstBrewed: Decode.field('first_brewed', Decode.string.map((shortDate: string) => new Date(`01/${shortDate}`))),
+    firstBrewed: Decode.field(
+        'first_brewed',
+        Decode.string.map((shortDate: string) => {
+            const date = new Date(`01/${shortDate}`);
+
+            if (isNaN(date.getTime())) {
+                return new Date(shortDate);
+            }
+
+            return date;
+        })
+    ),
     abv: Decode.field('abv', Decode.nullable(Decode.number)),
     ibu: Decode.field('ibu', Decode.nullable(Decode.number)),
     targetFg: Decode.field('target_fg', Decode.nullable(Decode.number)),

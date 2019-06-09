@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfoCircle, faUtensils, faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
 import * as Http from 'frctl/dist/src/Http';
 import * as Api from './Api';
+import { Month } from './MonthPicker';
 import styles from './BeerInfo.module.css';
 
 export const Skeleton: React.FC = () => (
@@ -113,7 +114,9 @@ export const View: React.FC<{
 
         <div className="d-flex justify-content-between">
             <i className="text-muted">
-                Brewing since <small>{beer.firstBrewed.toLocaleDateString()}</small>
+                Brewing since{' '}
+                {Month.fromDate(beer.firstBrewed).toLongName()}{' '}
+                {beer.firstBrewed.getFullYear()}
             </i>
 
             <blockquote className="text-right">
