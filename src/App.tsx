@@ -2,7 +2,7 @@ import React from 'react';
 import { compose } from 'redux';
 import { Cmd } from 'Cmd';
 import { Cata } from 'frctl/dist/src/Basics';
-import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
+import { Nothing, Just } from 'frctl/dist/src/Maybe';
 import Container from 'react-bootstrap/Container';
 import * as Utils from './Utils';
 import * as Router from './Router';
@@ -346,17 +346,16 @@ export class View extends React.PureComponent<{
 
     public render() {
         const { state, dispatch } = this.props;
-        const [ filter, roll ] = state.page.cata<[ Maybe<Router.SearchFilter>, Maybe<boolean> ]>({
-            PageRandomBeer: randomBeer => [ Nothing, Just(RandomBeerPage.isLoading(randomBeer)) ],
-            PageBeerList: f => [ Just(f), Nothing ],
-            _: () => [ Nothing, Nothing ]
+        const headerTool = state.page.cata({
+            PageRandomBeer: randomBeer => Just(Header.Tool.Roll(RandomBeerPage.isLoading(randomBeer))),
+            PageBeerList: filter => Just(Header.Tool.Filter(filter)),
+            _: () => Nothing
         });
 
         return (
             <Router.View onChange={compose(dispatch, RouteChanged.cons)}>
                 <Header.View
-                    filter={filter}
-                    roll={roll}
+                    tool={headerTool}
                     state={state.header}
                     dispatch={compose(dispatch, ActionHeader.cons)}
                     {...brewedAfterLimits}

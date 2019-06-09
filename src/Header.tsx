@@ -5,6 +5,7 @@ import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFilter, faBeer, faDice } from '@fortawesome/free-solid-svg-icons';
+import { Cata } from 'frctl/dist/src/Basics';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import { Cmd } from 'Cmd';
 import * as Utils from 'Utils';
@@ -136,15 +137,77 @@ class ActionSearchBuilder extends Action {
     }
 }
 
+type ToolPattern<R> = Cata<{
+    Filter(filter: Router.SearchFilter): R;
+    Roll(busy: boolean): R;
+    Favorite(checked: boolean): R;
+}>;
+
+export abstract class Tool {
+    public static Filter(filter: Router.SearchFilter): Tool {
+        return new FilterTool(filter);
+    }
+
+    public static Roll(busy: boolean): Tool {
+        return new RollTool(busy);
+    }
+
+    public static Favorite(checked: boolean): Tool {
+        return new FavoriteTool(checked);
+    }
+
+    public abstract cata<R>(pattern: ToolPattern<R>): R;
+}
+
+class FilterTool extends Tool {
+    public constructor(private readonly filter: Router.SearchFilter) {
+        super();
+    }
+
+    public cata<R>(pattern: ToolPattern<R>): R {
+        if (typeof pattern.Filter === 'function') {
+            return pattern.Filter(this.filter);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+class RollTool extends Tool {
+    public constructor(private readonly busy: boolean) {
+        super();
+    }
+
+    public cata<R>(pattern: ToolPattern<R>): R {
+        if (typeof pattern.Roll === 'function') {
+            return pattern.Roll(this.busy);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+class FavoriteTool extends Tool {
+    public constructor(private readonly checked: boolean) {
+        super();
+    }
+
+    public cata<R>(pattern: ToolPattern<R>): R {
+        if (typeof pattern.Favorite === 'function') {
+            return pattern.Favorite(this.checked);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
 
 export const View: React.FC<{
     minBrewedAfter?: [ Month, number ];
     maxBrewedAfter?: [ Month, number ];
-    filter: Maybe<Router.SearchFilter>;
-    roll: Maybe<boolean>;
+    tool: Maybe<Tool>;
     state: State;
     dispatch(action: Action): void;
-}> = ({ minBrewedAfter, maxBrewedAfter, filter, roll, state, dispatch }) => (
+}> = ({ minBrewedAfter, maxBrewedAfter, tool, state, dispatch }) => (
     <div className={state.searchBuilder.isJust() ? 'border-bottom' : ''}>
         <Navbar bg="warning" expand="lg">
             <Container fluid className={styles.container}>
@@ -154,53 +217,63 @@ export const View: React.FC<{
                     Bier
                 </Navbar.Brand>
 
-                {filter.cata({
+                {tool.cata({
                     Nothing: () => null,
-                    Just: f => (
-                        <Button
-                            variant="outline-dark"
-                            size="sm"
-                            active={state.searchBuilder.isJust()}
-                            onClick={() => dispatch(
-                                state.searchBuilder.isJust()
-                                    ? new HideSearchBuilder()
-                                    : new ShowSearchBuilder(f)
-                            )}
-                        >
-                            <FontAwesomeIcon icon={faFilter} />
-                        </Button>
-                    )
-                })}
 
-                {roll.cata({
-                    Nothing: () => null,
-                    Just: busy => (
-                        <Button
-                            variant="dark"
-                            size="sm"
-                            disabled={busy}
-                            onClick={() => dispatch(new RollBeer())}
-                        >
-                            <FontAwesomeIcon icon={faDice} />
-                        </Button>
-                    )
+                    Just: t => t.cata({
+                        Filter: filter => (
+                            <Button
+                                variant="outline-dark"
+                                size="sm"
+                                active={state.searchBuilder.isJust()}
+                                onClick={() => dispatch(
+                                    state.searchBuilder.isJust()
+                                        ? new HideSearchBuilder()
+                                        : new ShowSearchBuilder(filter)
+                                )}
+                            >
+                                <FontAwesomeIcon icon={faFilter} />
+                            </Button>
+                        ),
+
+                        Roll: busy => (
+                            <Button
+                                variant="dark"
+                                size="sm"
+                                disabled={busy}
+                                onClick={() => dispatch(new RollBeer())}
+                            >
+                                <FontAwesomeIcon icon={faDice} />
+                            </Button>
+                        ),
+
+                        Favorite: () => null
+                    })
                 })}
             </Container>
         </Navbar>
 
-        {filter.isJust() && state.searchBuilder.cata({
+        {tool.cata({
             Nothing: () => null,
-            Just: searchBuilder => (
-                <Container fluid className={`${styles.container} py-2`}>
-                    <SearchBuilder.View
-                        compact
-                        minBrewedAfter={minBrewedAfter}
-                        maxBrewedAfter={maxBrewedAfter}
-                        state={searchBuilder}
-                        dispatch={compose(dispatch, ActionSearchBuilder.cons)}
-                    />
-                </Container>
-            )
+
+            Just: t => t.cata({
+                Filter: () => state.searchBuilder.cata({
+                    Nothing: () => null,
+                    Just: searchBuilder => (
+                        <Container fluid className={`${styles.container} py-2`}>
+                            <SearchBuilder.View
+                                compact
+                                minBrewedAfter={minBrewedAfter}
+                                maxBrewedAfter={maxBrewedAfter}
+                                state={searchBuilder}
+                                dispatch={compose(dispatch, ActionSearchBuilder.cons)}
+                            />
+                        </Container>
+                    )
+                }),
+
+                _: () => null
+            })
         })}
     </div>
 );
