@@ -5,9 +5,9 @@ import Table from 'react-bootstrap/Table';
 import LoadingSkeleton from 'react-loading-skeleton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfoCircle, faUtensils, faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
+import * as Http from 'frctl/dist/src/Http';
 import * as Api from './Api';
 import styles from './BeerInfo.module.css';
-
 
 export const Skeleton: React.FC = () => (
     <div className="pb-3">
@@ -72,6 +72,38 @@ export const Skeleton: React.FC = () => (
     </div>
 );
 
+export const Error: React.FC<{
+    error: Http.Error;
+}> = ({ error }) => (
+    <div>
+        <h2>Error was occupied:</h2>
+
+        {error.cata({
+            BadUrl: () => (
+                <p>Bad Url of the API endpoint</p>
+            ),
+
+            Timeout: () => (
+                <p>Connection is too slow</p>
+            ),
+
+            NetworkError: () => (
+                <p>Check your connection</p>
+            ),
+
+            BadStatus: (response: Http.Response<string>) => (
+                <p>Server error: {response.statusCode}</p>
+            ),
+
+            BadBody: decodeError => (
+                <div>
+                    <p>Client app error:</p>
+                    <code>{decodeError.stringify(4)}</code>
+                </div>
+            )
+        })}
+    </div>
+);
 
 export const View: React.FC<{
     beer: Api.Beer;

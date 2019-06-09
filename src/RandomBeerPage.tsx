@@ -1,26 +1,24 @@
 import React from 'react';
 import { RemoteData, Loading } from 'frctl/dist/src/RemoteData';
 import { Either } from 'frctl/dist/src/Either';
+import * as Http from 'frctl/dist/src/Http';
 import { Cmd } from 'Cmd';
-import * as Http from 'Http';
 import * as Utils from './Utils';
 import * as Api from './Api';
 import * as BeerInfo from './BeerInfo';
 
 export interface State {
-    show: boolean;
     beer: RemoteData<Http.Error, Api.Beer>;
 }
 
-export const init = (beerId: number): [ State, Cmd<Action> ] => [
+export const init = (): [ State, Cmd<Action> ] => [
     {
-        show: false,
         beer: Loading
     },
-    Api.loadBeerById(beerId).send(LoadDone.cons)
+    Api.loadRandomBeer().send(LoadDone.cons)
 ];
 
-export abstract class Action extends Utils.Action<[ State ], State> {}
+export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
 class LoadDone extends Action {
     public static cons(response: Either<Http.Error, Api.Beer>): Action {
@@ -31,15 +29,13 @@ class LoadDone extends Action {
         super();
     }
 
-    public update(state: State): State {
-        return {
-            ...state,
-            beer: RemoteData.fromEither(this.response)
-        };
+    public update(state: State): [ State, Cmd<Action> ] {
+        return [
+            { ...state, beer: RemoteData.fromEither(this.response) },
+            Cmd.none
+        ];
     }
 }
-
-export const update = (action: Action, state: State): State => action.update(state);
 
 export const View: React.FC<{
     state: State;

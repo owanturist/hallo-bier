@@ -337,17 +337,6 @@ export const View: React.FC<{
                     }}
                     placeholder="Search for a beer"
                 />
-
-                {!compact && (
-                    <Form.Text>
-                        <Router.Link to={Router.ToBeerSearch({
-                            name: Nothing,
-                            brewedAfter: Nothing
-                        })}>
-                            Explore all beer
-                        </Router.Link>
-                    </Form.Text>
-                )}
             </Form.Group>
 
             <Form.Group as={Col} className="m-0">
@@ -367,7 +356,7 @@ export const View: React.FC<{
 
             <Form.Group as={Col} sm="0" className="m-0">
                 {!compact && (
-                    <Form.Label className="d-none d-sm-block">&nbsp;</Form.Label>
+                    <Form.Label>&nbsp;</Form.Label>
                 )}
 
                 <Button
@@ -380,6 +369,25 @@ export const View: React.FC<{
                     <FontAwesomeIcon icon={faSearch} />
                 </Button>
             </Form.Group>
+
+            {!compact && (
+                <Form.Group as={Col} xs="12" className="d-flex justify-content-between">
+                    <Form.Text>
+                        <Router.Link to={Router.ToBeerSearch({
+                            name: Nothing,
+                            brewedAfter: Nothing
+                        })}>
+                            Explore all beer
+                        </Router.Link>
+                    </Form.Text>
+
+                    <Form.Text>
+                        <Router.Link to={Router.ToRandomBeer}>
+                            I'm feeling lucky!
+                        </Router.Link>
+                    </Form.Text>
+                </Form.Group>
+            )}
         </Form.Row>
     </Form>
 );

@@ -9,6 +9,7 @@ import * as Router from './Router';
 import * as Header from './Header';
 import * as HomePage from './HomePage';
 import * as BeerPage from './BeerPage';
+import * as RandomBeerPage from './RandomBeerPage';
 import * as BeerListPage from './BeerListPage';
 import { Month } from './MonthPicker';
 import styles from 'App.module.css';
@@ -25,18 +26,19 @@ type PagePattern<R> = Cata<{
     PageVoid(): R;
     PageHome(homePage: HomePage.State): R;
     PageBeer(beerPage: BeerPage.State): R;
+    PageRandomBeer(randomBeerPage: RandomBeerPage.State): R;
     PageBeerList(filter: Router.SearchFilter, beerListPage: BeerListPage.State): R;
 }>;
 
 abstract class Page {
     public static init(route: Router.Route): [ Page, Cmd<Action> ] {
-        return route.cata({
-            ToHome: (): [ Page, Cmd<Action> ] => [
+        return route.cata<[ Page, Cmd<Action> ]>({
+            ToHome: () => [
                 new PageHome(HomePage.init()),
                 Cmd.none
             ],
 
-            ToBeer: (beerId): [ Page, Cmd<Action> ] => {
+            ToBeer: beerId => {
                 const [ initialBeerPage, cmdOfBeerPage ] = BeerPage.init(beerId);
 
                 return [
@@ -45,7 +47,16 @@ abstract class Page {
                 ];
             },
 
-            ToBeerSearch: (filter): [ Page, Cmd<Action> ] => {
+            ToRandomBeer: () => {
+                const [ initialRandomBeerPage, cmdOfRandomBeerPage ] = RandomBeerPage.init();
+
+                return [
+                    new PageRandomBeer(initialRandomBeerPage),
+                    cmdOfRandomBeerPage.map(ActionRandomBeerPage.cons)
+                ];
+            },
+
+            ToBeerSearch: filter => {
                 const [ initialBeerList, cmdOfBeerList ] = BeerListPage.init(10, filter);
 
                 return [
@@ -91,6 +102,20 @@ class PageBeer extends Page {
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageBeer === 'function') {
             return pattern.PageBeer(this.beerPage);
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+class PageRandomBeer extends Page {
+    public constructor(private readonly randomBeerPage: RandomBeerPage.State) {
+        super();
+    }
+
+    public cata<R>(pattern: PagePattern<R>): R {
+        if (typeof pattern.PageRandomBeer === 'function') {
+            return pattern.PageRandomBeer(this.randomBeerPage);
         }
 
         return (pattern._ as () => R)();
@@ -212,6 +237,31 @@ class ActionBeerPage extends Action {
     }
 }
 
+class ActionRandomBeerPage extends Action {
+    public static cons(action: RandomBeerPage.Action): Action {
+        return new ActionRandomBeerPage(action);
+    }
+
+    private constructor(private readonly action: RandomBeerPage.Action) {
+        super();
+    }
+
+    public update(state: State): [ State, Cmd<Action> ] {
+        return state.page.cata<[ State, Cmd<Action> ]>({
+            PageRandomBeer: randomBeerPage => {
+                const [ nextRandomBeerPage, cmdOfRandomBeerPage ] = this.action.update(randomBeerPage);
+
+                return [
+                    { ...state, page: new PageRandomBeer(nextRandomBeerPage) },
+                    cmdOfRandomBeerPage.map(ActionRandomBeerPage.cons)
+                ];
+            },
+
+            _: () => [ state, Cmd.none ]
+        });
+    }
+}
+
 class ActionBeerListPage extends Action {
     public static cons(action: BeerListPage.Action): Action {
         return new ActionBeerListPage(action);
@@ -262,6 +312,10 @@ const PageView: React.FC<{
 
     PageBeer: beerPage => (
         <BeerPage.View state={beerPage} />
+    ),
+
+    PageRandomBeer: randomBeerPage => (
+        <RandomBeerPage.View state={randomBeerPage} />
     ),
 
     PageBeerList: (_filter, beerListPage) => (

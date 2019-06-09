@@ -88,7 +88,12 @@ export const loadBeerList = (
         .withExpect(Http.expectJson(Decode.list(beerDecoder)));
 };
 
-export const loadBeer = (beerId: number): Http.Request<Beer> => {
+export const loadBeerById = (beerId: number): Http.Request<Beer> => {
     return Http.get(`${PUNK_ENDPOINT}/beers/${beerId}`)
+        .withExpect(Http.expectJson(Decode.index(0, beerDecoder)));
+};
+
+export const loadRandomBeer = (): Http.Request<Beer> => {
+    return Http.get(`${PUNK_ENDPOINT}/beers/random`)
         .withExpect(Http.expectJson(Decode.index(0, beerDecoder)));
 };

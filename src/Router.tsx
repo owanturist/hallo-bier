@@ -28,6 +28,7 @@ export interface SearchFilter {
 export type RouterPattern<R> = Cata<{
     ToHome(): R;
     ToBeer(beerId: number): R;
+    ToRandomBeer(): R;
     ToBeerSearch(filter: SearchFilter): R;
 }>;
 
@@ -107,6 +108,24 @@ export const ToBeer = (beerId: number): Route => {
     return new ToBeerRoute(beerId);
 };
 
+class ToRandomBeerRoute extends Route {
+    public static schema = '/random';
+
+    public toPath(): string {
+        return '/random';
+    }
+
+    public cata<R>(pattern: RouterPattern<R>): R {
+        if (typeof pattern.ToRandomBeer === 'function') {
+            return pattern.ToRandomBeer();
+        }
+
+        return (pattern._ as () => R)();
+    }
+}
+
+export const ToRandomBeer: Route = new ToRandomBeerRoute();
+
 class ToBeerSearchRoute extends Route {
     public static schema = '/search';
 
@@ -167,7 +186,6 @@ export const ToBeerSearch = (filter: SearchFilter): Route => {
     return new ToBeerSearchRoute(filter);
 };
 
-
 interface PathProps<P> extends RouteProps {
     computedMatch?: match<P>;
     onEnter(match: match, location?: Location): void;
@@ -195,17 +213,22 @@ export const View: React.FC<{
         <Switch>
             <Path
                 exact
-                path="/"
+                path={ToHomeRoute.schema}
                 onEnter={() => onChange(ToHome)}
             />
 
             <Path
-                path="/beer/:id"
+                path={ToBeerRoute.schema}
                 onEnter={(match: match<{ id: string }>) => onChange(ToBeerRoute.parse(match))}
             />
 
             <Path
-                path="/search"
+                path={ToRandomBeerRoute.schema}
+                onEnter={() => onChange(ToRandomBeer)}
+            />
+
+            <Path
+                path={ToBeerSearchRoute.schema}
                 onEnter={(_match, loc: Location) => onChange(ToBeerSearchRoute.parse(loc))}
             />
         </Switch>
