@@ -12,6 +12,7 @@ import * as HomePage from './HomePage';
 import * as BeerPage from './BeerPage';
 import * as RandomBeerPage from './RandomBeerPage';
 import * as BeerList from './BeerList';
+import * as FavoritesPage from './FavoritesPage';
 import { Month } from './MonthPicker';
 import styles from 'App.module.css';
 
@@ -31,7 +32,7 @@ type PagePattern<R> = Cata<{
     PageBeer(beerId: number, beerPage: BeerPage.State): R;
     PageRandomBeer(randomBeerPage: RandomBeerPage.State): R;
     PageBeerList(filter: Router.SearchFilter, beerList: BeerList.State): R;
-    PageFavorites(filter: Router.SearchFilter, beerList: BeerList.State): R;
+    PageFavorites(filter: Router.SearchFilter, favoritesPage: FavoritesPage.State): R;
 }>;
 
 abstract class Page {
@@ -72,18 +73,15 @@ abstract class Page {
             },
 
             ToFavorites: filter => {
-                const [ initialBeerList, cmdOfBeerList ] = BeerList.init(
-                    count => Api.loadBeerListByIds(
-                        filter,
-                        favorites,
-                        BEERS_PER_PAGE,
-                        count / BEERS_PER_PAGE + 1
-                    )
+                const [ initialFavoritesPage, cmdOfFavoritesPage ] = FavoritesPage.init(
+                    filter,
+                    favorites,
+                    BEERS_PER_PAGE
                 );
 
                 return [
-                    new PageFavorites(filter, initialBeerList),
-                    cmdOfBeerList.map(ActionFavoritesPage.cons)
+                    new PageFavorites(filter, initialFavoritesPage),
+                    cmdOfFavoritesPage.map(ActionFavoritesPage.cons)
                 ];
             }
         });
@@ -167,14 +165,14 @@ class PageBeerList extends Page {
 class PageFavorites extends Page {
     public constructor(
         private readonly filter: Router.SearchFilter,
-        private readonly beerList: BeerList.State
+        private readonly favoritesPage: FavoritesPage.State
     ) {
         super();
     }
 
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageFavorites === 'function') {
-            return pattern.PageFavorites(this.filter, this.beerList);
+            return pattern.PageFavorites(this.filter, this.favoritesPage);
         }
 
         return (pattern._ as () => R)();
@@ -407,34 +405,29 @@ class ActionBeerListPage extends Action {
 }
 
 class ActionFavoritesPage extends Action {
-    public static cons(action: BeerList.Action): Action {
+    public static cons(action: FavoritesPage.Action): Action {
         return new ActionFavoritesPage(action);
     }
 
-    private constructor(private readonly action: BeerList.Action) {
+    private constructor(private readonly action: FavoritesPage.Action) {
         super();
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({
-            PageFavorites: (filter, beerList) => this.action.update(
-                count => Api.loadBeerListByIds(
-                    filter,
-                    state.favorites,
-                    BEERS_PER_PAGE,
-                    count / BEERS_PER_PAGE + 1
-                ),
-                beerList
+            PageFavorites: (filter, favoritesPage) => this.action.update(
+                filter,
+                favoritesPage
             ).cata<[ State, Cmd<Action> ]>({
-                Update: (nextBeerList, cmdOfBeerList) => [
+                Update: (nextFavoritesPage, cmdOfFavoritesPage) => [
                     {
                         ...state,
-                        header: BeerList.isEmpty(nextBeerList)
+                        header: FavoritesPage.isEmpty(nextFavoritesPage)
                             ? Header.showSearchBuilder(filter, state.header)
                             : state.header,
-                        page: new PageFavorites(filter, nextBeerList)
+                        page: new PageFavorites(filter, nextFavoritesPage)
                     },
-                    cmdOfBeerList.map(ActionFavoritesPage.cons)
+                    cmdOfFavoritesPage.map(ActionFavoritesPage.cons)
                 ],
 
                 SetFavorites: (checked, beerId) => {
@@ -480,11 +473,11 @@ const PageView: React.FC<{
         />
     ),
 
-    PageFavorites: (_filter, beerList) => (
-        <BeerList.View
+    PageFavorites: (_filter, favoritesPage) => (
+        <FavoritesPage.View
             scroller={scroller}
             favorites={favorites}
-            state={beerList}
+            state={favoritesPage}
             dispatch={compose(dispatch, ActionFavoritesPage.cons)}
         />
     )

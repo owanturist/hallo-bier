@@ -158,9 +158,10 @@ class ActionSearchBuilder extends Action {
 
             Just: searchBuilder => {
                 return this.action.update(searchBuilder).cata({
-                    Update: nextSearchBuilder => new Update(
-                        { ...state, searchBuilder: Just(nextSearchBuilder) }
-                    ),
+                    Update: nextSearchBuilder => new Update({
+                        ...state,
+                        searchBuilder: Just(nextSearchBuilder)
+                    }),
 
                     Search: SetFilters.cons
                 });
