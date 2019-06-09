@@ -1,4 +1,6 @@
 import React from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import FormControl, { FormControlProps } from 'react-bootstrap/FormControl';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
@@ -348,7 +350,7 @@ export const View: React.FC<{
                 )}
             </Form.Group>
 
-            <Form.Group as={Col} sm="3" className="m-0">
+            <Form.Group as={Col} className="m-0">
                 {!compact && (
                     <Form.Label>Brewed after</Form.Label>
                 )}
@@ -363,7 +365,7 @@ export const View: React.FC<{
                 />
             </Form.Group>
 
-            <Form.Group as={Col} className="m-0">
+            <Form.Group as={Col} sm="0" className="m-0">
                 {!compact && (
                     <Form.Label className="d-none d-sm-block">&nbsp;</Form.Label>
                 )}
@@ -375,7 +377,7 @@ export const View: React.FC<{
                     tabIndex={0}
                     disabled={disabled || !isValid(state)}
                 >
-                    Search
+                    <FontAwesomeIcon icon={faSearch} />
                 </Button>
             </Form.Group>
         </Form.Row>
