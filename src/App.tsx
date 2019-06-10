@@ -410,6 +410,9 @@ class ActionSearchBeerPage extends Action {
                     Update: (nextSearchBeerPage, cmdOfSearchBeerPage) => [
                         {
                             ...state,
+                            header: SearchBeerPage.isEmpty(nextSearchBeerPage)
+                                ? Header.showSearchBuilder(filter, state.header)
+                                : state.header,
                             page: new PageSearchBeer(filter, nextSearchBeerPage)
                         },
                         cmdOfSearchBeerPage.map(ActionSearchBeerPage.cons)
@@ -441,6 +444,9 @@ class ActionFavoritesPage extends Action {
                 Update: (nextFavoritesPage, cmdOfFavoritesPage) => [
                     {
                         ...state,
+                        header: FavoritesPage.isEmpty(nextFavoritesPage)
+                            ? Header.showSearchBuilder(filter, state.header)
+                            : state.header,
                         page: new PageFavoritesBeer(filter, nextFavoritesPage)
                     },
                     cmdOfFavoritesPage.map(ActionFavoritesPage.cons)
