@@ -178,7 +178,7 @@ abstract class ToRouteWithFilter extends Route {
                     return Nothing;
                 }
 
-                return Just(new Date([ '01' ].concat(fr).join('/')));
+                return Just(new Date([ fr[ 0 ], '01', fr[ 1 ]].join('/')));
             })
         };
     }
