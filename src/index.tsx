@@ -5,10 +5,11 @@ import { createStore, compose } from 'redux';
 import * as App from './App';
 import './index.css';
 import 'bootstrap/dist/css/bootstrap.css';
-import * as serviceWorker from './serviceWorker';
 import { Cmd, Done } from 'Cmd';
 
-const reduxDevtools = (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__();
+const reduxDevtools = process.env.NODE_ENV !== 'production'
+    && (window as any).__REDUX_DEVTOOLS_EXTENSION__
+    && (window as any).__REDUX_DEVTOOLS_EXTENSION__();
 
 interface Action {
     type: 'SELF';
@@ -71,8 +72,3 @@ ReactDOM.render(
     </Provider>,
     document.getElementById('root')
 );
-
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
