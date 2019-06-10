@@ -151,6 +151,11 @@ export const View: React.FC<{
             <Col>
                 <Table responsive>
                     <tbody>
+                        <tr>
+                            <td>Volume</td>
+                            <td>{beer.volume.value} {beer.volume.unit}</td>
+                        </tr>
+
                         {beer.abv.cata({
                             Nothing: () => null,
                             Just: abv => (

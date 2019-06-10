@@ -14,8 +14,14 @@ export interface Beer {
     description: string;
     tagline: string;
     contributor: string;
+    brewersTips: string;
+    foodPairing: Array<string>;
     image: Maybe<string>;
     firstBrewed: Date;
+    volume: {
+        value: number;
+        unit: string;
+    };
     abv: Maybe<number>;
     ibu: Maybe<number>;
     targetFg: Maybe<number>;
@@ -24,8 +30,6 @@ export interface Beer {
     srm: Maybe<number>;
     ph: Maybe<number>;
     attenuationLevel: Maybe<number>;
-    foodPairing: Array<string>;
-    brewersTips: string;
 }
 
 const beerDecoder: Decode.Decoder<Beer> = Decode.props({
@@ -34,6 +38,8 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     description: Decode.field('description', Decode.string),
     tagline: Decode.field('tagline', Decode.string),
     contributor: Decode.field('contributed_by', Decode.string),
+    brewersTips: Decode.field('brewers_tips', Decode.string),
+    foodPairing: Decode.field('food_pairing', Decode.list(Decode.string)),
     image: Decode.field('image_url', Decode.nullable(Decode.string)),
     firstBrewed: Decode.field(
         'first_brewed',
@@ -47,6 +53,13 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
             return date;
         })
     ),
+    volume: Decode.field(
+        'volume',
+        Decode.props({
+            value: Decode.field('value', Decode.number),
+            unit: Decode.field('unit', Decode.string)
+        })
+    ),
     abv: Decode.field('abv', Decode.nullable(Decode.number)),
     ibu: Decode.field('ibu', Decode.nullable(Decode.number)),
     targetFg: Decode.field('target_fg', Decode.nullable(Decode.number)),
@@ -54,9 +67,7 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     ebc: Decode.field('ebc', Decode.nullable(Decode.number)),
     srm: Decode.field('srm', Decode.nullable(Decode.number)),
     ph: Decode.field('ph', Decode.nullable(Decode.number)),
-    attenuationLevel: Decode.field('attenuation_level', Decode.nullable(Decode.number)),
-    foodPairing: Decode.field('food_pairing', Decode.list(Decode.string)),
-    brewersTips: Decode.field('brewers_tips', Decode.string)
+    attenuationLevel: Decode.field('attenuation_level', Decode.nullable(Decode.number))
 });
 
 const nameToQuery = (name: string): Maybe<string> => {
