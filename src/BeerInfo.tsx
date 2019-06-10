@@ -113,12 +113,12 @@ export const View: React.FC<{
 }> = ({ random, beer }) => (
     <div className="pb-3">
         <h1>
+            {beer.name}
             {random && (
-                <Router.Link className="text-secondary mr-2" to={Router.ToBeer(beer.id)}>
+                <Router.Link className="text-secondary ml-2" to={Router.ToBeer(beer.id)}>
                     <small><FontAwesomeIcon icon={faLink} /></small>
                 </Router.Link>
             )}
-            {beer.name}
         </h1>
 
         <div className="d-flex justify-content-between">
