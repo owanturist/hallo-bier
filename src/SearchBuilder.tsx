@@ -8,7 +8,7 @@ import Col from 'react-bootstrap/Col';
 import Dropdown from 'react-bootstrap/Dropdown';
 import { compose } from 'redux';
 import * as Router from './Router';
-import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
+import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
 import * as MonthPicker from './MonthPicker';
 import * as Utils from './Utils';
 import styles from './SearchBuilder.module.css';

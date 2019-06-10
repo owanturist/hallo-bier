@@ -2,7 +2,7 @@ import React from 'react';
 import Jumbotron from 'react-bootstrap/Jumbotron';
 import Container from 'react-bootstrap/Container';
 import { compose } from 'redux';
-import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
+import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
 import { Cmd } from './Cmd';
 import * as Utils from './Utils';
 import * as Router from './Router';

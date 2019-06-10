@@ -1,4 +1,4 @@
-import { Maybe } from 'frctl/dist/src/Maybe';
+import { Maybe } from 'frctl/dist/Maybe';
 import { Cmd, Done } from 'Cmd';
 
 export const key = (index: number): Cmd<Maybe<string>> => Cmd.of(

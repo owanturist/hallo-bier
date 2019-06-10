@@ -1,22 +1,22 @@
 import {
     Cata
-} from 'frctl/dist/src/Basics';
+} from 'frctl/dist/Basics';
 import {
     Maybe,
     Nothing,
     Just
-} from 'frctl/dist/src/Maybe';
+} from 'frctl/dist/Maybe';
 import {
     Either,
     Left,
     Right
-} from 'frctl/dist/src/Either';
+} from 'frctl/dist/Either';
 import {
     Cmd,
     Done
 } from 'Cmd';
-import * as Decode from 'frctl/dist/src/Json/Decode';
-import * as Encode from 'frctl/dist/src/Json/Encode';
+import * as Decode from 'frctl/dist/Json/Decode';
+import * as Encode from 'frctl/dist/Json/Encode';
 
 /* H E L P E R S */
 

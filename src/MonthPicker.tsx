@@ -2,7 +2,7 @@ import React from 'react';
 import Button from 'react-bootstrap/Button';
 import InputGroup from 'react-bootstrap/InputGroup';
 import FormControl, { FormControlProps } from 'react-bootstrap/FormControl';
-import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
+import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
 import * as Utils from './Utils';
 import styles from './MonthPicker.module.css';
 

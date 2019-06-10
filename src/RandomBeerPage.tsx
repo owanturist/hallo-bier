@@ -1,7 +1,7 @@
 import React from 'react';
-import { RemoteData, Loading } from 'frctl/dist/src/RemoteData';
-import { Maybe } from 'frctl/dist/src/Maybe';
-import { Either } from 'frctl/dist/src/Either';
+import { RemoteData, Loading } from 'frctl/dist/RemoteData';
+import { Maybe } from 'frctl/dist/Maybe';
+import { Either } from 'frctl/dist/Either';
 import * as Http from 'Http';
 import { Cmd } from 'Cmd';
 import * as Utils from './Utils';

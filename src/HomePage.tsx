@@ -1,7 +1,7 @@
 import React from 'react';
 import { compose } from 'redux';
 import { Cmd } from 'Cmd';
-import { Maybe, Nothing } from 'frctl/dist/src/Maybe';
+import { Maybe, Nothing } from 'frctl/dist/Maybe';
 import * as Utils from './Utils';
 import * as Api from './Api';
 import * as Router from './Router';
