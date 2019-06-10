@@ -36,55 +36,6 @@ type PagePattern<R> = Cata<{
 }>;
 
 abstract class Page {
-    public static init(favorites: Array<number>, route: Router.Route): [ Page, Cmd<Action> ] {
-        return route.cata<[ Page, Cmd<Action> ]>({
-            ToHome: () => [
-                new PageHome(HomePage.init()),
-                Cmd.none
-            ],
-
-            ToBeer: beerId => {
-                const [ initialBeerPage, cmdOfBeerPage ] = BeerPage.init(beerId);
-
-                return [
-                    new PageBeer(beerId, initialBeerPage),
-                    cmdOfBeerPage.map(ActionBeerPage.cons)
-                ];
-            },
-
-            ToRandomBeer: () => {
-                const [ initialRandomBeerPage, cmdOfRandomBeerPage ] = RandomBeerPage.init();
-
-                return [
-                    new PageRandomBeer(initialRandomBeerPage),
-                    cmdOfRandomBeerPage.map(ActionRandomBeerPage.cons)
-                ];
-            },
-
-            ToBeerSearch: filter => {
-                const [ initialSeachBeerPage, cmdOfSearchBeerPage ] = SearchBeerPage.init(filter, BEERS_PER_PAGE);
-
-                return [
-                    new PageSearchBeer(filter, initialSeachBeerPage),
-                    cmdOfSearchBeerPage.map(ActionSearchBeerPage.cons)
-                ];
-            },
-
-            ToFavorites: filter => {
-                const [ initialFavoritesPage, cmdOfFavoritesPage ] = FavoritesPage.init(
-                    filter,
-                    favorites,
-                    BEERS_PER_PAGE
-                );
-
-                return [
-                    new PageFavoritesBeer(filter, initialFavoritesPage),
-                    cmdOfFavoritesPage.map(ActionFavoritesPage.cons)
-                ];
-            }
-        });
-    }
-
     public abstract cata<R>(pattern: PagePattern<R>): R;
 }
 
@@ -216,21 +167,67 @@ class RouteChanged extends Action {
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
-        const [ nextPage, cmd ] = Page.init(state.favorites, this.route);
-        const nextHeader = this.route.cata({
-            ToBeerSearch: () => state.header,
-            ToFavorites: () => state.header,
-            _: () => Header.hideSearchBuilder(state.header)
-        });
+        return this.route.cata<[ State, Cmd<Action> ]>({
+            ToHome: () => [
+                {
+                    ...state,
+                    page: new PageHome(HomePage.init())
+                },
+                Cmd.none
+            ],
 
-        return [
-            {
-                ...state,
-                header: nextHeader,
-                page: nextPage
+            ToBeer: beerId => {
+                const [ initialBeerPage, cmdOfBeerPage ] = BeerPage.init(beerId);
+
+                return [
+                    {
+                        ...state,
+                        page: new PageBeer(beerId, initialBeerPage)
+                    },
+                    cmdOfBeerPage.map(ActionBeerPage.cons)
+                ];
             },
-            cmd
-        ];
+
+            ToRandomBeer: () => {
+                const [ initialRandomBeerPage, cmdOfRandomBeerPage ] = RandomBeerPage.init();
+
+                return [
+                    {
+                        ...state,
+                        page: new PageRandomBeer(initialRandomBeerPage)
+                    },
+                    cmdOfRandomBeerPage.map(ActionRandomBeerPage.cons)
+                ];
+            },
+
+            ToBeerSearch: filter => {
+                const [ initialSeachBeerPage, cmdOfSearchBeerPage ] = SearchBeerPage.init(filter, BEERS_PER_PAGE);
+
+                return [
+                    {
+                        ...state,
+                        page: new PageSearchBeer(filter, initialSeachBeerPage)
+                    },
+                    cmdOfSearchBeerPage.map(ActionSearchBeerPage.cons)
+                ];
+            },
+
+            ToFavorites: filter => {
+                const [ initialFavoritesPage, cmdOfFavoritesPage ] = FavoritesPage.init(
+                    filter,
+                    state.favorites,
+                    BEERS_PER_PAGE
+                );
+
+                return [
+                    {
+                        ...state,
+                        page: new PageFavoritesBeer(filter, initialFavoritesPage)
+                    },
+                    cmdOfFavoritesPage.map(ActionFavoritesPage.cons)
+                ];
+            }
+        });
     }
 }
 
