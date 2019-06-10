@@ -278,7 +278,7 @@ class ViewMonthpicker extends React.PureComponent<{
         );
     }
 
-    private onInputChange = (event: React.ChangeEvent<FormControlProps>) => {
+    private readonly onInputChange = (event: React.ChangeEvent<FormControlProps>) => {
         this.props.dispatch(new ChangeBrewedAfter(
             Maybe.fromNullable(this.props.min),
             Maybe.fromNullable(this.props.max),
@@ -286,14 +286,14 @@ class ViewMonthpicker extends React.PureComponent<{
         ));
     }
 
-    private onInputFocus = () => {
+    private readonly onInputFocus = () => {
         if (this.props.monthPicker.isNothing()) {
             this.props.dispatch(new ShowMonthPicker());
             document.addEventListener('mousedown', this.closeDropdown, false);
         }
     }
 
-    private closeDropdown = (event: MouseEvent) => {
+    private readonly closeDropdown = (event: MouseEvent) => {
         if (this.props.monthPicker.isJust()
         && this.root.current
         && !this.root.current.contains(event.target as Node)

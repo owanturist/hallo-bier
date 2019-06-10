@@ -28,7 +28,7 @@
     "no-sparse-arrays": true,
     "no-switch-case-fall-through": true,
     "no-this-assignment": true,
-    "no-unsafe-any": true,
+    "no-unsafe-any": false,
     "prefer-object-spread": true,
     "restrict-plus-operands": true,
     "switch-default": false,
