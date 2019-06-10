@@ -185,6 +185,7 @@ class RouteChanged extends Action {
             ToBeer: beerId => {
                 return state.page.cata({
                     PageRandomBeer: RandomBeerPage.getBeer,
+                    PageHome: homePage => HomePage.getBeer(beerId, homePage),
                     PageSearchBeer: (_filter, searchBeerPage) => SearchBeerPage.getBeer(beerId, searchBeerPage),
                     PageFavoritesBeer: (_filter, favoritesPage) => FavoritesPage.getBeer(beerId, favoritesPage),
                     _: () => Nothing
