@@ -50,11 +50,9 @@ function init(): App.State {
     return initialState;
 }
 
-const store = createStore(
-    reducer,
-    init(),
-    reduxDevtools
-);
+const store = reduxDevtools
+    ? createStore(reducer, init(), reduxDevtools)
+    : createStore(reducer, init());
 
 loopDispatch = compose(store.dispatch, Self);
 CmdExecutor.execute(initialAppCmd, loopDispatch);
