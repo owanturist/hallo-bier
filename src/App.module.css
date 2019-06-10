@@ -3,7 +3,11 @@
     overflow-y: auto;
 }
 
-.container {
+.container,
+.footer {
     max-width: 600px;
+}
+
+.container {
     min-height: 100%;
 }

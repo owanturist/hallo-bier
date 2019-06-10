@@ -1,9 +1,11 @@
 import React from 'react';
 import { compose } from 'redux';
-import { Cmd } from 'Cmd';
-import { Cata } from 'frctl/dist/src/Basics';
 import Container from 'react-bootstrap/Container';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBeer, faHeart } from '@fortawesome/free-solid-svg-icons';
+import { Cata } from 'frctl/dist/src/Basics';
 import { Nothing, Just } from 'frctl/dist/src/Maybe';
+import { Cmd } from 'Cmd';
 import * as Utils from './Utils';
 import * as Router from './Router';
 import * as Api from './Api';
@@ -538,6 +540,25 @@ export class View extends React.PureComponent<{
                             page={state.page}
                             dispatch={dispatch}
                         />
+
+                    </Container>
+
+                    <Container
+                        fluid
+                        as="footer"
+                        className={`bg-dark text-secondary py-2 text-center ${styles.footer}`}
+                    >
+                        Made with
+                        <FontAwesomeIcon icon={faHeart} className="mx-2 text-danger" />
+                        and
+                        <FontAwesomeIcon icon={faBeer} className="mx-2 text-warning" />
+                        by{' '}
+                        <a
+                            href="https://github.com/owanturist"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-secondary"
+                        >Ovechkin Anton</a>
                     </Container>
                 </div>
             </Router.View>
