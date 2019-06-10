@@ -134,6 +134,7 @@ export const View: React.FC<{
 
     Just: ({ beerList }) => (
         <BeerList.View
+            skeletonCount={4}
             state={beerList}
             dispatch={compose(dispatch, ActionBeerList.cons)}
             {...props}

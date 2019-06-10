@@ -5,6 +5,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Button from 'react-bootstrap/Button';
 import Spinner from 'react-bootstrap/Spinner';
+import LoadingSkeleton from 'react-loading-skeleton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faRegularHeart } from '@fortawesome/free-regular-svg-icons';
@@ -146,6 +147,46 @@ class ToggleFavorite extends Action {
     }
 }
 
+const SkeletonBeer: React.FC = () => (
+    <Card>
+        <Row noGutters>
+            <Col sm="4" className={styles.previewSkeletonCol}>
+                <LoadingSkeleton height="270px" />
+            </Col>
+            <Col>
+                <Card.Body>
+                    <Card.Title className="d-flex justify-content-between">
+                        <LoadingSkeleton width="200px" />
+                        <LoadingSkeleton width="30px" height="30px" />
+                    </Card.Title>
+
+                    <Card.Text>
+                        <LoadingSkeleton count={5} />
+                    </Card.Text>
+
+                    <small className="text-muted">
+                        <LoadingSkeleton width="150px" />
+                        <br/>
+                        <LoadingSkeleton width="50px" />
+                    </small>
+                </Card.Body>
+            </Col>
+        </Row>
+    </Card>
+);
+
+const SkeletonBeerList: React.FC<{
+    count: number;
+}> = ({ count }) => (
+    <ul className="list-unstyled m-0 pb-2">
+        {Array(count).fill(0).map((_el, i: number) => (
+            <li key={i} className="pb-2">
+                <SkeletonBeer />
+            </li>
+        ))}
+    </ul>
+);
+
 const ViewBeer: React.FC<{
     favorite: boolean;
     beer: Api.Beer;
@@ -205,9 +246,9 @@ const ViewBeerList: React.FC<{
     beerList: Array<Api.Beer>;
     dispatch(action: Action): void;
 }> = ({ favorites, beerList, dispatch }) => (
-    <ul className="list-unstyled m-0">
+    <ul className="list-unstyled m-0 pb-2">
         {beerList.map((beer: Api.Beer) => (
-            <li key={beer.id} className="mb-2">
+            <li key={beer.id} className="pb-2">
                 <ViewBeer
                     favorite={favorites.has(beer.id)}
                     beer={beer}
@@ -269,6 +310,7 @@ const ViewEmpty: React.FC = () => (
 export interface ViewProps {
     scroller: React.RefObject<HTMLElement>;
     favorites: Set<number>;
+    skeletonCount: number;
     state: State;
     dispatch(action: Action): void;
 }
@@ -304,7 +346,7 @@ export class View extends React.Component<ViewProps> {
     }
 
     public render() {
-        const { favorites, state, dispatch } = this.props;
+        const { favorites, skeletonCount, state, dispatch } = this.props;
 
         return (
             <div>
@@ -317,7 +359,12 @@ export class View extends React.Component<ViewProps> {
                 )}
 
                 {state.loading.cata({
-                    Loading: () => <ViewLoadMore />,
+                    Loading: () => state.beerList.length === 0
+                        ? (
+                            <SkeletonBeerList count={skeletonCount} />
+                        ) : (
+                            <ViewLoadMore />
+                        ),
 
                     Failure: (error: Http.Error) => <ViewError error={error} />,
 

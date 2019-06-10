@@ -8,3 +8,7 @@
 .previewCol {
     min-height: 200px;
 }
+
+.previewSkeletonCol {
+    font-size: 0;
+}
