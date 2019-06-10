@@ -3,6 +3,7 @@ import {
     Router,
     Switch,
     Route as ReactRoute,
+    Redirect,
     RouteProps,
     Link as ReactLink,
     LinkProps as ReactLinkProps,
@@ -277,6 +278,8 @@ export const View: React.FC<{
                 path={ToFavoritesRoute.schema}
                 onEnter={(_match, loc: Location) => onChange(ToFavoritesRoute.parse(loc))}
             />
+
+            <Redirect to={ToHome.toPath()}/>
         </Switch>
         {children}
     </Router>
