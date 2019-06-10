@@ -4,6 +4,7 @@ import * as Encode from 'frctl/dist/Json/Encode';
 import { Cmd } from 'Cmd';
 import * as Http from 'Http';
 import * as LocalStorage from 'LocalStorage';
+import * as Utils from './Utils';
 import { SearchFilter } from 'Router';
 
 const PUNK_ENDPOINT = 'https://api.punkapi.com/v2';
@@ -43,14 +44,8 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     image: Decode.field('image_url', Decode.nullable(Decode.string)),
     firstBrewed: Decode.field(
         'first_brewed',
-        Decode.string.map((shortDate: string) => {
-            const date = new Date(`01/${shortDate}`);
-
-            if (isNaN(date.getTime())) {
-                return new Date(shortDate);
-            }
-
-            return date;
+        Decode.string.chain((shortDate: string) => {
+            return Decode.fromMaybe('Date is invalid', Utils.parseDate(shortDate));
         })
     ),
     volume: Decode.field(

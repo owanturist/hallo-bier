@@ -30,15 +30,9 @@ const selectedMonthToString = (selected: MonthPicker.Selected): string => {
 const selectedMonthFromString = (str: string): Maybe<MonthPicker.Selected> => {
     const fragments = str.trim().split(/\/|\s|-|_/g);
 
-    if (fragments.length !== 2) {
-        return Nothing;
-    }
-
-    const [ monthIndex, year ] = [ Number(fragments[0]), Number(fragments[1]) ];
-
     return Maybe.props({
-        month: MonthPicker.Month.fromIndex(monthIndex),
-        year: fragments[1] === '' || isNaN(year) ? Nothing : Just(year)
+        month: Maybe.fromNullable(fragments[ 0 ]).chain(Utils.parseInt).chain(MonthPicker.Month.fromIndex),
+        year: Maybe.fromNullable(fragments[ 1 ]).chain(Utils.parseInt)
     });
 };
 
@@ -71,23 +65,12 @@ class Update extends Stage {
 }
 
 class Search extends Stage {
-    private readonly name: Maybe<string>;
-    private readonly brewedAfter: Maybe<Date>;
-
-    public constructor({ name, brewedAfter }: State) {
+    public constructor(private readonly filter: Router.SearchFilter) {
         super();
-
-        const trimmedName = name.trim();
-
-        this.name = trimmedName ? Just(trimmedName) : Nothing;
-        this.brewedAfter = selectedMonthFromString(brewedAfter).map(({ month, year }) => month.toDate(year));
     }
 
     public cata<R>(pattern: StagePattern<R>): R {
-        return pattern.Search({
-            name: this.name,
-            brewedAfter: this.brewedAfter
-        });
+        return pattern.Search(this.filter);
     }
 }
 
@@ -164,7 +147,12 @@ class ChangeBrewedAfter extends Action {
 
 class SearchBeer extends Action {
     public update(state: State): Stage {
-        return new Search(state);
+        const trimmedName = state.name.trim();
+
+        return new Search({
+            name: trimmedName ? Just(trimmedName) : Nothing,
+            brewedAfter: selectedMonthFromString(state.brewedAfter).map(({ month, year }) => month.toDate(year))
+        });
     }
 }
 
@@ -321,7 +309,7 @@ export const View: React.FC<{
         }}
     >
         <Form.Row>
-            <Form.Group as={Col} sm="7" className="m-0">
+            <Form.Group as={Col} sm="7" className="mb-2 mb-sm-0">
                 {!compact && (
                     <Form.Label>Beer name</Form.Label>
                 )}
@@ -339,7 +327,7 @@ export const View: React.FC<{
                 />
             </Form.Group>
 
-            <Form.Group as={Col} className="m-0">
+            <Form.Group as={Col} className="mb-0">
                 {!compact && (
                     <Form.Label>Brewed after</Form.Label>
                 )}
@@ -354,7 +342,7 @@ export const View: React.FC<{
                 />
             </Form.Group>
 
-            <Form.Group as={Col} sm="0" className="m-0">
+            <Form.Group as={Col} sm="0" className="mb-0">
                 {!compact && (
                     <Form.Label>&nbsp;</Form.Label>
                 )}

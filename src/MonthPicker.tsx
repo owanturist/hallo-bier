@@ -66,7 +66,7 @@ export class Month {
     }
 
     public toDate(year: number): Date {
-        return new Date(`${this.index}/01/${year}`);
+        return new Date(year, this.index - 1);
     }
 
     public isEqual(another: Month): boolean {
@@ -138,7 +138,7 @@ class SetYear extends Action {
     public constructor(
         private readonly min: Maybe<number>,
         private readonly max: Maybe<number>,
-        private readonly year: number
+        private readonly year: Maybe<number>
     ) {
         super();
     }
@@ -146,12 +146,10 @@ class SetYear extends Action {
     public update(state: State): Stage {
         return new Update({
             ...state,
-            year: isNaN(this.year)
-                ? state.year
-                : Math.max(
-                    this.min.getOrElse(this.year),
-                    Math.min(this.max.getOrElse(this.year), this.year)
-                )
+            year: this.year.map(year => Math.max(
+                this.min.getOrElse(year),
+                Math.min(this.max.getOrElse(year), year)
+            )).getOrElse(state.year)
         });
     }
 }
@@ -240,7 +238,7 @@ export const View: React.FC<{
                     dispatch(new SetYear(
                         Maybe.fromNullable(min).map(([ _, year ]) => year),
                         Maybe.fromNullable(max).map(([ _, year ]) => year),
-                        Number(event.currentTarget.value)
+                        Utils.parseInt(event.currentTarget.value || '')
                     ));
                 }}
             />

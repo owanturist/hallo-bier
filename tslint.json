@@ -59,7 +59,7 @@
 
     "array-type": [ true, "generic" ],
     "arrow-parens": [ true, "ban-single-arg-parens" ],
-    "binary-expression-operand-order": true,
+    "binary-expression-operand-order": false,
     "completed-docs": false, // true https://palantir.github.io/tslint/rules/completed-docs/
     "encoding": true,
     "file-header": false, // https://palantir.github.io/tslint/rules/file-header/

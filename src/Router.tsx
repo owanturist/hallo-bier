@@ -17,6 +17,7 @@ import queryString from 'query-string';
 import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
 import { Cata } from 'frctl/dist/Basics';
 import { Cmd } from 'Cmd';
+import * as Utils from './Utils';
 
 const history = createBrowserHistory();
 
@@ -171,15 +172,7 @@ abstract class ToRouteWithFilter extends Route {
 
         return {
             name: Maybe.fromNullable(name).chain(Route.percentDecode),
-            brewedAfter: Maybe.fromNullable(bra).chain(Route.percentDecode).chain((val: string) => {
-                const fr = val.split('/');
-
-                if (fr.length !== 2) {
-                    return Nothing;
-                }
-
-                return Just(new Date([ fr[ 0 ], '01', fr[ 1 ]].join('/')));
-            })
+            brewedAfter: Maybe.fromNullable(bra).chain(Route.percentDecode).chain(Utils.parseDate)
         };
     }
 

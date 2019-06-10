@@ -19,6 +19,7 @@ import { Cmd } from 'Cmd';
 import * as Utils from './Utils';
 import * as Router from './Router';
 import * as Api from './Api';
+import { Month } from './MonthPicker';
 import styles from './BeerList.module.css';
 
 export interface State {
@@ -232,7 +233,9 @@ const ViewBeer: React.FC<{
                     <Card.Text>{beer.description}</Card.Text>
 
                     <small className="text-muted">
-                        First brewed at {beer.firstBrewed.toLocaleDateString()}
+                        First brewed at{' '}
+                        {Month.fromDate(beer.firstBrewed).toLongName()}{' '}
+                        {beer.firstBrewed.getFullYear()}
                         <br/>
                         <Router.Link to={Router.ToBeer(beer.id)}>See more</Router.Link>
                     </small>
