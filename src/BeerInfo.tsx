@@ -5,7 +5,7 @@ import Table from 'react-bootstrap/Table';
 import LoadingSkeleton from 'react-loading-skeleton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfoCircle, faUtensils, faQuestionCircle, faLink } from '@fortawesome/free-solid-svg-icons';
-import * as Http from 'frctl/dist/src/Http';
+import * as Http from 'Http';
 import * as Api from './Api';
 import * as Router from './Router';
 import { Month } from './MonthPicker';

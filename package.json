@@ -16,6 +16,7 @@
     "@types/react-redux": "^7.0.9",
     "@types/react-router-dom": "^4.3.3",
     "bootstrap": "^4.3.1",
+    "frctl": "^0.1.4",
     "lodash.throttle": "^4.1.1",
     "query-string": "^6.5.0",
     "react": "^16.8.6",
