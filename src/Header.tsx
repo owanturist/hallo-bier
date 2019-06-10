@@ -241,6 +241,13 @@ class FavoriteTool extends Tool {
     }
 }
 
+const hasFilterTool = (tools: Array<Tool>): boolean => {
+    return tools.some(tool => tool.cata({
+        Filter: () => true,
+        _: () => false
+    }));
+};
+
 const ViewTool: React.FC<{
     tool: Tool;
     state: State;
@@ -346,7 +353,7 @@ export const View: React.FC<{
             </Container>
         </Navbar>
 
-        {state.searchBuilder.cata({
+        {hasFilterTool(tools) && state.searchBuilder.cata({
             Nothing: () => null,
             Just: searchBuilder => (
                 <Container fluid className={`${styles.container} py-2`}>
