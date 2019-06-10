@@ -249,7 +249,7 @@ const ViewTool: React.FC<{
     Filter: filter => (
         <Button
             className="ml-2"
-            variant="outline-dark"
+            variant="outline-warning"
             size="sm"
             active={state.searchBuilder.isJust()}
             onClick={() => dispatch(
@@ -265,7 +265,7 @@ const ViewTool: React.FC<{
     Roll: busy => (
         <Button
             className="ml-2"
-            variant="dark"
+            variant="outline-warning"
             size="sm"
             disabled={busy}
             onClick={() => dispatch(new RollBeer())}
@@ -278,7 +278,7 @@ const ViewTool: React.FC<{
         Nothing: () => (
             <Button
                 className="ml-2"
-                variant="dark"
+                variant="outline-warning"
                 size="sm"
                 disabled
             >
@@ -292,7 +292,7 @@ const ViewTool: React.FC<{
             return (
                 <Button
                     className="ml-2"
-                    variant="dark"
+                    variant="outline-warning"
                     size="sm"
                     onClick={() => dispatch(new ToggleFavorite(!checked, beerId))}
                 >
@@ -318,11 +318,11 @@ export const View: React.FC<{
     dispatch(action: Action): void;
 }> = ({ minBrewedAfter, maxBrewedAfter, tools, state, dispatch }) => (
     <div className={state.searchBuilder.isJust() ? 'border-bottom' : ''}>
-        <Navbar bg="warning" expand="lg">
+        <Navbar bg="dark" variant="dark" expand="lg">
             <Container fluid className={styles.container}>
                 <Navbar.Brand as={Router.Link} to={Router.ToHome}>
                     Hallo
-                    <FontAwesomeIcon icon={faBeer} className="text-white mx-1" />
+                    <FontAwesomeIcon icon={faBeer} className="text-warning mx-1" />
                     Bier
                 </Navbar.Brand>
 
@@ -330,7 +330,7 @@ export const View: React.FC<{
                     <Nav.Link
                         as={Router.Link}
                         to={Router.ToFavorites({ name: Nothing, brewedAfter: Nothing })}
-                    >Favorites</Nav.Link>
+                    >favorites</Nav.Link>
                 </Nav>
 
                 <div>
