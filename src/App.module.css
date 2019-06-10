@@ -9,5 +9,8 @@
 }
 
 .container {
+    position: relative;
+    z-index: 1100;
+    margin-bottom: 40px;
     min-height: 100%;
 }

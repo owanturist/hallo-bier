@@ -563,7 +563,7 @@ export class View extends React.PureComponent<{
                     <Container
                         fluid
                         as="footer"
-                        className={`bg-dark text-secondary py-2 text-center ${styles.footer}`}
+                        className={`bg-dark text-secondary py-2 text-center fixed-bottom ${styles.footer}`}
                     >
                         Made with
                         <FontAwesomeIcon icon={faHeart} className="mx-2 text-danger" />
