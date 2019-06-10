@@ -1,5 +1,6 @@
 import React from 'react';
-import Alert from 'react-bootstrap/Alert';
+import Jumbotron from 'react-bootstrap/Jumbotron';
+import Container from 'react-bootstrap/Container';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -299,12 +300,21 @@ const ViewLoadMore: React.FC = () => (
 );
 
 const ViewEmpty: React.FC = () => (
-    <Alert variant="warning" className="mb-0">
-        <Alert.Heading>There is no beer!</Alert.Heading>
-        <p className="mb-0">
-            For the current filters. Please try to change them.
-        </p>
-    </Alert>
+    <Jumbotron fluid className="mb-0">
+        <Container fluid>
+            <h1>There is no beer!</h1>
+            <p>For the current filters. Try to weak them a little bit.</p>
+            <p>
+                Or test your luck with{' '}
+                <Router.Link to={Router.ToRandomBeer}>random beer</Router.Link>{' '}
+                or just{' '}
+                <Router.Link to={Router.ToBeerSearch({ name: Nothing, brewedAfter: Nothing })}>
+                    explore all we have
+                </Router.Link>
+                !
+            </p>
+        </Container>
+    </Jumbotron>
 );
 
 export interface ViewProps {

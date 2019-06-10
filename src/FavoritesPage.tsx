@@ -1,4 +1,6 @@
 import React from 'react';
+import Jumbotron from 'react-bootstrap/Jumbotron';
+import Container from 'react-bootstrap/Container';
 import { compose } from 'redux';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import { Cmd } from './Cmd';
@@ -129,12 +131,25 @@ export const View: React.FC<{
     dispatch(action: Action): void;
 }> = ({ state, dispatch, ...props }) => state.cata({
     Nothing: () => (
-        <div>Oops... your favorites is empty</div>
+        <Jumbotron fluid className="mb-0">
+            <Container fluid>
+                <h1>Oops... favorites are empty!</h1>
+                <p>
+                    Test your luck with{' '}
+                    <Router.Link to={Router.ToRandomBeer}>random beer</Router.Link>{' '}
+                    or just{' '}
+                    <Router.Link to={Router.ToBeerSearch({ name: Nothing, brewedAfter: Nothing })}>
+                        explore all we have
+                    </Router.Link>
+                    !
+                </p>
+            </Container>
+        </Jumbotron>
     ),
 
     Just: ({ beerList }) => (
         <BeerList.View
-            skeletonCount={4}
+            skeletonCount={Math.min(props.favorites.size, 4)}
             state={beerList}
             dispatch={compose(dispatch, ActionBeerList.cons)}
             {...props}

@@ -515,7 +515,7 @@ export class View extends React.PureComponent<{
             PageSearchBeer: filter => [
                 Header.Tool.Filter(filter)
             ],
-            PageFavoritesBeer: filter => [
+            PageFavoritesBeer: filter => state.favorites.length === 0 ? [] : [
                 Header.Tool.Filter(filter)
             ],
             _: () => []
