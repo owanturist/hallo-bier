@@ -177,7 +177,7 @@ abstract class ToRouteWithFilter extends Route {
     }
 
     private static brewedDateToString(date: Date): string {
-        return date.toLocaleDateString().slice(3);
+        return [ date.getMonth() + 1, date.getFullYear() ].join('/');
     }
 
     public constructor(protected readonly filter: SearchFilter) {

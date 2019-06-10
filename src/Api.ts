@@ -76,7 +76,7 @@ const nameToQuery = (name: string): Maybe<string> => {
 };
 
 const dateToQuery = (date: Date): string => {
-    return date.toLocaleDateString().slice(3).replace('/', '_');
+    return [ date.getMonth() + 1, date.getFullYear() ].join('_');
 };
 
 const query = (key: string) => (value: string): [ string, string ] => [ key, value ];
