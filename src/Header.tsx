@@ -2,10 +2,10 @@ import React from 'react';
 import { compose } from 'redux';
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
-import Button from 'react-bootstrap/Button';
+import Button, { ButtonProps } from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFilter, faBeer, faDice, faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faFilter, faBeer, faDice, faHeart, faBars } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faRegularHeart } from '@fortawesome/free-regular-svg-icons';
 import { Cata } from 'frctl/dist/src/Basics';
 import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
@@ -16,10 +16,12 @@ import { Month } from './MonthPicker';
 import styles from 'Header.module.css';
 
 export interface State {
+    expanded: boolean;
     searchBuilder: Maybe<SearchBuilder.State>;
 }
 
 export const init = (): State => ({
+    expanded: false,
     searchBuilder: Nothing
 });
 
@@ -129,6 +131,16 @@ class HideSearchBuilder extends Action {
 }
 
 export const hideSearchBuilder = HideSearchBuilder.hide;
+
+class ToggleMenu extends Action {
+    public constructor(private readonly expanded: boolean) {
+        super();
+    }
+
+    public update(state: State): Stage {
+        return new Update({ ...state, expanded: this.expanded });
+    }
+}
 
 class ToggleFavorite extends Action {
     public constructor(
@@ -255,7 +267,6 @@ const ViewTool: React.FC<{
 }> = ({ tool, state, dispatch }) => tool.cata({
     Filter: filter => (
         <Button
-            className="ml-2"
             variant="outline-warning"
             size="sm"
             active={state.searchBuilder.isJust()}
@@ -265,31 +276,29 @@ const ViewTool: React.FC<{
                     : new ShowSearchBuilder(filter)
             )}
         >
-            <FontAwesomeIcon icon={faFilter} />
+            <FontAwesomeIcon fixedWidth icon={faFilter} />
         </Button>
     ),
 
     Roll: busy => (
         <Button
-            className="ml-2"
             variant="outline-warning"
             size="sm"
             disabled={busy}
             onClick={() => dispatch(new RollBeer())}
         >
-            <FontAwesomeIcon icon={faDice} />
+            <FontAwesomeIcon fixedWidth icon={faDice} />
         </Button>
     ),
 
     Favorite: (favorites, beerId) => beerId.cata({
         Nothing: () => (
             <Button
-                className="ml-2"
                 variant="outline-warning"
                 size="sm"
                 disabled
             >
-                <FontAwesomeIcon icon={faRegularHeart} />
+                <FontAwesomeIcon fixedWidth icon={faRegularHeart} />
             </Button>
         ),
 
@@ -298,17 +307,16 @@ const ViewTool: React.FC<{
 
             return (
                 <Button
-                    className="ml-2"
                     variant="outline-warning"
                     size="sm"
                     onClick={() => dispatch(new ToggleFavorite(!checked, beerId))}
                 >
                     {checked
                         ? (
-                            <FontAwesomeIcon className="text-danger" icon={faHeart} />
+                            <FontAwesomeIcon fixedWidth className="text-danger" icon={faHeart} />
                         )
                         : (
-                            <FontAwesomeIcon icon={faRegularHeart} />
+                            <FontAwesomeIcon fixedWidth icon={faRegularHeart} />
                         )
                     }
                 </Button>
@@ -316,6 +324,12 @@ const ViewTool: React.FC<{
         }
     })
 });
+
+const ViewNavbarToggle: React.FC<ButtonProps> = props => (
+    <Button {...props} variant="outline-light" size="sm" className="d-sm-none">
+        <FontAwesomeIcon fixedWidth icon={faBars} />
+    </Button>
+);
 
 export const View: React.FC<{
     minBrewedAfter?: [ Month, number ];
@@ -325,36 +339,51 @@ export const View: React.FC<{
     dispatch(action: Action): void;
 }> = ({ minBrewedAfter, maxBrewedAfter, tools, state, dispatch }) => (
     <div className={state.searchBuilder.isJust() ? 'border-bottom' : ''}>
-        <Navbar bg="dark" variant="dark" expand="lg">
+        <Navbar
+            bg="dark"
+            variant="dark"
+            expand="sm"
+            expanded={state.expanded}
+            onToggle={() => dispatch(new ToggleMenu(!state.expanded))}
+        >
             <Container fluid className={styles.container}>
-                <Navbar.Brand as={Router.Link} to={Router.ToHome}>
+                <Navbar.Toggle
+                    aria-controls="header-links"
+                    as={ViewNavbarToggle}
+                    active={state.expanded}
+                />
+
+                <Navbar.Brand as={Router.Link} to={Router.ToHome} className="mr-0 mr-sm-3">
                     Hallo
                     <FontAwesomeIcon icon={faBeer} className="text-warning mx-1" />
                     Bier
                 </Navbar.Brand>
 
-                <Nav className="mr-auto">
-                    <Nav.Link
-                        as={Router.Link}
-                        to={Router.ToFavorites({ name: Nothing, brewedAfter: Nothing })}
-                    >Favorites</Nav.Link>
-
-                    <Nav.Link
-                        as={Router.Link}
-                        to={Router.ToRandomBeer}
-                    >Random</Nav.Link>
+                <Nav navbar={false} className="order-sm-2">
+                    {tools.length > 0 && tools.map(tool => (
+                        <Nav.Item key={tool.toString()} className="ml-2">
+                            <ViewTool
+                                state={state}
+                                tool={tool}
+                                dispatch={dispatch}
+                            />
+                        </Nav.Item>
+                    ))}
                 </Nav>
 
-                <div>
-                    {tools.length > 0 && tools.map(tool => (
-                        <ViewTool
-                            key={tool.toString()}
-                            state={state}
-                            tool={tool}
-                            dispatch={dispatch}
-                        />
-                    ))}
-                </div>
+                <Navbar.Collapse id="header-links">
+                    <Nav className="mr-auto">
+                        <Nav.Link
+                            as={Router.Link}
+                            to={Router.ToFavorites({ name: Nothing, brewedAfter: Nothing })}
+                        >Favorites</Nav.Link>
+
+                        <Nav.Link
+                            as={Router.Link}
+                            to={Router.ToRandomBeer}
+                        >Random</Nav.Link>
+                    </Nav>
+                </Navbar.Collapse>
             </Container>
         </Navbar>
 
