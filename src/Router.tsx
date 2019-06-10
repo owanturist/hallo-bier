@@ -26,6 +26,12 @@ export interface SearchFilter {
     brewedAfter: Maybe<Date>;
 }
 
+export const areSearchFiltersEqual = (left: SearchFilter, right: SearchFilter): boolean => {
+    return left.name.isEqual(right.name)
+        && left.brewedAfter.map(date => date.getTime())
+            .isEqual(right.brewedAfter.map(date => date.getTime()));
+};
+
 export type RouterPattern<R> = Cata<{
     ToHome(): R;
     ToBeer(beerId: number): R;
@@ -52,6 +58,8 @@ export abstract class Route {
     public abstract toPath(): string;
 
     public abstract cata<R>(pattern: RouterPattern<R>): R;
+
+    public abstract isEqual(another: Route): boolean;
 
     public push(): Cmd<never> {
         return Cmd.of((): void => {
@@ -84,6 +92,13 @@ class ToHomeRoute extends Route {
 
         return (pattern._ as () => R)();
     }
+
+    public isEqual(another: Route): boolean {
+        return another.cata({
+            ToHome: () => true,
+            _: () => false
+        });
+    }
 }
 
 export const ToHome: Route = new ToHomeRoute();
@@ -110,6 +125,13 @@ class ToBeerRoute extends Route {
 
         return (pattern._ as () => R)();
     }
+
+    public isEqual(another: Route): boolean {
+        return another.cata({
+            ToBeer: beerId => beerId === this.id,
+            _: () => false
+        });
+    }
 }
 
 export const ToBeer = (beerId: number): Route => {
@@ -129,6 +151,13 @@ class ToRandomBeerRoute extends Route {
         }
 
         return (pattern._ as () => R)();
+    }
+
+    public isEqual(another: Route): boolean {
+        return another.cata({
+            ToRandomBeer: () => true,
+            _: () => false
+        });
     }
 }
 
@@ -198,6 +227,13 @@ class ToBeerSearchRoute extends ToRouteWithFilter {
 
         return (pattern._ as () => R)();
     }
+
+    public isEqual(another: Route): boolean {
+        return another.cata({
+            ToBeerSearch: filter => areSearchFiltersEqual(filter, this.filter),
+            _: () => false
+        });
+    }
 }
 
 export const ToBeerSearch = (filter: SearchFilter): Route => {
@@ -221,6 +257,13 @@ class ToFavoritesRoute extends ToRouteWithFilter {
         }
 
         return (pattern._ as () => R)();
+    }
+
+    public isEqual(another: Route): boolean {
+        return another.cata({
+            ToFavorites: filter => areSearchFiltersEqual(filter, this.filter),
+            _: () => false
+        });
     }
 }
 

@@ -4,7 +4,7 @@ import Container from 'react-bootstrap/Container';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBeer, faHeart } from '@fortawesome/free-solid-svg-icons';
 import { Cata } from 'frctl/dist/src/Basics';
-import { Nothing, Just } from 'frctl/dist/src/Maybe';
+import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import { Cmd } from 'Cmd';
 import * as Utils from './Utils';
 import * as Router from './Router';
@@ -132,15 +132,17 @@ class PageFavoritesBeer extends Page {
 
 
 export interface State {
-    header: Header.State;
+    route: Maybe<Router.Route>;
     favorites: Array<number>;
+    header: Header.State;
     page: Page;
 }
 
 export const init = (): [ State, Cmd<Action> ] => [
     {
-        header: Header.init(),
+        route: Nothing,
         favorites: [],
+        header: Header.init(),
         page: new VoidPage()
     },
     Api.getListOfFavorites().map(GetListOfFavorites.cons)
@@ -169,13 +171,19 @@ class RouteChanged extends Action {
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
+        if (state.route.map(route => route.isEqual(this.route)).getOrElse(false)) {
+            return [ state, Cmd.none ];
+        }
+
+        const nextState = { ...state, route: Just(this.route) };
+
         return this.route.cata<[ State, Cmd<Action> ]>({
             ToHome: () => {
                 const [ initialHomePage, cmdOfHomePage ] = HomePage.init(BEERS_PER_PAGE);
 
                 return [
                     {
-                        ...state,
+                        ...nextState,
                         page: new PageHome(initialHomePage)
                     },
                     cmdOfHomePage.map(ActionHomePage.cons)
@@ -183,7 +191,7 @@ class RouteChanged extends Action {
             },
 
             ToBeer: beerId => {
-                return state.page.cata({
+                return nextState.page.cata({
                     PageRandomBeer: RandomBeerPage.getBeer,
                     PageHome: homePage => HomePage.getBeer(beerId, homePage),
                     PageSearchBeer: (_filter, searchBeerPage) => SearchBeerPage.getBeer(beerId, searchBeerPage),
@@ -195,7 +203,7 @@ class RouteChanged extends Action {
 
                         return [
                             {
-                                ...state,
+                                ...nextState,
                                 page: new PageBeer(beerId, initialBeerPage)
                             },
                             cmdOfBeerPage.map(ActionBeerPage.cons)
@@ -205,7 +213,7 @@ class RouteChanged extends Action {
                     Just: beer => {
                         return [
                             {
-                                ...state,
+                                ...nextState,
                                 page: new PageBeer(beer.id, BeerPage.initWithBeer(beer))
                             },
                             Cmd.none
@@ -219,7 +227,7 @@ class RouteChanged extends Action {
 
                 return [
                     {
-                        ...state,
+                        ...nextState,
                         page: new PageRandomBeer(initialRandomBeerPage)
                     },
                     cmdOfRandomBeerPage.map(ActionRandomBeerPage.cons)
@@ -231,7 +239,7 @@ class RouteChanged extends Action {
 
                 return [
                     {
-                        ...state,
+                        ...nextState,
                         page: new PageSearchBeer(filter, initialSeachBeerPage)
                     },
                     cmdOfSearchBeerPage.map(ActionSearchBeerPage.cons)
@@ -241,13 +249,13 @@ class RouteChanged extends Action {
             ToFavorites: filter => {
                 const [ initialFavoritesPage, cmdOfFavoritesPage ] = FavoritesPage.init(
                     filter,
-                    state.favorites,
+                    nextState.favorites,
                     BEERS_PER_PAGE
                 );
 
                 return [
                     {
-                        ...state,
+                        ...nextState,
                         page: new PageFavoritesBeer(filter, initialFavoritesPage)
                     },
                     cmdOfFavoritesPage.map(ActionFavoritesPage.cons)
