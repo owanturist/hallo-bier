@@ -129,7 +129,7 @@ export const View: React.FC<{
     favorites: Set<number>;
     state: State;
     dispatch(action: Action): void;
-}> = ({ state, dispatch, ...props }) => state.cata({
+}> = ({ state, dispatch, ...beerListProps }) => state.cata({
     Nothing: () => (
         <Jumbotron fluid className="mb-0">
             <Container fluid>
@@ -149,10 +149,10 @@ export const View: React.FC<{
 
     Just: ({ beerList }) => (
         <BeerList.View
-            skeletonCount={Math.min(props.favorites.size, 4)}
+            skeletonCount={Math.min(beerListProps.favorites.size, 4)}
             state={beerList}
             dispatch={compose(dispatch, ActionBeerList.cons)}
-            {...props}
+            {...beerListProps}
         />
     )
 });

@@ -170,13 +170,17 @@ class RouteChanged extends Action {
 
     public update(state: State): [ State, Cmd<Action> ] {
         return this.route.cata<[ State, Cmd<Action> ]>({
-            ToHome: () => [
-                {
-                    ...state,
-                    page: new PageHome(HomePage.init())
-                },
-                Cmd.none
-            ],
+            ToHome: () => {
+                const [ initialHomePage, cmdOfHomePage ] = HomePage.init(BEERS_PER_PAGE);
+
+                return [
+                    {
+                        ...state,
+                        page: new PageHome(initialHomePage)
+                    },
+                    cmdOfHomePage.map(ActionHomePage.cons)
+                ];
+            },
 
             ToBeer: beerId => {
                 return state.page.cata({
@@ -323,12 +327,18 @@ class ActionHomePage extends Action {
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({
             PageHome: homePage => {
-                const [ nextHomePage, cmdOfHomePage ] = this.action.update(homePage);
+                return this.action.update(homePage)
+                    .cata<[ State, Cmd<Action> ]>({
+                        Update: (nextHomePage, cmdOfHomePage) => [
+                            {
+                                ...state,
+                                page: new PageHome(nextHomePage)
+                            },
+                            cmdOfHomePage.map(ActionHomePage.cons)
+                        ],
 
-                return [
-                    { ...state, page: new PageHome(nextHomePage) },
-                    cmdOfHomePage.map(ActionHomePage.cons)
-                ];
+                        SetFavorites: (checked, beerId) => setFavorites(checked, beerId, state)
+                    });
             },
 
             _: () => [ state, Cmd.none ]
@@ -400,17 +410,12 @@ class ActionSearchBeerPage extends Action {
                     Update: (nextSearchBeerPage, cmdOfSearchBeerPage) => [
                         {
                             ...state,
-                            header: SearchBeerPage.isEmpty(nextSearchBeerPage)
-                                ? Header.showSearchBuilder(filter, state.header)
-                                : state.header,
                             page: new PageSearchBeer(filter, nextSearchBeerPage)
                         },
                         cmdOfSearchBeerPage.map(ActionSearchBeerPage.cons)
                     ],
 
-                    SetFavorites: (checked, beerId) => {
-                        return setFavorites(checked, beerId, state);
-                    }
+                    SetFavorites: (checked, beerId) => setFavorites(checked, beerId, state)
                 }),
 
             _: () => [ state, Cmd.none ]
@@ -436,17 +441,12 @@ class ActionFavoritesPage extends Action {
                 Update: (nextFavoritesPage, cmdOfFavoritesPage) => [
                     {
                         ...state,
-                        header: FavoritesPage.isEmpty(nextFavoritesPage)
-                            ? Header.showSearchBuilder(filter, state.header)
-                            : state.header,
                         page: new PageFavoritesBeer(filter, nextFavoritesPage)
                     },
                     cmdOfFavoritesPage.map(ActionFavoritesPage.cons)
                 ],
 
-                SetFavorites: (checked, beerId) => {
-                    return setFavorites(checked, beerId, state);
-                }
+                SetFavorites: (checked, beerId) => setFavorites(checked, beerId, state)
             }),
 
             _: () => [ state, Cmd.none ]
@@ -464,6 +464,8 @@ const PageView: React.FC<{
 
     PageHome: homePage => (
         <HomePage.View
+            scroller={scroller}
+            favorites={favorites}
             state={homePage}
             dispatch={compose(dispatch, ActionHomePage.cons)}
             {...brewedAfterLimits}
@@ -517,9 +519,9 @@ export class View extends React.PureComponent<{
             PageSearchBeer: filter => [
                 Header.Tool.Filter(filter)
             ],
-            PageFavoritesBeer: filter => state.favorites.length === 0 ? [] : [
+            PageFavoritesBeer: filter => state.favorites.length > 1 ? [
                 Header.Tool.Filter(filter)
-            ],
+            ] : [],
             _: () => []
         });
 

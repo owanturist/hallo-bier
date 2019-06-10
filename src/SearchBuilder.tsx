@@ -369,25 +369,6 @@ export const View: React.FC<{
                     <FontAwesomeIcon icon={faSearch} />
                 </Button>
             </Form.Group>
-
-            {!compact && (
-                <Form.Group as={Col} xs="12" className="d-flex justify-content-between">
-                    <Form.Text>
-                        <Router.Link to={Router.ToBeerSearch({
-                            name: Nothing,
-                            brewedAfter: Nothing
-                        })}>
-                            Explore all beer
-                        </Router.Link>
-                    </Form.Text>
-
-                    <Form.Text>
-                        <Router.Link to={Router.ToRandomBeer}>
-                            I'm feeling lucky!
-                        </Router.Link>
-                    </Form.Text>
-                </Form.Group>
-            )}
         </Form.Row>
     </Form>
 );

@@ -109,11 +109,11 @@ export const View: React.FC<{
     favorites: Set<number>;
     state: State;
     dispatch(action: Action): void;
-}> = ({ state, dispatch, ...props }) => (
+}> = ({ state, dispatch, ...beerListProps }) => (
     <BeerList.View
         skeletonCount={4}
         state={state.beerList}
         dispatch={compose(dispatch, ActionBeerList.cons)}
-        {...props}
+        {...beerListProps}
     />
 );
