@@ -1,5 +1,6 @@
 import React from 'react';
 import { RemoteData, Loading } from 'frctl/dist/src/RemoteData';
+import { Maybe } from 'frctl/dist/src/Maybe';
 import { Either } from 'frctl/dist/src/Either';
 import * as Http from 'frctl/dist/src/Http';
 import { Cmd } from 'Cmd';
@@ -17,6 +18,8 @@ export const init = (): [ State, Cmd<Action> ] => [
     },
     Api.loadRandomBeer().send(LoadDone.cons)
 ];
+
+export const getBeer = (state: State): Maybe<Api.Beer> => state.beer.toMaybe();
 
 export const isLoading = (state: State): boolean => state.beer.isLoading();
 

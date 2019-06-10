@@ -337,7 +337,12 @@ export const View: React.FC<{
                     <Nav.Link
                         as={Router.Link}
                         to={Router.ToFavorites({ name: Nothing, brewedAfter: Nothing })}
-                    >favorites</Nav.Link>
+                    >Favorites</Nav.Link>
+
+                    <Nav.Link
+                        as={Router.Link}
+                        to={Router.ToRandomBeer}
+                    >Random</Nav.Link>
                 </Nav>
 
                 <div>

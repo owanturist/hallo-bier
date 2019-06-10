@@ -10,6 +10,7 @@ import { faHeart } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faRegularHeart } from '@fortawesome/free-regular-svg-icons';
 import throttle from 'lodash.throttle';
 import { RemoteData, NotAsked, Loading, Failure } from 'frctl/dist/src/RemoteData';
+import { Maybe, Nothing, Just } from 'frctl/dist/src/Maybe';
 import { Either } from 'frctl/dist/src/Either';
 import * as Http from 'Http';
 import { Cmd } from 'Cmd';
@@ -34,6 +35,16 @@ export const init = (request: Request): [ State, Cmd<Action> ] => [
     },
     request(0).send(LoadDone.cons)
 ];
+
+export const getBeer = (id: number, state: State): Maybe<Api.Beer> => {
+    for (const beer of state.beerList) {
+        if (beer.id === id) {
+            return Just(beer);
+        }
+    }
+
+    return Nothing;
+};
 
 export const isEmpty = (state: State): boolean => {
     return state.loading.isNotAsked() && state.beerList.length === 0;

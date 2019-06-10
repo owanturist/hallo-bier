@@ -39,6 +39,10 @@ export const init = (
     ];
 };
 
+export const getBeer = (id: number, state: State): Maybe<Api.Beer> => state.chain(
+    ({ beerList }) => BeerList.getBeer(id, beerList)
+);
+
 export const isEmpty = (state: State): boolean => state.map(
     ({ beerList }) => BeerList.isEmpty(beerList)
 ).getOrElse(false);

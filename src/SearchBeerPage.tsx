@@ -1,5 +1,6 @@
 import React from 'react';
 import { compose } from 'redux';
+import { Maybe } from 'frctl/dist/src/Maybe';
 import { Cmd } from './Cmd';
 import * as Utils from './Utils';
 import * as Router from './Router';
@@ -26,6 +27,10 @@ export const init = (
         },
         cmdOfBeerList.map(ActionBeerList.cons)
     ];
+};
+
+export const getBeer = (id: number, state: State): Maybe<Api.Beer> => {
+    return BeerList.getBeer(id, state.beerList);
 };
 
 export const isEmpty = (state: State): boolean => BeerList.isEmpty(state.beerList);

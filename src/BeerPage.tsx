@@ -1,5 +1,5 @@
 import React from 'react';
-import { RemoteData, Loading } from 'frctl/dist/src/RemoteData';
+import { RemoteData, Loading, Succeed } from 'frctl/dist/src/RemoteData';
 import { Either } from 'frctl/dist/src/Either';
 import { Cmd } from 'Cmd';
 import * as Http from 'Http';
@@ -8,17 +8,17 @@ import * as Api from './Api';
 import * as BeerInfo from './BeerInfo';
 
 export interface State {
-    show: boolean;
     beer: RemoteData<Http.Error, Api.Beer>;
 }
 
 export const init = (beerId: number): [ State, Cmd<Action> ] => [
     {
-        show: false,
         beer: Loading
     },
     Api.loadBeerById(beerId).send(LoadDone.cons)
 ];
+
+export const initWithBeer = (beer: Api.Beer): State => ({ beer: Succeed(beer) });
 
 export abstract class Action extends Utils.Action<[ State ], State> {}
 

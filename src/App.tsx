@@ -3,7 +3,7 @@ import { compose } from 'redux';
 import { Cmd } from 'Cmd';
 import { Cata } from 'frctl/dist/src/Basics';
 import Container from 'react-bootstrap/Container';
-import { Just } from 'frctl/dist/src/Maybe';
+import { Nothing, Just } from 'frctl/dist/src/Maybe';
 import * as Utils from './Utils';
 import * as Router from './Router';
 import * as Api from './Api';
@@ -177,15 +177,34 @@ class RouteChanged extends Action {
             ],
 
             ToBeer: beerId => {
-                const [ initialBeerPage, cmdOfBeerPage ] = BeerPage.init(beerId);
+                return state.page.cata({
+                    PageRandomBeer: RandomBeerPage.getBeer,
+                    PageSearchBeer: (_filter, searchBeerPage) => SearchBeerPage.getBeer(beerId, searchBeerPage),
+                    PageFavoritesBeer: (_filter, favoritesPage) => FavoritesPage.getBeer(beerId, favoritesPage),
+                    _: () => Nothing
+                }).cata<[ State, Cmd<Action> ]>({
+                    Nothing: () => {
+                        const [ initialBeerPage, cmdOfBeerPage ] = BeerPage.init(beerId);
 
-                return [
-                    {
-                        ...state,
-                        page: new PageBeer(beerId, initialBeerPage)
+                        return [
+                            {
+                                ...state,
+                                page: new PageBeer(beerId, initialBeerPage)
+                            },
+                            cmdOfBeerPage.map(ActionBeerPage.cons)
+                        ];
                     },
-                    cmdOfBeerPage.map(ActionBeerPage.cons)
-                ];
+
+                    Just: beer => {
+                        return [
+                            {
+                                ...state,
+                                page: new PageBeer(beer.id, BeerPage.initWithBeer(beer))
+                            },
+                            Cmd.none
+                        ];
+                    }
+                });
             },
 
             ToRandomBeer: () => {
