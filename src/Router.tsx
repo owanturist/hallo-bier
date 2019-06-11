@@ -21,7 +21,6 @@ import * as Utils from './Utils';
 
 const history = createBrowserHistory();
 
-
 export interface SearchFilter {
     name: Maybe<string>;
     brewedAfter: Maybe<Date>;

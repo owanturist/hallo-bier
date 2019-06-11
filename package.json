@@ -51,6 +51,10 @@
     ]
   },
   "devDependencies": {
+    "@types/enzyme": "^3.9.3",
+    "@types/enzyme-adapter-react-16": "^1.0.5",
+    "enzyme": "^3.10.0",
+    "enzyme-adapter-react-16": "^1.14.0",
     "tslint": "^5.17.0",
     "typescript": "^3.3.4000"
   }
