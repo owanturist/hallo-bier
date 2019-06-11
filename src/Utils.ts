@@ -32,22 +32,16 @@ export const parseInt = (str: string): Maybe<number> => {
     return Just(code0 === 0x2D ? -total : total);
 };
 
-export const parseFloat = (str: string): Maybe<number> => {
-    // check if it is a hex, octal, or binary number
-    if (str.length === 0 || /[\sxbo]/.test(str)) {
-        return Nothing;
-    }
-    const float = +str;
-
-    return isNaN(float) ? Just(float) : Nothing;
-};
-
 export const parseDate = (str: string): Maybe<Date> => {
     const fragments = str.split('/');
     const monthIndexOrYear = Maybe.fromNullable(fragments[ 0 ]).chain(parseInt);
 
     return Maybe.fromNullable(fragments[ 1 ]).chain(parseInt).cata({
-        Nothing: () => monthIndexOrYear.map(year => new Date(year)),
-        Just: year => monthIndexOrYear.map(month => new Date(year, month - 1))
+        Nothing: () => monthIndexOrYear.chain(
+            year => year < 0 ? Nothing : Just(new Date(year))
+        ),
+        Just: year => monthIndexOrYear.chain(
+            month => month < 1 || month > 12 ? Nothing : Just(new Date(year, month - 1))
+        )
     });
 };
