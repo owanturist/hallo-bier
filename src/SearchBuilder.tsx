@@ -285,9 +285,9 @@ export class ViewMonthpicker extends React.PureComponent<{
 
     private readonly closeDropdown = (event: MouseEvent) => {
         if (this.props.monthPicker.isJust()
-        && this.root.current
-        && !this.root.current.contains(event.target as Node)
-    ) {
+            && this.root.current
+            && !this.root.current.contains(event.target as Node)
+        ) {
             this.props.dispatch(new HideMonthPicker());
             document.removeEventListener('mousedown', this.closeDropdown, false);
         }

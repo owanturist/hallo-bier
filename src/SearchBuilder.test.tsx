@@ -1,5 +1,5 @@
 import React from 'react';
-import {} from 'react-bootstrap';
+import { Button, Form, FormControl, Dropdown } from 'react-bootstrap';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import { Nothing, Just } from 'frctl/dist/Maybe';
@@ -9,6 +9,14 @@ import * as SearchBuilder from './SearchBuilder';
 Enzyme.configure({
     adapter: new Adapter()
 });
+
+class MonthPickerAction extends MonthPicker.Action {
+    public static readonly update = jest.fn<MonthPicker.Stage, [ MonthPicker.State ]>();
+
+    public update(state: MonthPicker.State): MonthPicker.Stage {
+        return MonthPickerAction.update(state);
+    }
+}
 
 it('selectedToString', () => {
     expect(SearchBuilder.selectedToString({ month: MonthPicker.Month.Jan, year: 2010 })).toBe('01/2010');
@@ -354,14 +362,6 @@ describe('Action', () => {
     });
 
     describe('ActionMonthPicker', () => {
-        class MonthPickerAction extends MonthPicker.Action {
-            public static readonly update = jest.fn<MonthPicker.Stage, [ MonthPicker.State ]>();
-
-            public update(state: MonthPicker.State): MonthPicker.Stage {
-                return MonthPickerAction.update(state);
-            }
-        }
-
         afterEach(() => {
             MonthPickerAction.update.mockClear();
         });
@@ -435,6 +435,174 @@ describe('Action', () => {
             }));
 
             expect(MonthPickerAction.update).toBeCalledWith(monthPickerState);
+        });
+    });
+});
+
+
+describe('View', () => {
+    const dispatch = jest.fn<void, [ SearchBuilder.Action ]>();
+
+    afterEach(() => {
+        dispatch.mockReset();
+    });
+
+    it('renders initial empty state', () => {
+        const wrapper = Enzyme.shallow(
+            <SearchBuilder.View
+                state={{
+                    name: '',
+                    brewedAfter: '',
+                    monthPicker: Nothing
+                }}
+                dispatch={dispatch}
+            />
+        );
+
+        expect(wrapper.find(Form.Control).prop('value')).toBe('');
+        expect(wrapper.find(Button).prop('disabled')).toBe(true);
+        expect(
+            wrapper
+                .find(SearchBuilder.ViewMonthpicker)
+                .dive()
+                .find(FormControl)
+                .prop('value')
+        ).toBe('');
+        expect(
+            wrapper
+                .find(SearchBuilder.ViewMonthpicker)
+                .dive()
+                .find(Dropdown.Menu)
+                .length
+        ).toBe(0);
+    });
+
+    it('renders initial not empty state', () => {
+        const wrapper = Enzyme.shallow(
+            <SearchBuilder.View
+                state={{
+                    name: 'foo',
+                    brewedAfter: '05/2010',
+                    monthPicker: Just(MonthPicker.init(2010))
+                }}
+                dispatch={dispatch}
+            />
+        );
+
+        expect(wrapper.find(Form.Control).prop('value')).toBe('foo');
+        expect(wrapper.find(Button).prop('disabled')).toBe(false);
+        expect(
+            wrapper
+                .find(SearchBuilder.ViewMonthpicker)
+                .dive()
+                .find(FormControl)
+                .prop('value')
+        ).toBe('05/2010');
+        expect(
+            wrapper
+                .find(SearchBuilder.ViewMonthpicker)
+                .dive()
+                .find(Dropdown.Menu)
+                .length
+        ).toBe(1);
+    });
+
+    it('emits ChangeName', () => {
+        Enzyme.shallow(
+            <SearchBuilder.View
+                state={{
+                    name: 'foo',
+                    brewedAfter: '05/2010',
+                    monthPicker: Just(MonthPicker.init(2010))
+                }}
+                dispatch={dispatch}
+            />
+        ).find(Form.Control).simulate('change', {
+            currentTarget: {
+                value: 'bar'
+            }
+        });
+
+        expect(dispatch).toBeCalledTimes(1);
+        expect(dispatch).toBeCalledWith(new SearchBuilder.ChangeName('bar'));
+    });
+
+    it('emits ChangeBrewedAfter', () => {
+        const minBrewedAfter = { month: MonthPicker.Month.Jan, year: 1990 };
+        const maxBrewedAfter = { month: MonthPicker.Month.Oct, year: 2010 };
+
+        Enzyme.shallow(
+            <SearchBuilder.View
+                minBrewedAfter={minBrewedAfter}
+                maxBrewedAfter={maxBrewedAfter}
+                state={{
+                    name: 'foo',
+                    brewedAfter: '05/2010',
+                    monthPicker: Just(MonthPicker.init(2010))
+                }}
+                dispatch={dispatch}
+            />
+        ).find(SearchBuilder.ViewMonthpicker).dive().find(Form.Control).simulate('change', {
+            currentTarget: {
+                value: '04/2010'
+            }
+        });
+
+        expect(dispatch).toBeCalledTimes(1);
+        expect(dispatch).toBeCalledWith(
+            new SearchBuilder.ChangeBrewedAfter(Just(minBrewedAfter), Just(maxBrewedAfter), '04/2010')
+        );
+    });
+
+    it('emits SearchBeer', () => {
+        Enzyme.shallow(
+            <SearchBuilder.View
+                state={{
+                    name: 'foo',
+                    brewedAfter: '',
+                    monthPicker: Nothing
+                }}
+                dispatch={dispatch}
+            />
+        ).find(Form).simulate('submit', {
+            preventDefault: jest.fn()
+        });
+
+        expect(dispatch).toBeCalledTimes(1);
+        expect(dispatch).toBeCalledWith(new SearchBuilder.SearchBeer());
+    });
+
+
+    describe('emits ShowMonthPicker', () => {
+        it('MonthPicker is visible', () => {
+            Enzyme.shallow(
+                <SearchBuilder.View
+                    state={{
+                        name: '',
+                        brewedAfter: '',
+                        monthPicker: Just(MonthPicker.init(2000))
+                    }}
+                    dispatch={dispatch}
+                />
+            ).find(SearchBuilder.ViewMonthpicker).dive().find(Form.Control).simulate('focus');
+
+            expect(dispatch).not.toBeCalled();
+        });
+
+        it('MonthPicker is hidden', () => {
+            Enzyme.shallow(
+                <SearchBuilder.View
+                    state={{
+                        name: '',
+                        brewedAfter: '',
+                        monthPicker: Nothing
+                    }}
+                    dispatch={dispatch}
+                />
+            ).find(SearchBuilder.ViewMonthpicker).dive().find(Form.Control).simulate('focus');
+
+            expect(dispatch).toBeCalledTimes(1);
+            expect(dispatch).toBeCalledWith(new SearchBuilder.ShowMonthPicker());
         });
     });
 });

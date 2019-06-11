@@ -239,7 +239,7 @@ describe('Action', () => {
 });
 
 describe('View', () => {
-    const dispatch = jest.fn();
+    const dispatch = jest.fn<void, [ MonthPicker.Action ]>();
 
     afterEach(() => {
         dispatch.mockReset();
