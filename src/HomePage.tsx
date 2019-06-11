@@ -23,7 +23,7 @@ export const init = (beersPerPage: number): [ State, Cmd<Action> ] => {
     return [
         {
             beersPerPage,
-            searchBuilder: SearchBuilder.init('', Nothing),
+            searchBuilder: SearchBuilder.init({ name: Nothing, brewedAfter: Nothing }),
             beerList: initialBeerList
         },
         cmdOfBeerList.map(ActionBeerList.cons)

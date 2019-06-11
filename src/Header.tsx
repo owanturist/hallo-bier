@@ -81,17 +81,7 @@ class ShowSearchBuilder extends Action {
 
         return {
             ...state,
-            searchBuilder: Just(
-                SearchBuilder.init(
-                    filter.name.getOrElse(''),
-                    filter.brewedAfter.map(
-                        date => ({
-                            month: MonthPicker.Month.fromDate(date),
-                            year: date.getFullYear()
-                        })
-                    )
-                )
-            )
+            searchBuilder: Just(SearchBuilder.init(filter))
         };
     }
 

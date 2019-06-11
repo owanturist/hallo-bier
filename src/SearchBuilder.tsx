@@ -13,22 +13,12 @@ import * as MonthPicker from './MonthPicker';
 import * as Utils from './Utils';
 import styles from './SearchBuilder.module.css';
 
-export interface State {
-    name: string;
-    brewedAfter: string;
-    monthPicker: Maybe<MonthPicker.State>;
-}
-
-const isValid = (state: State): boolean => {
-    return state.name.trim().length > 0 || selectedMonthFromString(state.brewedAfter).isJust();
-};
-
-const selectedMonthToString = (selected: MonthPicker.Selected): string => {
+export const selectedToString = (selected: MonthPicker.Selected): string => {
     return `${selected.month.toIndex().toString().padStart(2, '0')}/${selected.year}`;
 };
 
-const selectedMonthFromString = (str: string): Maybe<MonthPicker.Selected> => {
-    const fragments = str.trim().split(/\/|\s|-|_/g);
+export const selectedFromString = (str: string): Maybe<MonthPicker.Selected> => {
+    const fragments = str.trim().split(/\s*\/\s*|\s*-\s*|_|\s+/);
 
     return Maybe.props({
         month: Maybe.fromNullable(fragments[ 0 ]).chain(Utils.parseInt).chain(MonthPicker.Month.fromIndex),
@@ -36,16 +26,26 @@ const selectedMonthFromString = (str: string): Maybe<MonthPicker.Selected> => {
     });
 };
 
-export const init = (
-    initialName: string,
-    initialBrewAfter: Maybe<MonthPicker.Selected>
-): State => ({
-    name: initialName,
-    brewedAfter: initialBrewAfter.map(selectedMonthToString).getOrElse(''),
+export interface State {
+    name: string;
+    brewedAfter: string;
+    monthPicker: Maybe<MonthPicker.State>;
+}
+
+export const init = (filter: Router.SearchFilter): State => ({
+    name: filter.name.getOrElse(''),
+    brewedAfter: filter.brewedAfter.map(brewedAfter => ({
+        month: MonthPicker.Month.fromDate(brewedAfter),
+        year: brewedAfter.getFullYear()
+    })).map(selectedToString).getOrElse(''),
     monthPicker: Nothing
 });
 
-interface StagePattern<R> {
+export const isValid = (state: State): boolean => {
+    return state.name.trim().length > 0 || selectedFromString(state.brewedAfter).isJust();
+};
+
+export interface StagePattern<R> {
     Update(nextSearchBuilder: State): R;
     Search(config: Router.SearchFilter): R;
 }
@@ -54,7 +54,7 @@ export abstract class Stage {
     public abstract cata<R>(pattern: StagePattern<R>): R;
 }
 
-class Update extends Stage {
+export class Update extends Stage {
     public constructor(private readonly state: State) {
         super();
     }
@@ -64,7 +64,7 @@ class Update extends Stage {
     }
 }
 
-class Search extends Stage {
+export class Search extends Stage {
     public constructor(private readonly filter: Router.SearchFilter) {
         super();
     }
@@ -76,7 +76,7 @@ class Search extends Stage {
 
 export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
-class ChangeName extends Action {
+export class ChangeName extends Action {
     public constructor(private readonly name: string) {
         super();
     }
@@ -86,7 +86,7 @@ class ChangeName extends Action {
     }
 }
 
-class ChangeBrewedAfter extends Action {
+export class ChangeBrewedAfter extends Action {
     public constructor(
         private readonly min: Maybe<MonthPicker.Selected>,
         private readonly max: Maybe<MonthPicker.Selected>,
@@ -96,7 +96,7 @@ class ChangeBrewedAfter extends Action {
     }
 
     public update(state: State): Stage {
-        return selectedMonthFromString(this.brewedAfter)
+        return selectedFromString(this.brewedAfter)
             .map(selected => this.limit(selected))
             .cata({
                 Nothing: () => new Update({
@@ -106,7 +106,7 @@ class ChangeBrewedAfter extends Action {
 
                 Just: selected => new Update({
                     ...state,
-                    brewedAfter: selectedMonthToString(selected),
+                    brewedAfter: selectedToString(selected),
                     monthPicker: state.monthPicker.map(mp => MonthPicker.setYear(selected.year, mp))
                 })
             });
@@ -145,24 +145,24 @@ class ChangeBrewedAfter extends Action {
     }
 }
 
-class SearchBeer extends Action {
+export class SearchBeer extends Action {
     public update(state: State): Stage {
         const trimmedName = state.name.trim();
 
         return new Search({
             name: trimmedName ? Just(trimmedName) : Nothing,
-            brewedAfter: selectedMonthFromString(state.brewedAfter).map(({ month, year }) => month.toDate(year))
+            brewedAfter: selectedFromString(state.brewedAfter).map(({ month, year }) => month.toDate(year))
         });
     }
 }
 
-class ShowMonthPicker extends Action {
+export class ShowMonthPicker extends Action {
     public update(state: State): Stage {
         if (state.monthPicker.isJust()) {
             return new Update(state);
         }
 
-        const initialYear = selectedMonthFromString(state.brewedAfter)
+        const initialYear = selectedFromString(state.brewedAfter)
             .map(selected => selected.year)
             .getOrElse(2010);
 
@@ -182,7 +182,7 @@ export class HideMonthPicker extends Action {
     }
 }
 
-class ActionMonthPicker extends Action {
+export class ActionMonthPicker extends Action {
     public static cons(action: MonthPicker.Action): Action {
         return new ActionMonthPicker(action);
     }
@@ -203,7 +203,7 @@ class ActionMonthPicker extends Action {
 
                 Select: (brewedAfter: MonthPicker.Selected) => new Update({
                     ...state,
-                    brewedAfter: selectedMonthToString(brewedAfter)
+                    brewedAfter: selectedToString(brewedAfter)
                 }),
 
                 Unselect: () => new Update({
@@ -215,7 +215,7 @@ class ActionMonthPicker extends Action {
     }
 }
 
-class ViewMonthpicker extends React.PureComponent<{
+export class ViewMonthpicker extends React.PureComponent<{
     min?: MonthPicker.Selected;
     max?: MonthPicker.Selected;
     disabled?: boolean;
@@ -254,7 +254,7 @@ class ViewMonthpicker extends React.PureComponent<{
                             <MonthPicker.View
                                 min={min}
                                 max={max}
-                                selected={selectedMonthFromString(brewedAfter)}
+                                selected={selectedFromString(brewedAfter)}
                                 disabled={disabled}
                                 state={monthPicker}
                                 dispatch={compose(dispatch, ActionMonthPicker.cons)}
