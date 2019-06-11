@@ -145,7 +145,7 @@ export const init = (): [ State, Cmd<Action> ] => [
         header: Header.init(),
         page: new VoidPage()
     },
-    Api.getListOfFavorites().map(GetListOfFavorites.cons)
+    Api.getListOfFavorites().map(GetListOfFavorites)
 ];
 
 const setFavorites = (checked: boolean, beerId: number, state: State): [ State, Cmd<Action> ] => {
@@ -161,13 +161,9 @@ const setFavorites = (checked: boolean, beerId: number, state: State): [ State, 
 
 export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
-class RouteChanged extends Action {
-    public static cons(route: Router.Route): Action {
-        return new RouteChanged(route);
-    }
-
-    private constructor(private readonly route: Router.Route) {
-        super();
+export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends Action {
+    public constructor(private readonly route: Router.Route) {
+        super('RouteChanged');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -186,7 +182,7 @@ class RouteChanged extends Action {
                         ...nextState,
                         page: new PageHome(initialHomePage)
                     },
-                    cmdOfHomePage.map(ActionHomePage.cons)
+                    cmdOfHomePage.map(ActionHomePage)
                 ];
             },
 
@@ -206,7 +202,7 @@ class RouteChanged extends Action {
                                 ...nextState,
                                 page: new PageBeer(beerId, initialBeerPage)
                             },
-                            cmdOfBeerPage.map(ActionBeerPage.cons)
+                            cmdOfBeerPage.map(ActionBeerPage)
                         ];
                     },
 
@@ -230,7 +226,7 @@ class RouteChanged extends Action {
                         ...nextState,
                         page: new PageRandomBeer(initialRandomBeerPage)
                     },
-                    cmdOfRandomBeerPage.map(ActionRandomBeerPage.cons)
+                    cmdOfRandomBeerPage.map(ActionRandomBeerPage)
                 ];
             },
 
@@ -242,7 +238,7 @@ class RouteChanged extends Action {
                         ...nextState,
                         page: new PageSearchBeer(filter, initialSeachBeerPage)
                     },
-                    cmdOfSearchBeerPage.map(ActionSearchBeerPage.cons)
+                    cmdOfSearchBeerPage.map(ActionSearchBeerPage)
                 ];
             },
 
@@ -258,20 +254,16 @@ class RouteChanged extends Action {
                         ...nextState,
                         page: new PageFavoritesBeer(filter, initialFavoritesPage)
                     },
-                    cmdOfFavoritesPage.map(ActionFavoritesPage.cons)
+                    cmdOfFavoritesPage.map(ActionFavoritesPage)
                 ];
             }
         });
     }
-}
+});
 
-class GetListOfFavorites extends Action {
-    public static cons(favorites: Array<number>): Action {
-        return new GetListOfFavorites(favorites);
-    }
-
-    private constructor(private readonly favorites: Array<number>) {
-        super();
+export const GetListOfFavorites = Utils.cons<[ Array<number> ], Action>(class extends Action {
+    public constructor(private readonly favorites: Array<number>) {
+        super('GetListOfFavorites');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -280,15 +272,11 @@ class GetListOfFavorites extends Action {
             Cmd.none
         ];
     }
-}
+});
 
-class ActionHeader extends Action {
-    public static cons(action: Header.Action): Action {
-        return new ActionHeader(action);
-    }
-
-    private constructor(private readonly action: Header.Action) {
-        super();
+export const ActionHeader = Utils.cons<[ Header.Action ], Action>(class extends Action {
+    public constructor(private readonly action: Header.Action) {
+        super('ActionHeader');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -306,7 +294,7 @@ class ActionHeader extends Action {
                         ...state,
                         page: new PageRandomBeer(initialRandomBeerPage)
                     },
-                    cmdOfRandomBeerPage.map(ActionRandomBeerPage.cons)
+                    cmdOfRandomBeerPage.map(ActionRandomBeerPage)
                 ];
             },
 
@@ -322,15 +310,11 @@ class ActionHeader extends Action {
             ]
         });
     }
-}
+});
 
-class ActionHomePage extends Action {
-    public static cons(action: HomePage.Action): Action {
-        return new ActionHomePage(action);
-    }
-
-    private constructor(private readonly action: HomePage.Action) {
-        super();
+export const ActionHomePage = Utils.cons<[ HomePage.Action ], Action>(class extends Action {
+    public constructor(private readonly action: HomePage.Action) {
+        super('ActionHomePage');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -343,7 +327,7 @@ class ActionHomePage extends Action {
                                 ...state,
                                 page: new PageHome(nextHomePage)
                             },
-                            cmdOfHomePage.map(ActionHomePage.cons)
+                            cmdOfHomePage.map(ActionHomePage)
                         ],
 
                         SetFavorites: (checked, beerId) => setFavorites(checked, beerId, state)
@@ -353,15 +337,11 @@ class ActionHomePage extends Action {
             _: () => [ state, Cmd.none ]
         });
     }
-}
+});
 
-class ActionBeerPage extends Action {
-    public static cons(action: BeerPage.Action): Action {
-        return new ActionBeerPage(action);
-    }
-
-    private constructor(private readonly action: BeerPage.Action) {
-        super();
+export const ActionBeerPage = Utils.cons<[ BeerPage.Action ], Action>(class extends Action {
+    public constructor(private readonly action: BeerPage.Action) {
+        super('ActionBeerPage');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -376,15 +356,14 @@ class ActionBeerPage extends Action {
             _: () => [ state, Cmd.none ]
         });
     }
-}
+});
 
-class ActionRandomBeerPage extends Action {
-    public static cons(action: RandomBeerPage.Action): Action {
-        return new ActionRandomBeerPage(action);
-    }
-
-    private constructor(private readonly action: RandomBeerPage.Action) {
-        super();
+export const ActionRandomBeerPage = Utils.cons<
+    [ RandomBeerPage.Action ],
+    Action
+>(class extends Action {
+    public constructor(private readonly action: RandomBeerPage.Action) {
+        super('ActionRandomBeerPage');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -394,22 +373,18 @@ class ActionRandomBeerPage extends Action {
 
                 return [
                     { ...state, page: new PageRandomBeer(nextRandomBeerPage) },
-                    cmdOfRandomBeerPage.map(ActionRandomBeerPage.cons)
+                    cmdOfRandomBeerPage.map(ActionRandomBeerPage)
                 ];
             },
 
             _: () => [ state, Cmd.none ]
         });
     }
-}
+});
 
-class ActionSearchBeerPage extends Action {
-    public static cons(action: SearchBeerPage.Action): Action {
-        return new ActionSearchBeerPage(action);
-    }
-
-    private constructor(private readonly action: SearchBeerPage.Action) {
-        super();
+export const ActionSearchBeerPage = Utils.cons(class extends Action {
+    public constructor(private readonly action: SearchBeerPage.Action) {
+        super('ActionSearchBeerPage');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -424,7 +399,7 @@ class ActionSearchBeerPage extends Action {
                                 : state.header,
                             page: new PageSearchBeer(filter, nextSearchBeerPage)
                         },
-                        cmdOfSearchBeerPage.map(ActionSearchBeerPage.cons)
+                        cmdOfSearchBeerPage.map(ActionSearchBeerPage)
                     ],
 
                     SetFavorites: (checked, beerId) => setFavorites(checked, beerId, state)
@@ -433,15 +408,11 @@ class ActionSearchBeerPage extends Action {
             _: () => [ state, Cmd.none ]
         });
     }
-}
+});
 
-class ActionFavoritesPage extends Action {
-    public static cons(action: FavoritesPage.Action): Action {
-        return new ActionFavoritesPage(action);
-    }
-
-    private constructor(private readonly action: FavoritesPage.Action) {
-        super();
+export const ActionFavoritesPage = Utils.cons(class extends Action {
+    public constructor(private readonly action: FavoritesPage.Action) {
+        super('ActionFavoritesPage');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -458,7 +429,7 @@ class ActionFavoritesPage extends Action {
                             : state.header,
                         page: new PageFavoritesBeer(filter, nextFavoritesPage)
                     },
-                    cmdOfFavoritesPage.map(ActionFavoritesPage.cons)
+                    cmdOfFavoritesPage.map(ActionFavoritesPage)
                 ],
 
                 SetFavorites: (checked, beerId) => setFavorites(checked, beerId, state)
@@ -467,7 +438,7 @@ class ActionFavoritesPage extends Action {
             _: () => [ state, Cmd.none ]
         });
     }
-}
+});
 
 const PageView: React.FC<{
     scroller: React.RefObject<HTMLDivElement>;
@@ -482,7 +453,7 @@ const PageView: React.FC<{
             scroller={scroller}
             favorites={favorites}
             state={homePage}
-            dispatch={compose(dispatch, ActionHomePage.cons)}
+            dispatch={compose(dispatch, ActionHomePage)}
             {...brewedAfterLimits}
         />
     ),
@@ -500,7 +471,7 @@ const PageView: React.FC<{
             scroller={scroller}
             favorites={favorites}
             state={searchBeerPage}
-            dispatch={compose(dispatch, ActionSearchBeerPage.cons)}
+            dispatch={compose(dispatch, ActionSearchBeerPage)}
         />
     ),
 
@@ -509,7 +480,7 @@ const PageView: React.FC<{
             scroller={scroller}
             favorites={favorites}
             state={favoritesPage}
-            dispatch={compose(dispatch, ActionFavoritesPage.cons)}
+            dispatch={compose(dispatch, ActionFavoritesPage)}
         />
     )
 });
@@ -541,11 +512,11 @@ export class View extends React.PureComponent<{
         });
 
         return (
-            <Router.View onChange={compose(dispatch, RouteChanged.cons)}>
+            <Router.View onChange={compose(dispatch, RouteChanged)}>
                 <Header.View
                     tools={headerTools}
                     state={state.header}
-                    dispatch={compose(dispatch, ActionHeader.cons)}
+                    dispatch={compose(dispatch, ActionHeader)}
                     {...brewedAfterLimits}
                 />
 

@@ -36,7 +36,7 @@ export const init = (request: Request): [ State, Cmd<Action> ] => [
         beerList: [],
         loading: Loading
     },
-    request(0).send(LoadDone.cons)
+    request(0).send(LoadDone)
 ];
 
 export const getBeer = (id: number, state: State): Maybe<Api.Beer> => {
@@ -62,7 +62,7 @@ export abstract class Stage {
     public abstract cata<R>(patern: StagePattern<R>): R;
 }
 
-class Update extends Stage {
+export const Update = Utils.cons<[ State, Cmd<Action> ], Stage>(class extends Stage {
     public constructor(
         private readonly state: State,
         private readonly cmd: Cmd<Action>
@@ -73,9 +73,9 @@ class Update extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Update(this.state, this.cmd);
     }
-}
+});
 
-class SetFavorites extends Stage {
+export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class extends Stage {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
@@ -86,38 +86,39 @@ class SetFavorites extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.SetFavorites(this.checked, this.beerId);
     }
-}
+});
 
 export abstract class Action extends Utils.Action<[ Request, State ], Stage> {}
 
-class LoadMore extends Action {
-    public static inst: Action = new LoadMore();
+export const LoadMore = Utils.inst<Action>(class extends Action {
+    public constructor() {
+        super('LoadMore');
+    }
 
     public update(request: Request, state: State): Stage {
         if (!state.hasMore || !state.loading.isNotAsked()) {
-            return new Update(state, Cmd.none);
+            return Update(state, Cmd.none);
         }
 
-        return new Update(
+        return Update(
             { ...state, loading: Loading },
-            request(state.beerList.length).send(LoadDone.cons)
+            request(state.beerList.length).send(LoadDone)
         );
     }
-}
+});
 
-class LoadDone extends Action {
-    public static cons(response: Either<Http.Error, [ boolean, Array<Api.Beer> ]>): Action {
-        return new LoadDone(response);
-    }
-
-    private constructor(
+export const LoadDone = Utils.cons<
+    [ Either<Http.Error, [ boolean, Array<Api.Beer> ]> ],
+    Action
+>(class extends Action {
+    public constructor(
         private readonly response: Either<Http.Error, [ boolean, Array<Api.Beer> ]>
     ) {
-        super();
+        super('LoadDone');
     }
 
     public update(_request: Request, state: State): Stage {
-        return new Update(
+        return Update(
             this.response.cata({
                 Left: error => ({
                     ...state,
@@ -134,20 +135,20 @@ class LoadDone extends Action {
             Cmd.none
         );
     }
-}
+});
 
-class ToggleFavorite extends Action {
+export const ToggleFavorite = Utils.cons<[ boolean, number ], Action>(class extends Action {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
     ) {
-        super();
+        super('ToggleFavorite');
     }
 
     public update(): Stage {
-        return new SetFavorites(this.checked, this.beerId);
+        return SetFavorites(this.checked, this.beerId);
     }
-}
+});
 
 const SkeletonBeer: React.FC = () => (
     <Card>
@@ -217,7 +218,7 @@ const ViewBeer: React.FC<{
                             className="ml-2 align-self-start"
                             variant="light"
                             size="sm"
-                            onClick={() => dispatch(new ToggleFavorite(!favorite, beer.id))}
+                            onClick={() => dispatch(ToggleFavorite(!favorite, beer.id))}
                         >
                             {favorite
                                 ? (
@@ -341,7 +342,7 @@ export class View extends React.Component<ViewProps> {
             if (state.hasMore && state.loading.isNotAsked()
             && el && el.scrollHeight - el.scrollTop < window.innerHeight * 2
             ) {
-                dispatch(LoadMore.inst);
+                dispatch(LoadMore);
             }
         }, 300);
     }

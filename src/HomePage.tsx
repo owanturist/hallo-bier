@@ -26,7 +26,7 @@ export const init = (beersPerPage: number): [ State, Cmd<Action> ] => {
             searchBuilder: SearchBuilder.init({ name: Nothing, brewedAfter: Nothing }),
             beerList: initialBeerList
         },
-        cmdOfBeerList.map(ActionBeerList.cons)
+        cmdOfBeerList.map(ActionBeerList)
     ];
 };
 
@@ -44,7 +44,7 @@ export abstract class Stage {
     public abstract cata<R>(patern: StagePattern<R>): R;
 }
 
-class Update extends Stage {
+export const Update = Utils.cons<[ State, Cmd<Action> ], Stage>(class extends Stage {
     public constructor(
         private readonly state: State,
         private readonly cmd: Cmd<Action>
@@ -55,14 +55,10 @@ class Update extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Update(this.state, this.cmd);
     }
-}
+});
 
-class SetFavorites extends Stage {
-    public static cons(checked: boolean, beerId: number): Stage {
-        return new SetFavorites(checked, beerId);
-    }
-
-    private constructor(
+export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class extends Stage {
+    public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
     ) {
@@ -72,17 +68,13 @@ class SetFavorites extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.SetFavorites(this.checked, this.beerId);
     }
-}
+});
 
 export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
-class ActionBeerList extends Action {
-    public static cons(action: BeerList.Action): Action {
-        return new ActionBeerList(action);
-    }
-
-    private constructor(private readonly action: BeerList.Action) {
-        super();
+export const ActionBeerList = Utils.cons<[ BeerList.Action ], Action>(class extends Action {
+    public constructor(private readonly action: BeerList.Action) {
+        super('ActionBeerList');
     }
 
     public update(state: State): Stage {
@@ -94,39 +86,35 @@ class ActionBeerList extends Action {
             ),
             state.beerList
         ).cata({
-            Update: (nextBeerList, cmdOfBeerList) => new Update(
+            Update: (nextBeerList, cmdOfBeerList) => Update(
                 { ...state, beerList: nextBeerList },
-                cmdOfBeerList.map(ActionBeerList.cons)
+                cmdOfBeerList.map(ActionBeerList)
             ),
 
-            SetFavorites: SetFavorites.cons
+            SetFavorites
         });
     }
-}
+});
 
-class ActionSearchBuilder extends Action {
-    public static cons(action: SearchBuilder.Action) {
-        return new ActionSearchBuilder(action);
-    }
-
-    private constructor(private readonly action: SearchBuilder.Action) {
-        super();
+export const ActionSearchBuilder = Utils.cons<[ SearchBuilder.Action ], Action>(class extends Action {
+    public constructor(private readonly action: SearchBuilder.Action) {
+        super('ActionSearchBuilder');
     }
 
     public update(state: State): Stage {
         return this.action.update(state.searchBuilder).cata({
-            Update: nextSearchBuilder => new Update(
+            Update: nextSearchBuilder => Update(
                 { ...state, searchBuilder: nextSearchBuilder },
                 Cmd.none
             ),
 
-            Search: filter => new Update(
+            Search: filter => Update(
                 state,
                 Router.ToBeerSearch(filter).push()
             )
         });
     }
-}
+});
 
 export const View: React.FC<{
     minBrewedAfter?: MonthPicker.Selected;
@@ -141,7 +129,7 @@ export const View: React.FC<{
             minBrewedAfter={minBrewedAfter}
             maxBrewedAfter={maxBrewedAfter}
             state={state.searchBuilder}
-            dispatch={compose(dispatch, ActionSearchBuilder.cons)}
+            dispatch={compose(dispatch, ActionSearchBuilder)}
         />
 
         <hr/>
@@ -149,7 +137,7 @@ export const View: React.FC<{
         <BeerList.View
             skeletonCount={4}
             state={state.beerList}
-            dispatch={compose(dispatch, ActionBeerList.cons)}
+            dispatch={compose(dispatch, ActionBeerList)}
             {...beerListProps}
         />
     </div>

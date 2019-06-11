@@ -37,7 +37,7 @@ export const init = (
             favorites,
             beerList: initialBeerList
         }),
-        cmdOfBeerList.map(ActionBeerList.cons)
+        cmdOfBeerList.map(ActionBeerList)
     ];
 };
 
@@ -59,7 +59,7 @@ export abstract class Stage {
     public abstract cata<R>(patern: StagePattern<R>): R;
 }
 
-class Update extends Stage {
+export const Update = Utils.cons<[ State, Cmd<Action> ], Stage>(class extends Stage {
     public constructor(
         private readonly state: State,
         private readonly cmd: Cmd<Action>
@@ -70,14 +70,10 @@ class Update extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Update(this.state, this.cmd);
     }
-}
+});
 
-class SetFavorites extends Stage {
-    public static cons(checked: boolean, beerId: number): Stage {
-        return new SetFavorites(checked, beerId);
-    }
-
-    private constructor(
+export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class extends Stage {
+    public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
     ) {
@@ -87,22 +83,18 @@ class SetFavorites extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.SetFavorites(this.checked, this.beerId);
     }
-}
+});
 
 export abstract class Action extends Utils.Action<[ Router.SearchFilter, State ], Stage> {}
 
-class ActionBeerList extends Action {
-    public static cons(action: BeerList.Action): Action {
-        return new ActionBeerList(action);
-    }
-
-    private constructor(private readonly action: BeerList.Action) {
-        super();
+export const ActionBeerList = Utils.cons<[ BeerList.Action ], Action>(class extends Action {
+    public constructor(private readonly action: BeerList.Action) {
+        super('ActionBeerList');
     }
 
     public update(filter: Router.SearchFilter, mState: State): Stage {
         return mState.cata({
-            Nothing: () => new Update(Nothing, Cmd.none),
+            Nothing: () => Update(Nothing, Cmd.none),
 
             Just: state => this.action.update(
                 count => Api.loadBeerListByIds(
@@ -113,16 +105,16 @@ class ActionBeerList extends Action {
                 ),
                 state.beerList
             ).cata({
-                Update: (nextBeerList, cmdOfBeerList) => new Update(
+                Update: (nextBeerList, cmdOfBeerList) => Update(
                     Just({ ...state, beerList: nextBeerList }),
-                    cmdOfBeerList.map(ActionBeerList.cons)
+                    cmdOfBeerList.map(ActionBeerList)
                 ),
 
-                SetFavorites: SetFavorites.cons
+                SetFavorites
             })
         });
     }
-}
+});
 
 export const View: React.FC<{
     scroller: React.RefObject<HTMLElement>;
@@ -151,7 +143,7 @@ export const View: React.FC<{
         <BeerList.View
             skeletonCount={Math.min(beerListProps.favorites.size, 4)}
             state={beerList}
-            dispatch={compose(dispatch, ActionBeerList.cons)}
+            dispatch={compose(dispatch, ActionBeerList)}
             {...beerListProps}
         />
     )

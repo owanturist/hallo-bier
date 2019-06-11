@@ -96,7 +96,7 @@ export abstract class Stage {
     public abstract cata<R>(pattern: StagePattern<R>): R;
 }
 
-export const Update = Utils.cons<[ State ], Stage>(class Update extends Stage {
+export const Update = Utils.cons<[ State ], Stage>(class extends Stage {
     public constructor(private readonly state: State) {
         super();
     }
@@ -106,7 +106,7 @@ export const Update = Utils.cons<[ State ], Stage>(class Update extends Stage {
     }
 });
 
-export const Select = Utils.cons<[ Month, number ], Stage>(class Select extends Stage {
+export const Select = Utils.cons<[ Month, number ], Stage>(class extends Stage {
     public constructor(
         private readonly month: Month,
         private readonly year: number
@@ -122,8 +122,7 @@ export const Select = Utils.cons<[ Month, number ], Stage>(class Select extends 
     }
 });
 
-
-export const Unselect = Utils.inst<Stage>(class Unselect extends Stage {
+export const Unselect = Utils.inst<Stage>(class extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Unselect();
     }
@@ -131,13 +130,13 @@ export const Unselect = Utils.inst<Stage>(class Unselect extends Stage {
 
 export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
-export const SetYear = Utils.cons<[ Maybe<number>, Maybe<number>, number ], Action>(class SetYear extends Action {
+export const SetYear = Utils.cons<[ Maybe<number>, Maybe<number>, number ], Action>(class extends Action {
     public constructor(
         private readonly min: Maybe<number>,
         private readonly max: Maybe<number>,
         private readonly year: number
     ) {
-        super();
+        super('SetYear');
     }
 
     public update(state: State): Stage {
@@ -155,9 +154,9 @@ export const SetYear = Utils.cons<[ Maybe<number>, Maybe<number>, number ], Acti
     }
 });
 
-export const ChangeYear = Utils.cons<[ number ], Action>(class ChangeYear extends Action {
+export const ChangeYear = Utils.cons<[ number ], Action>(class extends Action {
     public constructor(private readonly delta: number) {
-        super();
+        super('ChangeYear');
     }
 
     public update(state: State): Stage {
@@ -165,9 +164,9 @@ export const ChangeYear = Utils.cons<[ number ], Action>(class ChangeYear extend
     }
 });
 
-export const SelectMonth = Utils.cons<[ Month ], Action>(class SelectMonth extends Action {
+export const SelectMonth = Utils.cons<[ Month ], Action>(class extends Action {
     public constructor(private readonly month: Month) {
-        super();
+        super('SelectMonth');
     }
 
     public update(state: State): Stage {
@@ -175,7 +174,11 @@ export const SelectMonth = Utils.cons<[ Month ], Action>(class SelectMonth exten
     }
 });
 
-export const UnselectMonth = Utils.inst<Action>(class UnselectMonth extends Action {
+export const UnselectMonth = Utils.inst<Action>(class extends Action {
+    public constructor() {
+        super('UnselectMonth');
+    }
+
     public update(_state: State): Stage {
         return Unselect;
     }

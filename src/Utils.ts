@@ -3,11 +3,11 @@ import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
 export const inst = <T>(Constructor: new () => T) => new Constructor();
 
 export const cons = <A extends Array<unknown>, T>(
-    Constructor: new (...args: A) => T
+    Constructor: new (...args: A) => A extends [] ? never : T
 ) => (...args: A): T => new Constructor(...args);
 
 export abstract class Action<S extends Array<unknown>, R> {
-    private readonly type: string = this.constructor.name;
+    public constructor(private readonly type: string) {}
 
     public abstract update(...args: S): R;
 

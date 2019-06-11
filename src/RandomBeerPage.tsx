@@ -16,7 +16,7 @@ export const init = (): [ State, Cmd<Action> ] => [
     {
         beer: Loading
     },
-    Api.loadRandomBeer().send(LoadDone.cons)
+    Api.loadRandomBeer().send(LoadDone)
 ];
 
 export const getBeer = (state: State): Maybe<Api.Beer> => state.beer.toMaybe();
@@ -25,13 +25,9 @@ export const isLoading = (state: State): boolean => state.beer.isLoading();
 
 export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
-class LoadDone extends Action {
-    public static cons(response: Either<Http.Error, Api.Beer>): Action {
-        return new LoadDone(response);
-    }
-
-    private constructor(private readonly response: Either<Http.Error, Api.Beer>) {
-        super();
+export const LoadDone = Utils.cons<[ Either<Http.Error, Api.Beer> ], Action>(class extends Action {
+    public constructor(private readonly response: Either<Http.Error, Api.Beer>) {
+        super('LoadDone');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -40,7 +36,7 @@ class LoadDone extends Action {
             Cmd.none
         ];
     }
-}
+});
 
 export const View: React.FC<{
     state: State;

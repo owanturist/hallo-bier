@@ -15,20 +15,16 @@ export const init = (beerId: number): [ State, Cmd<Action> ] => [
     {
         beer: Loading
     },
-    Api.loadBeerById(beerId).send(LoadDone.cons)
+    Api.loadBeerById(beerId).send(LoadDone)
 ];
 
 export const initWithBeer = (beer: Api.Beer): State => ({ beer: Succeed(beer) });
 
 export abstract class Action extends Utils.Action<[ State ], State> {}
 
-class LoadDone extends Action {
-    public static cons(response: Either<Http.Error, Api.Beer>): Action {
-        return new LoadDone(response);
-    }
-
-    private constructor(private readonly response: Either<Http.Error, Api.Beer>) {
-        super();
+export const LoadDone = Utils.cons<[ Either<Http.Error, Api.Beer> ], Action>(class extends Action {
+    public constructor(private readonly response: Either<Http.Error, Api.Beer>) {
+        super('LoadDone');
     }
 
     public update(state: State): State {
@@ -37,7 +33,7 @@ class LoadDone extends Action {
             beer: RemoteData.fromEither(this.response)
         };
     }
-}
+});
 
 export const update = (action: Action, state: State): State => action.update(state);
 

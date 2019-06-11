@@ -12,11 +12,11 @@ const reduxDevtools = process.env.NODE_ENV !== 'production'
     && (window as any).__REDUX_DEVTOOLS_EXTENSION__();
 
 interface Action {
-    type: 'SELF';
+    type: 'Action';
     payload: App.Action;
 }
 
-const Self = (payload: App.Action): Action => ({ type: 'SELF', payload });
+const Action = (payload: App.Action): Action => ({ type: 'Action', payload });
 let initialAppCmd: Cmd<App.Action> = Cmd.none;
 
 let loopDispatch: Done<App.Action> = () => {
@@ -31,7 +31,7 @@ abstract class CmdExecutor extends Cmd<never> {
 
 function reducer(state: App.State, action: Action): App.State {
     // @INIT Redux action
-    if (action.type !== 'SELF') {
+    if (action.type !== 'Action') {
         return state;
     }
 
@@ -54,12 +54,12 @@ const store = reduxDevtools
     ? createStore(reducer, init(), reduxDevtools)
     : createStore(reducer, init());
 
-loopDispatch = compose(store.dispatch, Self);
+loopDispatch = compose(store.dispatch, Action);
 CmdExecutor.execute(initialAppCmd, loopDispatch);
 
 const Root = connect(
     (state: App.State) => ({ state }),
-    { dispatch: Self }
+    { dispatch: Action }
 )(({ state, dispatch }) => (
     <App.View state={state} dispatch={dispatch} />
 ));

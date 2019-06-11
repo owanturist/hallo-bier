@@ -36,7 +36,7 @@ export abstract class Stage {
     public abstract cata<R>(pattern: StagePattern<R>): R;
 }
 
-export const Update = Utils.cons<[ State ], Stage>(class Update extends Stage {
+export const Update = Utils.cons<[ State ], Stage>(class extends Stage {
     public constructor(private readonly state: State) {
         super();
     }
@@ -46,13 +46,13 @@ export const Update = Utils.cons<[ State ], Stage>(class Update extends Stage {
     }
 });
 
-export const RollRandomBeer = Utils.inst<Stage>(class RollRandomBeer extends Stage {
+export const RollRandomBeer = Utils.inst<Stage>(class extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.RollRandomBeer();
     }
 });
 
-export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class SetFavorites extends Stage {
+export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class extends Stage {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
@@ -65,7 +65,7 @@ export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class SetFavo
     }
 });
 
-export const SetFilters = Utils.cons<[ Router.SearchFilter ], Stage>(class SetFilters extends Stage {
+export const SetFilters = Utils.cons<[ Router.SearchFilter ], Stage>(class extends Stage {
     public constructor(private readonly filters: Router.SearchFilter) {
         super();
     }
@@ -77,7 +77,11 @@ export const SetFilters = Utils.cons<[ Router.SearchFilter ], Stage>(class SetFi
 
 export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
-export const RollBeer = Utils.inst<Action>(class RollBeer extends Action {
+export const RollBeer = Utils.inst<Action>(class extends Action {
+    public constructor() {
+        super('RollBeer');
+    }
+
     public update(_state: State): Stage {
         return RollRandomBeer;
     }
@@ -94,9 +98,9 @@ export const showSearchBuilder = (filter: Router.SearchFilter, state: State): St
     };
 };
 
-export const ShowSearchBuilder = Utils.cons<[ Router.SearchFilter ], Action>(class ShowSearchBuilder extends Action {
+export const ShowSearchBuilder = Utils.cons<[ Router.SearchFilter ], Action>(class extends Action {
     public constructor(private readonly filter: Router.SearchFilter) {
-        super();
+        super('ShowSearchBuilder');
     }
 
     public update(state: State): Stage {
@@ -108,15 +112,19 @@ export const hideSearchBuilder = (state: State): State => {
     return { ...state, searchBuilder: Nothing };
 };
 
-export const HideSearchBuilder = Utils.inst(class HideSearchBuilder extends Action {
+export const HideSearchBuilder = Utils.inst(class extends Action {
+    public constructor() {
+        super('HideSearchBuilder');
+    }
+
     public update(state: State): Stage {
         return Update(hideSearchBuilder(state));
     }
 });
 
-export const ToggleMenu = Utils.cons<[ boolean ], Action>(class ToggleMenu extends Action {
+export const ToggleMenu = Utils.cons<[ boolean ], Action>(class extends Action {
     public constructor(private readonly expanded: boolean) {
-        super();
+        super('ToggleMenu');
     }
 
     public update(state: State): Stage {
@@ -124,12 +132,12 @@ export const ToggleMenu = Utils.cons<[ boolean ], Action>(class ToggleMenu exten
     }
 });
 
-export const ToggleFavorite = Utils.cons<[ boolean, number ], Action>(class ToggleFavorite extends Action {
+export const ToggleFavorite = Utils.cons<[ boolean, number ], Action>(class extends Action {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
     ) {
-        super();
+        super('ToggleFavorite');
     }
 
     public update(_state: State): Stage {
@@ -140,9 +148,9 @@ export const ToggleFavorite = Utils.cons<[ boolean, number ], Action>(class Togg
 export const ActionSearchBuilder = Utils.cons<
     [ SearchBuilder. Action ],
     Action
->(class ActionSearchBuilder extends Action {
+>(class extends Action {
     public constructor(private readonly action: SearchBuilder.Action) {
-        super();
+        super('ActionSearchBuilder');
     }
 
     public update(state: State): Stage {
