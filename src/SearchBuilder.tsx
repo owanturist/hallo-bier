@@ -151,9 +151,7 @@ export const ChangeBrewedAfter = Utils.cons<
 });
 
 export const SearchBeer = Utils.inst<Action>(class extends Action {
-    public constructor() {
-        super('SearchBeer');
-    }
+    protected readonly type = 'SearchBeer';
 
     public update(state: State): Stage {
         const trimmedName = state.name.trim();
@@ -166,9 +164,7 @@ export const SearchBeer = Utils.inst<Action>(class extends Action {
 });
 
 export const ShowMonthPicker = Utils.inst<Action>(class extends Action {
-    public constructor() {
-        super('ShowMonthPicker');
-    }
+    protected readonly type = 'ShowMonthPicker';
 
     public update(state: State): Stage {
         if (state.monthPicker.isJust()) {
@@ -187,9 +183,7 @@ export const ShowMonthPicker = Utils.inst<Action>(class extends Action {
 });
 
 export const HideMonthPicker = Utils.inst<Action>(class extends Action {
-    public constructor() {
-        super('HideMonthPicker');
-    }
+    protected readonly type = 'HideMonthPicker';
 
     public update(state: State): Stage {
         return Update({

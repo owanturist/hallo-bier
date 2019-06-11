@@ -78,9 +78,7 @@ export const SetFilters = Utils.cons<[ Router.SearchFilter ], Stage>(class exten
 export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
 export const RollBeer = Utils.inst<Action>(class extends Action {
-    public constructor() {
-        super('RollBeer');
-    }
+    protected readonly type = 'RollBeer';
 
     public update(_state: State): Stage {
         return RollRandomBeer;
@@ -113,9 +111,7 @@ export const hideSearchBuilder = (state: State): State => {
 };
 
 export const HideSearchBuilder = Utils.inst(class extends Action {
-    public constructor() {
-        super('HideSearchBuilder');
-    }
+    protected readonly type = 'HideSearchBuilder';
 
     public update(state: State): Stage {
         return Update(hideSearchBuilder(state));

@@ -175,9 +175,7 @@ export const SelectMonth = Utils.cons<[ Month ], Action>(class extends Action {
 });
 
 export const UnselectMonth = Utils.inst<Action>(class extends Action {
-    public constructor() {
-        super('UnselectMonth');
-    }
+    protected readonly type = 'UnselectMonth';
 
     public update(_state: State): Stage {
         return Unselect;

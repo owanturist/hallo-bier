@@ -7,7 +7,13 @@ export const cons = <A extends Array<unknown>, T>(
 ) => (...args: A): T => new Constructor(...args);
 
 export abstract class Action<S extends Array<unknown>, R> {
-    public constructor(private readonly type: string) {}
+    protected readonly type = this.constructor.name;
+
+    public constructor(type?: string) {
+        if (typeof type !== 'undefined') {
+            this.type = type;
+        }
+    }
 
     public abstract update(...args: S): R;
 

@@ -91,9 +91,7 @@ export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class extends
 export abstract class Action extends Utils.Action<[ Request, State ], Stage> {}
 
 export const LoadMore = Utils.inst<Action>(class extends Action {
-    public constructor() {
-        super('LoadMore');
-    }
+    protected readonly type = 'LoadMore';
 
     public update(request: Request, state: State): Stage {
         if (!state.hasMore || !state.loading.isNotAsked()) {
