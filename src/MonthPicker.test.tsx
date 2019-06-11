@@ -107,21 +107,15 @@ describe('State', () => {
 
 describe('Stage', () => {
     const pattern = {
-        Update: jest.fn(),
-        Select: jest.fn(),
-        Unselect: jest.fn()
+        Update: jest.fn(() => 'Update'),
+        Select: jest.fn(() => 'Select'),
+        Unselect: jest.fn(() => 'Unselect')
     };
 
-    beforeEach(() => {
-        pattern.Update.mockImplementationOnce(() => 'Update');
-        pattern.Select.mockImplementationOnce(() => 'Select');
-        pattern.Unselect.mockImplementationOnce(() => 'Unselect');
-    });
-
     afterEach(() => {
-        pattern.Update.mockReset();
-        pattern.Select.mockReset();
-        pattern.Unselect.mockReset();
+        pattern.Update.mockClear();
+        pattern.Select.mockClear();
+        pattern.Unselect.mockClear();
     });
 
     describe('Update', () => {
@@ -131,29 +125,29 @@ describe('Stage', () => {
             expect(new MonthPicker.Update(state).cata(pattern)).toBe('Update');
             expect(pattern.Update).toBeCalledTimes(1);
             expect(pattern.Update).toBeCalledWith(state);
-            expect(pattern.Select).not.toHaveBeenCalled();
-            expect(pattern.Unselect).not.toHaveBeenCalled();
+            expect(pattern.Select).not.toBeCalled();
+            expect(pattern.Unselect).not.toBeCalled();
         });
     });
 
     describe('Select', () => {
         it('cata', () => {
             expect(new MonthPicker.Select(MonthPicker.Month.May, 2017).cata(pattern)).toBe('Select');
-            expect(pattern.Update).not.toHaveBeenCalled();
+            expect(pattern.Update).not.toBeCalled();
             expect(pattern.Select).toBeCalledTimes(1);
             expect(pattern.Select).toBeCalledWith({
                 month: MonthPicker.Month.May,
                 year: 2017
             });
-            expect(pattern.Unselect).not.toHaveBeenCalled();
+            expect(pattern.Unselect).not.toBeCalled();
         });
     });
 
     describe('Unselect', () => {
         it('cata', () => {
             expect(new MonthPicker.Unselect().cata(pattern)).toBe('Unselect');
-            expect(pattern.Update).not.toHaveBeenCalled();
-            expect(pattern.Select).not.toHaveBeenCalled();
+            expect(pattern.Update).not.toBeCalled();
+            expect(pattern.Select).not.toBeCalled();
             expect(pattern.Unselect).toBeCalledTimes(1);
             expect(pattern.Unselect).toBeCalledWith();
         });

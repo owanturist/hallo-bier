@@ -107,7 +107,9 @@ export class ChangeBrewedAfter extends Action {
                 Just: selected => new Update({
                     ...state,
                     brewedAfter: selectedToString(selected),
-                    monthPicker: state.monthPicker.map(mp => MonthPicker.setYear(selected.year, mp))
+                    monthPicker: state.monthPicker.map(monthPicker => {
+                        return MonthPicker.setYear(selected.year, monthPicker);
+                    })
                 })
             });
     }
