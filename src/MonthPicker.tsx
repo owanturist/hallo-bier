@@ -134,7 +134,7 @@ export class SetYear extends Action {
     public constructor(
         private readonly min: Maybe<number>,
         private readonly max: Maybe<number>,
-        private readonly year: Maybe<number>
+        private readonly year: number
     ) {
         super();
     }
@@ -142,17 +142,13 @@ export class SetYear extends Action {
     public update(state: State): Stage {
         return new Update({
             ...state,
-            year: this.year.cata({
-                Nothing: () => state.year,
+            year: this.min.cata({
+                Nothing: () => Math.min(this.max.getOrElse(this.year), this.year),
 
-                Just: year => this.min.cata({
-                    Nothing: () => Math.min(this.max.getOrElse(year), year),
-
-                    Just: min => Math.max(
-                        min,
-                        Math.min(this.max.getOrElse(year), year)
-                    )
-                })
+                Just: min => Math.max(
+                    min,
+                    Math.min(this.max.getOrElse(this.year), this.year)
+                )
             })
         });
     }
@@ -244,11 +240,14 @@ export const View: React.FC<{
                     value={state.year.toString()}
                     tabIndex={0}
                     onChange={(event: React.FormEvent<FormControlProps>) => {
-                        dispatch(new SetYear(
-                            lo.map(({ year }) => year),
-                            hi.map(({ year }) => year),
-                            Utils.parseInt(event.currentTarget.value || '')
-                        ));
+                        Utils.parseInt(event.currentTarget.value || '').cata({
+                            Nothing: () => { /* noop */ },
+                            Just: year => dispatch(new SetYear(
+                                lo.map(({ year }) => year),
+                                hi.map(({ year }) => year),
+                                year
+                            ))
+                        });
                     }}
                 />
 
