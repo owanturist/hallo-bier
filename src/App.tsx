@@ -41,7 +41,7 @@ abstract class Page {
     public abstract cata<R>(pattern: PagePattern<R>): R;
 }
 
-class PageVoid extends Page {
+export const PageVoid = Utils.inst<Page>(class extends Page {
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageVoid === 'function') {
             return pattern.PageVoid();
@@ -49,9 +49,9 @@ class PageVoid extends Page {
 
         return (pattern._ as () => R)();
     }
-}
+});
 
-class PageHome extends Page {
+export const PageHome = Utils.cons<[ HomePage.State ], Page>(class extends Page {
     public constructor(private readonly homePage: HomePage.State) {
         super();
     }
@@ -63,9 +63,9 @@ class PageHome extends Page {
 
         return (pattern._ as () => R)();
     }
-}
+});
 
-class PageBeer extends Page {
+export const PageBeer = Utils.cons<[ number, BeerPage.State ], Page>(class extends Page {
     public constructor(
         private readonly beerId: number,
         private readonly beerPage: BeerPage.State
@@ -80,9 +80,9 @@ class PageBeer extends Page {
 
         return (pattern._ as () => R)();
     }
-}
+});
 
-class PageRandomBeer extends Page {
+export const PageRandomBeer = Utils.cons<[ RandomBeerPage.State ], Page>(class extends Page {
     public constructor(private readonly randomBeerPage: RandomBeerPage.State) {
         super();
     }
@@ -94,9 +94,12 @@ class PageRandomBeer extends Page {
 
         return (pattern._ as () => R)();
     }
-}
+});
 
-class PageSearchBeer extends Page {
+export const PageSearchBeer = Utils.cons<
+    [ Router.SearchFilter, SearchBeerPage.State ],
+    Page
+>(class extends Page {
     public constructor(
         private readonly filter: Router.SearchFilter,
         private readonly searchBeerPage: SearchBeerPage.State
@@ -111,9 +114,12 @@ class PageSearchBeer extends Page {
 
         return (pattern._ as () => R)();
     }
-}
+});
 
-class PageFavoritesBeer extends Page {
+export const PageFavoritesBeer = Utils.cons<
+    [ Router.SearchFilter, FavoritesPage.State ],
+    Page
+>(class extends Page {
     public constructor(
         private readonly filter: Router.SearchFilter,
         private readonly favoritesPage: FavoritesPage.State
@@ -128,7 +134,7 @@ class PageFavoritesBeer extends Page {
 
         return (pattern._ as () => R)();
     }
-}
+});
 
 export interface State {
     route: Maybe<Router.Route>;
@@ -142,7 +148,7 @@ export const init = (): [ State, Cmd<Action> ] => [
         route: Nothing,
         favorites: [],
         header: Header.init(),
-        page: new PageVoid()
+        page: PageVoid
     },
     Api.getListOfFavorites().map(GetListOfFavorites)
 ];
@@ -179,7 +185,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                 return [
                     {
                         ...nextState,
-                        page: new PageHome(initialHomePage)
+                        page: PageHome(initialHomePage)
                     },
                     cmdOfHomePage.map(HomePageAction)
                 ];
@@ -199,7 +205,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                         return [
                             {
                                 ...nextState,
-                                page: new PageBeer(beerId, initialBeerPage)
+                                page: PageBeer(beerId, initialBeerPage)
                             },
                             cmdOfBeerPage.map(BeerPageAction)
                         ];
@@ -209,7 +215,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                         return [
                             {
                                 ...nextState,
-                                page: new PageBeer(beer.id, BeerPage.initWithBeer(beer))
+                                page: PageBeer(beer.id, BeerPage.initWithBeer(beer))
                             },
                             Cmd.none
                         ];
@@ -223,7 +229,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                 return [
                     {
                         ...nextState,
-                        page: new PageRandomBeer(initialRandomBeerPage)
+                        page: PageRandomBeer(initialRandomBeerPage)
                     },
                     cmdOfRandomBeerPage.map(RandomBeerPageAction)
                 ];
@@ -235,7 +241,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                 return [
                     {
                         ...nextState,
-                        page: new PageSearchBeer(filter, initialSeachBeerPage)
+                        page: PageSearchBeer(filter, initialSeachBeerPage)
                     },
                     cmdOfSearchBeerPage.map(SearchBeerPageAction)
                 ];
@@ -251,7 +257,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                 return [
                     {
                         ...nextState,
-                        page: new PageFavoritesBeer(filter, initialFavoritesPage)
+                        page: PageFavoritesBeer(filter, initialFavoritesPage)
                     },
                     cmdOfFavoritesPage.map(FavoritesPageAction)
                 ];
@@ -291,7 +297,7 @@ export const HeaderAction = Utils.cons<[ Header.Action ], Action>(class extends 
                 return [
                     {
                         ...state,
-                        page: new PageRandomBeer(initialRandomBeerPage)
+                        page: PageRandomBeer(initialRandomBeerPage)
                     },
                     cmdOfRandomBeerPage.map(RandomBeerPageAction)
                 ];
@@ -324,7 +330,7 @@ export const HomePageAction = Utils.cons<[ HomePage.Action ], Action>(class exte
                         Update: (nextHomePage, cmdOfHomePage) => [
                             {
                                 ...state,
-                                page: new PageHome(nextHomePage)
+                                page: PageHome(nextHomePage)
                             },
                             cmdOfHomePage.map(HomePageAction)
                         ],
@@ -347,7 +353,7 @@ export const BeerPageAction = Utils.cons<[ BeerPage.Action ], Action>(class exte
         return state.page.cata<[ State, Cmd<Action> ]>({
             PageBeer: (beerId, beerPage) => {
                 return [
-                    { ...state, page: new PageBeer(beerId, this.action.update(beerPage)) },
+                    { ...state, page: PageBeer(beerId, this.action.update(beerPage)) },
                     Cmd.none
                 ];
             },
@@ -371,7 +377,7 @@ export const RandomBeerPageAction = Utils.cons<
                 const [ nextRandomBeerPage, cmdOfRandomBeerPage ] = this.action.update(randomBeerPage);
 
                 return [
-                    { ...state, page: new PageRandomBeer(nextRandomBeerPage) },
+                    { ...state, page: PageRandomBeer(nextRandomBeerPage) },
                     cmdOfRandomBeerPage.map(RandomBeerPageAction)
                 ];
             },
@@ -396,7 +402,7 @@ export const SearchBeerPageAction = Utils.cons(class extends Action {
                             header: SearchBeerPage.isEmpty(nextSearchBeerPage)
                                 ? Header.showSearchBuilder(filter, state.header)
                                 : state.header,
-                            page: new PageSearchBeer(filter, nextSearchBeerPage)
+                            page: PageSearchBeer(filter, nextSearchBeerPage)
                         },
                         cmdOfSearchBeerPage.map(SearchBeerPageAction)
                     ],
@@ -426,7 +432,7 @@ export const FavoritesPageAction = Utils.cons(class extends Action {
                         header: FavoritesPage.isEmpty(nextFavoritesPage)
                             ? Header.showSearchBuilder(filter, state.header)
                             : state.header,
-                        page: new PageFavoritesBeer(filter, nextFavoritesPage)
+                        page: PageFavoritesBeer(filter, nextFavoritesPage)
                     },
                     cmdOfFavoritesPage.map(FavoritesPageAction)
                 ],
