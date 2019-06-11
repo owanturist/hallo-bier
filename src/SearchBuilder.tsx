@@ -193,9 +193,9 @@ export const HideMonthPicker = Utils.inst<Action>(class extends Action {
     }
 });
 
-export const ActionMonthPicker = Utils.cons<[ MonthPicker.Action ], Action>(class extends Action {
+export const MonthPickerAction = Utils.cons<[ MonthPicker.Action ], Action>(class extends Action {
     public constructor(private readonly action: MonthPicker.Action) {
-        super('ActionMonthPicker');
+        super('MonthPickerAction');
     }
 
     public update(state: State): Stage {
@@ -264,7 +264,7 @@ export class ViewMonthpicker extends React.PureComponent<{
                                 selected={selectedFromString(brewedAfter)}
                                 disabled={disabled}
                                 state={monthPicker}
-                                dispatch={compose(dispatch, ActionMonthPicker)}
+                                dispatch={compose(dispatch, MonthPickerAction)}
                             />
                         </Dropdown.Menu>
                     )

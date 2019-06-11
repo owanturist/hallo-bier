@@ -25,7 +25,7 @@ export const init = (
             beersPerPage,
             beerList: initialBeerList
         },
-        cmdOfBeerList.map(ActionBeerList)
+        cmdOfBeerList.map(BeerListAction)
     ];
 };
 
@@ -72,9 +72,9 @@ export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class extends
 
 export abstract class Action extends Utils.Action<[ Router.SearchFilter, State ], Stage> {}
 
-export const ActionBeerList = Utils.cons<[ BeerList.Action ], Action>(class extends Action {
+export const BeerListAction = Utils.cons<[ BeerList.Action ], Action>(class extends Action {
     public constructor(private readonly action: BeerList.Action) {
-        super('ActionBeerList');
+        super('BeerListAction');
     }
 
     public update(filter: Router.SearchFilter, state: State): Stage {
@@ -88,7 +88,7 @@ export const ActionBeerList = Utils.cons<[ BeerList.Action ], Action>(class exte
         ).cata({
             Update: (nextBeerList, cmdOfBeerList) => Update(
                 { ...state, beerList: nextBeerList },
-                cmdOfBeerList.map(ActionBeerList)
+                cmdOfBeerList.map(BeerListAction)
             ),
 
             SetFavorites
@@ -105,7 +105,7 @@ export const View: React.FC<{
     <BeerList.View
         skeletonCount={4}
         state={state.beerList}
-        dispatch={compose(dispatch, ActionBeerList)}
+        dispatch={compose(dispatch, BeerListAction)}
         {...beerListProps}
     />
 );

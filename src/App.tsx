@@ -41,7 +41,7 @@ abstract class Page {
     public abstract cata<R>(pattern: PagePattern<R>): R;
 }
 
-class VoidPage extends Page {
+class PageVoid extends Page {
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageVoid === 'function') {
             return pattern.PageVoid();
@@ -130,7 +130,6 @@ class PageFavoritesBeer extends Page {
     }
 }
 
-
 export interface State {
     route: Maybe<Router.Route>;
     favorites: Array<number>;
@@ -143,7 +142,7 @@ export const init = (): [ State, Cmd<Action> ] => [
         route: Nothing,
         favorites: [],
         header: Header.init(),
-        page: new VoidPage()
+        page: new PageVoid()
     },
     Api.getListOfFavorites().map(GetListOfFavorites)
 ];
@@ -182,7 +181,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                         ...nextState,
                         page: new PageHome(initialHomePage)
                     },
-                    cmdOfHomePage.map(ActionHomePage)
+                    cmdOfHomePage.map(HomePageAction)
                 ];
             },
 
@@ -202,7 +201,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                                 ...nextState,
                                 page: new PageBeer(beerId, initialBeerPage)
                             },
-                            cmdOfBeerPage.map(ActionBeerPage)
+                            cmdOfBeerPage.map(BeerPageAction)
                         ];
                     },
 
@@ -226,7 +225,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                         ...nextState,
                         page: new PageRandomBeer(initialRandomBeerPage)
                     },
-                    cmdOfRandomBeerPage.map(ActionRandomBeerPage)
+                    cmdOfRandomBeerPage.map(RandomBeerPageAction)
                 ];
             },
 
@@ -238,7 +237,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                         ...nextState,
                         page: new PageSearchBeer(filter, initialSeachBeerPage)
                     },
-                    cmdOfSearchBeerPage.map(ActionSearchBeerPage)
+                    cmdOfSearchBeerPage.map(SearchBeerPageAction)
                 ];
             },
 
@@ -254,7 +253,7 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
                         ...nextState,
                         page: new PageFavoritesBeer(filter, initialFavoritesPage)
                     },
-                    cmdOfFavoritesPage.map(ActionFavoritesPage)
+                    cmdOfFavoritesPage.map(FavoritesPageAction)
                 ];
             }
         });
@@ -274,9 +273,9 @@ export const GetListOfFavorites = Utils.cons<[ Array<number> ], Action>(class ex
     }
 });
 
-export const ActionHeader = Utils.cons<[ Header.Action ], Action>(class extends Action {
+export const HeaderAction = Utils.cons<[ Header.Action ], Action>(class extends Action {
     public constructor(private readonly action: Header.Action) {
-        super('ActionHeader');
+        super('HeaderAction');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -294,7 +293,7 @@ export const ActionHeader = Utils.cons<[ Header.Action ], Action>(class extends 
                         ...state,
                         page: new PageRandomBeer(initialRandomBeerPage)
                     },
-                    cmdOfRandomBeerPage.map(ActionRandomBeerPage)
+                    cmdOfRandomBeerPage.map(RandomBeerPageAction)
                 ];
             },
 
@@ -312,9 +311,9 @@ export const ActionHeader = Utils.cons<[ Header.Action ], Action>(class extends 
     }
 });
 
-export const ActionHomePage = Utils.cons<[ HomePage.Action ], Action>(class extends Action {
+export const HomePageAction = Utils.cons<[ HomePage.Action ], Action>(class extends Action {
     public constructor(private readonly action: HomePage.Action) {
-        super('ActionHomePage');
+        super('HomePageAction');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -327,7 +326,7 @@ export const ActionHomePage = Utils.cons<[ HomePage.Action ], Action>(class exte
                                 ...state,
                                 page: new PageHome(nextHomePage)
                             },
-                            cmdOfHomePage.map(ActionHomePage)
+                            cmdOfHomePage.map(HomePageAction)
                         ],
 
                         SetFavorites: (checked, beerId) => setFavorites(checked, beerId, state)
@@ -339,9 +338,9 @@ export const ActionHomePage = Utils.cons<[ HomePage.Action ], Action>(class exte
     }
 });
 
-export const ActionBeerPage = Utils.cons<[ BeerPage.Action ], Action>(class extends Action {
+export const BeerPageAction = Utils.cons<[ BeerPage.Action ], Action>(class extends Action {
     public constructor(private readonly action: BeerPage.Action) {
-        super('ActionBeerPage');
+        super('BeerPageAction');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -358,12 +357,12 @@ export const ActionBeerPage = Utils.cons<[ BeerPage.Action ], Action>(class exte
     }
 });
 
-export const ActionRandomBeerPage = Utils.cons<
+export const RandomBeerPageAction = Utils.cons<
     [ RandomBeerPage.Action ],
     Action
 >(class extends Action {
     public constructor(private readonly action: RandomBeerPage.Action) {
-        super('ActionRandomBeerPage');
+        super('RandomBeerPageAction');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -373,7 +372,7 @@ export const ActionRandomBeerPage = Utils.cons<
 
                 return [
                     { ...state, page: new PageRandomBeer(nextRandomBeerPage) },
-                    cmdOfRandomBeerPage.map(ActionRandomBeerPage)
+                    cmdOfRandomBeerPage.map(RandomBeerPageAction)
                 ];
             },
 
@@ -382,9 +381,9 @@ export const ActionRandomBeerPage = Utils.cons<
     }
 });
 
-export const ActionSearchBeerPage = Utils.cons(class extends Action {
+export const SearchBeerPageAction = Utils.cons(class extends Action {
     public constructor(private readonly action: SearchBeerPage.Action) {
-        super('ActionSearchBeerPage');
+        super('SearchBeerPageAction');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -399,7 +398,7 @@ export const ActionSearchBeerPage = Utils.cons(class extends Action {
                                 : state.header,
                             page: new PageSearchBeer(filter, nextSearchBeerPage)
                         },
-                        cmdOfSearchBeerPage.map(ActionSearchBeerPage)
+                        cmdOfSearchBeerPage.map(SearchBeerPageAction)
                     ],
 
                     SetFavorites: (checked, beerId) => setFavorites(checked, beerId, state)
@@ -410,9 +409,9 @@ export const ActionSearchBeerPage = Utils.cons(class extends Action {
     }
 });
 
-export const ActionFavoritesPage = Utils.cons(class extends Action {
+export const FavoritesPageAction = Utils.cons(class extends Action {
     public constructor(private readonly action: FavoritesPage.Action) {
-        super('ActionFavoritesPage');
+        super('FavoritesPageAction');
     }
 
     public update(state: State): [ State, Cmd<Action> ] {
@@ -429,7 +428,7 @@ export const ActionFavoritesPage = Utils.cons(class extends Action {
                             : state.header,
                         page: new PageFavoritesBeer(filter, nextFavoritesPage)
                     },
-                    cmdOfFavoritesPage.map(ActionFavoritesPage)
+                    cmdOfFavoritesPage.map(FavoritesPageAction)
                 ],
 
                 SetFavorites: (checked, beerId) => setFavorites(checked, beerId, state)
@@ -453,7 +452,7 @@ const PageView: React.FC<{
             scroller={scroller}
             favorites={favorites}
             state={homePage}
-            dispatch={compose(dispatch, ActionHomePage)}
+            dispatch={compose(dispatch, HomePageAction)}
             {...brewedAfterLimits}
         />
     ),
@@ -471,7 +470,7 @@ const PageView: React.FC<{
             scroller={scroller}
             favorites={favorites}
             state={searchBeerPage}
-            dispatch={compose(dispatch, ActionSearchBeerPage)}
+            dispatch={compose(dispatch, SearchBeerPageAction)}
         />
     ),
 
@@ -480,7 +479,7 @@ const PageView: React.FC<{
             scroller={scroller}
             favorites={favorites}
             state={favoritesPage}
-            dispatch={compose(dispatch, ActionFavoritesPage)}
+            dispatch={compose(dispatch, FavoritesPageAction)}
         />
     )
 });
@@ -516,7 +515,7 @@ export class View extends React.PureComponent<{
                 <Header.View
                     tools={headerTools}
                     state={state.header}
-                    dispatch={compose(dispatch, ActionHeader)}
+                    dispatch={compose(dispatch, HeaderAction)}
                     {...brewedAfterLimits}
                 />
 

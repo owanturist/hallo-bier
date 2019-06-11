@@ -141,12 +141,12 @@ export const ToggleFavorite = Utils.cons<[ boolean, number ], Action>(class exte
     }
 });
 
-export const ActionSearchBuilder = Utils.cons<
+export const SearchBuilderAction = Utils.cons<
     [ SearchBuilder. Action ],
     Action
 >(class extends Action {
     public constructor(private readonly action: SearchBuilder.Action) {
-        super('ActionSearchBuilder');
+        super('SearchBuilderAction');
     }
 
     public update(state: State): Stage {
@@ -381,7 +381,7 @@ export const View: React.FC<{
                         minBrewedAfter={minBrewedAfter}
                         maxBrewedAfter={maxBrewedAfter}
                         state={searchBuilder}
-                        dispatch={compose(dispatch, ActionSearchBuilder)}
+                        dispatch={compose(dispatch, SearchBuilderAction)}
                     />
                 </Container>
             )

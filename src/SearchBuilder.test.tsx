@@ -367,7 +367,7 @@ describe('Action', () => {
         });
 
         it('MonthPicker is hidden', () => {
-            expect(SearchBuilder.ActionMonthPicker(new MonthPickerAction()).update({
+            expect(SearchBuilder.MonthPickerAction(new MonthPickerAction()).update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Nothing
@@ -384,7 +384,7 @@ describe('Action', () => {
 
             MonthPickerAction.update.mockReturnValueOnce(MonthPicker.Update(monthPickerNextState));
 
-            expect(SearchBuilder.ActionMonthPicker(new MonthPickerAction()).update({
+            expect(SearchBuilder.MonthPickerAction(new MonthPickerAction()).update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Just(monthPickerState)
@@ -404,7 +404,7 @@ describe('Action', () => {
                 MonthPicker.Select(MonthPicker.Month.May, 2010)
             );
 
-            expect(SearchBuilder.ActionMonthPicker(new MonthPickerAction()).update({
+            expect(SearchBuilder.MonthPickerAction(new MonthPickerAction()).update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Just(monthPickerState)
@@ -422,7 +422,7 @@ describe('Action', () => {
 
             MonthPickerAction.update.mockReturnValueOnce(MonthPicker.Unselect);
 
-            expect(SearchBuilder.ActionMonthPicker(new MonthPickerAction()).update({
+            expect(SearchBuilder.MonthPickerAction(new MonthPickerAction()).update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Just(monthPickerState)
