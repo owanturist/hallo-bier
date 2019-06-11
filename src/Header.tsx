@@ -36,7 +36,7 @@ export abstract class Stage {
     public abstract cata<R>(pattern: StagePattern<R>): R;
 }
 
-class Update extends Stage {
+export const Update = Utils.cons<[ State ], Stage>(class Update extends Stage {
     public constructor(private readonly state: State) {
         super();
     }
@@ -44,15 +44,15 @@ class Update extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Update(this.state);
     }
-}
+});
 
-class RollRandomBeer extends Stage {
+export const RollRandomBeer = Utils.inst<Stage>(class RollRandomBeer extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.RollRandomBeer();
     }
-}
+});
 
-class SetFavorites extends Stage {
+export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class SetFavorites extends Stage {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
@@ -63,76 +63,68 @@ class SetFavorites extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.SetFavorites(this.checked, this.beerId);
     }
-}
+});
 
-export abstract class Action extends Utils.Action<[ State ], Stage> {}
-
-class RollBeer extends Action {
-    public update(): Stage {
-        return new RollRandomBeer();
-    }
-}
-
-class ShowSearchBuilder extends Action {
-    public static show(filter: Router.SearchFilter, state: State): State {
-        if (state.searchBuilder.isJust()) {
-            return state;
-        }
-
-        return {
-            ...state,
-            searchBuilder: Just(SearchBuilder.init(filter))
-        };
-    }
-
-    public constructor(private readonly filter: Router.SearchFilter) {
-        super();
-    }
-
-    public update(state: State): Stage {
-        return new Update(ShowSearchBuilder.show(this.filter, state));
-    }
-}
-
-class SetFilters extends Stage {
-    public static cons(filters: Router.SearchFilter): Stage {
-        return new SetFilters(filters);
-    }
-
-    private constructor(private readonly filters: Router.SearchFilter) {
+export const SetFilters = Utils.cons<[ Router.SearchFilter ], Stage>(class SetFilters extends Stage {
+    public constructor(private readonly filters: Router.SearchFilter) {
         super();
     }
 
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.SetFilters(this.filters);
     }
-}
+});
 
-export const showSearchBuilder = ShowSearchBuilder.show;
+export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
-class HideSearchBuilder extends Action {
-    public static hide(state: State): State {
-        return { ...state, searchBuilder: Nothing };
+export const RollBeer = Utils.inst<Action>(class RollBeer extends Action {
+    public update(_state: State): Stage {
+        return RollRandomBeer;
+    }
+});
+
+export const showSearchBuilder = (filter: Router.SearchFilter, state: State): State => {
+    if (state.searchBuilder.isJust()) {
+        return state;
+    }
+
+    return {
+        ...state,
+        searchBuilder: Just(SearchBuilder.init(filter))
+    };
+};
+
+export const ShowSearchBuilder = Utils.cons<[ Router.SearchFilter ], Action>(class ShowSearchBuilder extends Action {
+    public constructor(private readonly filter: Router.SearchFilter) {
+        super();
     }
 
     public update(state: State): Stage {
-        return new Update(HideSearchBuilder.hide(state));
+        return Update(showSearchBuilder(this.filter, state));
     }
-}
+});
 
-export const hideSearchBuilder = HideSearchBuilder.hide;
+export const hideSearchBuilder = (state: State): State => {
+    return { ...state, searchBuilder: Nothing };
+};
 
-class ToggleMenu extends Action {
+export const HideSearchBuilder = Utils.inst(class HideSearchBuilder extends Action {
+    public update(state: State): Stage {
+        return Update(hideSearchBuilder(state));
+    }
+});
+
+export const ToggleMenu = Utils.cons<[ boolean ], Action>(class ToggleMenu extends Action {
     public constructor(private readonly expanded: boolean) {
         super();
     }
 
     public update(state: State): Stage {
-        return new Update({ ...state, expanded: this.expanded });
+        return Update({ ...state, expanded: this.expanded });
     }
-}
+});
 
-class ToggleFavorite extends Action {
+export const ToggleFavorite = Utils.cons<[ boolean, number ], Action>(class ToggleFavorite extends Action {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
@@ -140,37 +132,36 @@ class ToggleFavorite extends Action {
         super();
     }
 
-    public update(): Stage {
-        return new SetFavorites(this.checked, this.beerId);
+    public update(_state: State): Stage {
+        return SetFavorites(this.checked, this.beerId);
     }
-}
+});
 
-class ActionSearchBuilder extends Action {
-    public static cons(action: SearchBuilder.Action) {
-        return new ActionSearchBuilder(action);
-    }
-
-    private constructor(private readonly action: SearchBuilder.Action) {
+export const ActionSearchBuilder = Utils.cons<
+    [ SearchBuilder. Action ],
+    Action
+>(class ActionSearchBuilder extends Action {
+    public constructor(private readonly action: SearchBuilder.Action) {
         super();
     }
 
     public update(state: State): Stage {
         return state.searchBuilder.cata({
-            Nothing: () => new Update(state),
+            Nothing: () => Update(state),
 
             Just: searchBuilder => {
                 return this.action.update(searchBuilder).cata({
-                    Update: nextSearchBuilder => new Update({
+                    Update: nextSearchBuilder => Update({
                         ...state,
                         searchBuilder: Just(nextSearchBuilder)
                     }),
 
-                    Search: SetFilters.cons
+                    Search: SetFilters
                 });
             }
         });
     }
-}
+});
 
 type ToolPattern<R> = Cata<{
     Filter(filter: Router.SearchFilter): R;
@@ -262,8 +253,8 @@ const ViewTool: React.FC<{
             active={state.searchBuilder.isJust()}
             onClick={() => dispatch(
                 state.searchBuilder.isJust()
-                    ? new HideSearchBuilder()
-                    : new ShowSearchBuilder(filter)
+                    ? HideSearchBuilder
+                    : ShowSearchBuilder(filter)
             )}
         >
             <FontAwesomeIcon fixedWidth icon={faFilter} />
@@ -275,7 +266,7 @@ const ViewTool: React.FC<{
             variant="outline-warning"
             size="sm"
             disabled={busy}
-            onClick={() => dispatch(new RollBeer())}
+            onClick={() => dispatch(RollBeer)}
         >
             <FontAwesomeIcon fixedWidth icon={faDice} />
         </Button>
@@ -299,7 +290,7 @@ const ViewTool: React.FC<{
                 <Button
                     variant="outline-warning"
                     size="sm"
-                    onClick={() => dispatch(new ToggleFavorite(!checked, beerId))}
+                    onClick={() => dispatch(ToggleFavorite(!checked, beerId))}
                 >
                     {checked
                         ? (
@@ -334,7 +325,7 @@ export const View: React.FC<{
             variant="dark"
             expand="sm"
             expanded={state.expanded}
-            onToggle={() => dispatch(new ToggleMenu(!state.expanded))}
+            onToggle={() => dispatch(ToggleMenu(!state.expanded))}
         >
             <Container fluid className={styles.container}>
                 <Navbar.Toggle
@@ -386,7 +377,7 @@ export const View: React.FC<{
                         minBrewedAfter={minBrewedAfter}
                         maxBrewedAfter={maxBrewedAfter}
                         state={searchBuilder}
-                        dispatch={compose(dispatch, ActionSearchBuilder.cons)}
+                        dispatch={compose(dispatch, ActionSearchBuilder)}
                     />
                 </Container>
             )

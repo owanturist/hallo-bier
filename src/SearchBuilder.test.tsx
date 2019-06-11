@@ -160,7 +160,7 @@ describe('Stage', () => {
                 monthPicker: Nothing
             };
 
-            expect(new SearchBuilder.Update(state).cata(pattern)).toBe('Update');
+            expect(SearchBuilder.Update(state).cata(pattern)).toBe('Update');
             expect(pattern.Update).toBeCalledTimes(1);
             expect(pattern.Update).toBeCalledWith(state);
             expect(pattern.Search).not.toBeCalled();
@@ -174,7 +174,7 @@ describe('Stage', () => {
                 brewedAfter: Nothing
             };
 
-            expect(new SearchBuilder.Search(filter).cata(pattern)).toBe('Search');
+            expect(SearchBuilder.Search(filter).cata(pattern)).toBe('Search');
             expect(pattern.Update).not.toBeCalled();
             expect(pattern.Search).toBeCalledTimes(1);
             expect(pattern.Search).toBeCalledWith(filter);
@@ -184,11 +184,11 @@ describe('Stage', () => {
 
 describe('Action', () => {
     it('ChangeName', () => {
-        expect(new SearchBuilder.ChangeName('foo').update({
+        expect(SearchBuilder.ChangeName('foo').update({
             name: 'bar',
             brewedAfter: 'baz',
             monthPicker: Nothing
-        })).toEqual(new SearchBuilder.Update({
+        })).toEqual(SearchBuilder.Update({
             name: 'foo',
             brewedAfter: 'baz',
             monthPicker: Nothing
@@ -197,11 +197,11 @@ describe('Action', () => {
 
     describe('ChangeBrewedAfter', () => {
         it('invalid value without MonthPicker', () => {
-            expect(new SearchBuilder.ChangeBrewedAfter(Nothing, Nothing, 'foo').update({
+            expect(SearchBuilder.ChangeBrewedAfter(Nothing, Nothing, 'foo').update({
                 name: 'baz',
                 brewedAfter: 'bar',
                 monthPicker: Nothing
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'baz',
                 brewedAfter: 'foo',
                 monthPicker: Nothing
@@ -211,11 +211,11 @@ describe('Action', () => {
         it('invalid value with MonthPicker', () => {
             const monthPickerInitialState = MonthPicker.init(2000);
 
-            expect(new SearchBuilder.ChangeBrewedAfter(Nothing, Nothing, 'foo').update({
+            expect(SearchBuilder.ChangeBrewedAfter(Nothing, Nothing, 'foo').update({
                 name: 'baz',
                 brewedAfter: 'bar',
                 monthPicker: Just(monthPickerInitialState)
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'baz',
                 brewedAfter: 'foo',
                 monthPicker: Just(monthPickerInitialState)
@@ -223,11 +223,11 @@ describe('Action', () => {
         });
 
         it('valid value with MonthPicker', () => {
-            expect(new SearchBuilder.ChangeBrewedAfter(Nothing, Nothing, '2/2010').update({
+            expect(SearchBuilder.ChangeBrewedAfter(Nothing, Nothing, '2/2010').update({
                 name: 'baz',
                 brewedAfter: 'bar',
                 monthPicker: Just(MonthPicker.init(2000))
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'baz',
                 brewedAfter: '02/2010',
                 monthPicker: Just(MonthPicker.init(2010))
@@ -235,7 +235,7 @@ describe('Action', () => {
         });
 
         it('valid limited least value with MonthPicker', () => {
-            expect(new SearchBuilder.ChangeBrewedAfter(
+            expect(SearchBuilder.ChangeBrewedAfter(
                 Just({ month: MonthPicker.Month.May, year: 1990 }),
                 Just({ month: MonthPicker.Month.Oct, year: 2015 }),
                 '2/1980'
@@ -243,7 +243,7 @@ describe('Action', () => {
                 name: 'baz',
                 brewedAfter: 'bar',
                 monthPicker: Just(MonthPicker.init(2000))
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'baz',
                 brewedAfter: '05/1990',
                 monthPicker: Just(MonthPicker.init(1990))
@@ -251,7 +251,7 @@ describe('Action', () => {
         });
 
         it('valid limited highest value with MonthPicker', () => {
-            expect(new SearchBuilder.ChangeBrewedAfter(
+            expect(SearchBuilder.ChangeBrewedAfter(
                 Just({ month: MonthPicker.Month.May, year: 1990 }),
                 Just({ month: MonthPicker.Month.Oct, year: 2015 }),
                 '11/2019'
@@ -259,7 +259,7 @@ describe('Action', () => {
                 name: 'baz',
                 brewedAfter: 'bar',
                 monthPicker: Just(MonthPicker.init(2000))
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'baz',
                 brewedAfter: '10/2015',
                 monthPicker: Just(MonthPicker.init(2015))
@@ -269,42 +269,42 @@ describe('Action', () => {
 
     describe('SearchBeer', () => {
         it('empty name', () => {
-            expect(new SearchBuilder.SearchBeer().update({
+            expect(SearchBuilder.SearchBeer.update({
                 name: '',
                 brewedAfter: '',
                 monthPicker: Nothing
-            })).toEqual(new SearchBuilder.Search({
+            })).toEqual(SearchBuilder.Search({
                 name: Nothing,
                 brewedAfter: Nothing
             }));
 
-            expect(new SearchBuilder.SearchBeer().update({
+            expect(SearchBuilder.SearchBeer.update({
                 name: '   ',
                 brewedAfter: '',
                 monthPicker: Nothing
-            })).toEqual(new SearchBuilder.Search({
+            })).toEqual(SearchBuilder.Search({
                 name: Nothing,
                 brewedAfter: Nothing
             }));
         });
 
         it('invalid brewedAfter', () => {
-            expect(new SearchBuilder.SearchBeer().update({
+            expect(SearchBuilder.SearchBeer.update({
                 name: '',
                 brewedAfter: '01',
                 monthPicker: Nothing
-            })).toEqual(new SearchBuilder.Search({
+            })).toEqual(SearchBuilder.Search({
                 name: Nothing,
                 brewedAfter: Nothing
             }));
         });
 
         it('valid', () => {
-            expect(new SearchBuilder.SearchBeer().update({
+            expect(SearchBuilder.SearchBeer.update({
                 name: 'foo',
                 brewedAfter: '02/2010',
                 monthPicker: Nothing
-            })).toEqual(new SearchBuilder.Search({
+            })).toEqual(SearchBuilder.Search({
                 name: Just('foo'),
                 brewedAfter: Just(new Date(2010, 1))
             }));
@@ -313,11 +313,11 @@ describe('Action', () => {
 
     describe('ShowMonthPicker', () => {
         it('MonthPicker is already visible', () => {
-            expect(new SearchBuilder.ShowMonthPicker().update({
+            expect(SearchBuilder.ShowMonthPicker.update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Just(MonthPicker.init(2000))
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Just(MonthPicker.init(2000))
@@ -325,11 +325,11 @@ describe('Action', () => {
         });
 
         it('init MonthPicker with default 2010', () => {
-            expect(new SearchBuilder.ShowMonthPicker().update({
+            expect(SearchBuilder.ShowMonthPicker.update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Nothing
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Just(MonthPicker.init(2010))
@@ -337,11 +337,11 @@ describe('Action', () => {
         });
 
         it('init MonthPicker', () => {
-            expect(new SearchBuilder.ShowMonthPicker().update({
+            expect(SearchBuilder.ShowMonthPicker.update({
                 name: 'bar',
                 brewedAfter: '05/2015',
                 monthPicker: Nothing
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'bar',
                 brewedAfter: '05/2015',
                 monthPicker: Just(MonthPicker.init(2015))
@@ -350,11 +350,11 @@ describe('Action', () => {
     });
 
     it('HideMonthPicker', () => {
-        expect(new SearchBuilder.HideMonthPicker().update({
+        expect(SearchBuilder.HideMonthPicker.update({
             name: 'bar',
             brewedAfter: 'foo',
             monthPicker: Just(MonthPicker.init(2000))
-        })).toEqual(new SearchBuilder.Update({
+        })).toEqual(SearchBuilder.Update({
             name: 'bar',
             brewedAfter: 'foo',
             monthPicker: Nothing
@@ -367,11 +367,11 @@ describe('Action', () => {
         });
 
         it('MonthPicker is hidden', () => {
-            expect(SearchBuilder.ActionMonthPicker.cons(new MonthPickerAction()).update({
+            expect(SearchBuilder.ActionMonthPicker(new MonthPickerAction()).update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Nothing
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Nothing
@@ -382,13 +382,13 @@ describe('Action', () => {
             const monthPickerState = MonthPicker.init(2000);
             const monthPickerNextState = MonthPicker.init(2010);
 
-            MonthPickerAction.update.mockReturnValueOnce(new MonthPicker.Update(monthPickerNextState));
+            MonthPickerAction.update.mockReturnValueOnce(MonthPicker.Update(monthPickerNextState));
 
-            expect(SearchBuilder.ActionMonthPicker.cons(new MonthPickerAction()).update({
+            expect(SearchBuilder.ActionMonthPicker(new MonthPickerAction()).update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Just(monthPickerState)
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Just(monthPickerNextState)
@@ -401,14 +401,14 @@ describe('Action', () => {
             const monthPickerState = MonthPicker.init(2000);
 
             MonthPickerAction.update.mockReturnValueOnce(
-                new MonthPicker.Select(MonthPicker.Month.May, 2010)
+                MonthPicker.Select(MonthPicker.Month.May, 2010)
             );
 
-            expect(SearchBuilder.ActionMonthPicker.cons(new MonthPickerAction()).update({
+            expect(SearchBuilder.ActionMonthPicker(new MonthPickerAction()).update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Just(monthPickerState)
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'bar',
                 brewedAfter: SearchBuilder.selectedToString({ month: MonthPicker.Month.May, year: 2010 }),
                 monthPicker: Just(monthPickerState)
@@ -420,15 +420,13 @@ describe('Action', () => {
         it('on MonthPicker.Unselect', () => {
             const monthPickerState = MonthPicker.init(2000);
 
-            MonthPickerAction.update.mockReturnValueOnce(
-                new MonthPicker.Unselect()
-            );
+            MonthPickerAction.update.mockReturnValueOnce(MonthPicker.Unselect);
 
-            expect(SearchBuilder.ActionMonthPicker.cons(new MonthPickerAction()).update({
+            expect(SearchBuilder.ActionMonthPicker(new MonthPickerAction()).update({
                 name: 'bar',
                 brewedAfter: 'foo',
                 monthPicker: Just(monthPickerState)
-            })).toEqual(new SearchBuilder.Update({
+            })).toEqual(SearchBuilder.Update({
                 name: 'bar',
                 brewedAfter: '',
                 monthPicker: Just(monthPickerState)
@@ -524,7 +522,7 @@ describe('View', () => {
         });
 
         expect(dispatch).toBeCalledTimes(1);
-        expect(dispatch).toBeCalledWith(new SearchBuilder.ChangeName('bar'));
+        expect(dispatch).toBeCalledWith(SearchBuilder.ChangeName('bar'));
     });
 
     it('emits ChangeBrewedAfter', () => {
@@ -550,7 +548,7 @@ describe('View', () => {
 
         expect(dispatch).toBeCalledTimes(1);
         expect(dispatch).toBeCalledWith(
-            new SearchBuilder.ChangeBrewedAfter(Just(minBrewedAfter), Just(maxBrewedAfter), '04/2010')
+            SearchBuilder.ChangeBrewedAfter(Just(minBrewedAfter), Just(maxBrewedAfter), '04/2010')
         );
     });
 
@@ -569,7 +567,7 @@ describe('View', () => {
         });
 
         expect(dispatch).toBeCalledTimes(1);
-        expect(dispatch).toBeCalledWith(new SearchBuilder.SearchBeer());
+        expect(dispatch).toBeCalledWith(SearchBuilder.SearchBeer);
     });
 
 
@@ -602,7 +600,7 @@ describe('View', () => {
             ).find(SearchBuilder.ViewMonthpicker).dive().find(Form.Control).simulate('focus');
 
             expect(dispatch).toBeCalledTimes(1);
-            expect(dispatch).toBeCalledWith(new SearchBuilder.ShowMonthPicker());
+            expect(dispatch).toBeCalledWith(SearchBuilder.ShowMonthPicker);
         });
     });
 });

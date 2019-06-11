@@ -122,7 +122,7 @@ describe('Stage', () => {
         it('cata', () => {
             const state = MonthPicker.init(2000);
 
-            expect(new MonthPicker.Update(state).cata(pattern)).toBe('Update');
+            expect(MonthPicker.Update(state).cata(pattern)).toBe('Update');
             expect(pattern.Update).toBeCalledTimes(1);
             expect(pattern.Update).toBeCalledWith(state);
             expect(pattern.Select).not.toBeCalled();
@@ -132,7 +132,7 @@ describe('Stage', () => {
 
     describe('Select', () => {
         it('cata', () => {
-            expect(new MonthPicker.Select(MonthPicker.Month.May, 2017).cata(pattern)).toBe('Select');
+            expect(MonthPicker.Select(MonthPicker.Month.May, 2017).cata(pattern)).toBe('Select');
             expect(pattern.Update).not.toBeCalled();
             expect(pattern.Select).toBeCalledTimes(1);
             expect(pattern.Select).toBeCalledWith({
@@ -145,7 +145,7 @@ describe('Stage', () => {
 
     describe('Unselect', () => {
         it('cata', () => {
-            expect(new MonthPicker.Unselect().cata(pattern)).toBe('Unselect');
+            expect(MonthPicker.Unselect.cata(pattern)).toBe('Unselect');
             expect(pattern.Update).not.toBeCalled();
             expect(pattern.Select).not.toBeCalled();
             expect(pattern.Unselect).toBeCalledTimes(1);
@@ -160,81 +160,81 @@ describe('Action', () => {
     describe('SetYear', () => {
         it('year is Just', () => {
             expect(
-                new MonthPicker.SetYear(Nothing, Nothing, 2018).update(initialState)
-            ).toEqual(new MonthPicker.Update({
+                MonthPicker.SetYear(Nothing, Nothing, 2018).update(initialState)
+            ).toEqual(MonthPicker.Update({
                 year: 2018
             }));
         });
 
         it('year is min limited', () => {
             expect(
-                new MonthPicker.SetYear(Just(1990), Nothing, 1980).update(initialState)
-            ).toEqual(new MonthPicker.Update({
+                MonthPicker.SetYear(Just(1990), Nothing, 1980).update(initialState)
+            ).toEqual(MonthPicker.Update({
                 year: 1990
             }));
 
             expect(
-                new MonthPicker.SetYear(Just(1990), Nothing, 1991).update(initialState)
-            ).toEqual(new MonthPicker.Update({
+                MonthPicker.SetYear(Just(1990), Nothing, 1991).update(initialState)
+            ).toEqual(MonthPicker.Update({
                 year: 1991
             }));
         });
 
         it('year is max limited', () => {
             expect(
-                new MonthPicker.SetYear(Nothing, Just(2016), 2018).update(initialState)
-            ).toEqual(new MonthPicker.Update({
+                MonthPicker.SetYear(Nothing, Just(2016), 2018).update(initialState)
+            ).toEqual(MonthPicker.Update({
                 year: 2016
             }));
 
             expect(
-                new MonthPicker.SetYear(Nothing, Just(2016), 2015).update(initialState)
-            ).toEqual(new MonthPicker.Update({
+                MonthPicker.SetYear(Nothing, Just(2016), 2015).update(initialState)
+            ).toEqual(MonthPicker.Update({
                 year: 2015
             }));
         });
 
         it('year is limited', () => {
             expect(
-                new MonthPicker.SetYear(Just(1990), Just(2016), 1980).update(initialState)
-            ).toEqual(new MonthPicker.Update({
+                MonthPicker.SetYear(Just(1990), Just(2016), 1980).update(initialState)
+            ).toEqual(MonthPicker.Update({
                 year: 1990
             }));
 
             expect(
-                new MonthPicker.SetYear(Just(1990), Just(2016), 2020).update(initialState)
-            ).toEqual(new MonthPicker.Update({
+                MonthPicker.SetYear(Just(1990), Just(2016), 2020).update(initialState)
+            ).toEqual(MonthPicker.Update({
                 year: 2016
             }));
 
             expect(
-                new MonthPicker.SetYear(Just(1990), Just(2016), 2001).update(initialState)
-            ).toEqual(new MonthPicker.Update({
+                MonthPicker.SetYear(Just(1990), Just(2016), 2001).update(initialState)
+            ).toEqual(MonthPicker.Update({
                 year: 2001
             }));
         });
     });
 
     it('ChangeYear', () => {
-        expect(MonthPicker.ChangeYear.Prev.update(initialState)).toEqual(new MonthPicker.Update({
+        expect(MonthPicker.ChangeYear(-1).update(initialState)).toEqual(MonthPicker.Update({
             year: 1999
         }));
 
-        expect(MonthPicker.ChangeYear.Next.update(initialState)).toEqual(new MonthPicker.Update({
+        expect(MonthPicker.ChangeYear(1).update(initialState)).toEqual(MonthPicker.Update({
             year: 2001
         }));
     });
 
     it('SelectMonth', () => {
         expect(
-            new MonthPicker.SelectMonth(MonthPicker.Month.May).update(initialState)
-        ).toEqual(new MonthPicker.Select(MonthPicker.Month.May, 2000));
+            MonthPicker.SelectMonth(MonthPicker.Month.May).update(initialState)
+        ).toEqual(MonthPicker.Select(MonthPicker.Month.May, 2000));
     });
 
     it('UnselectMonth', () => {
         expect(
-            new MonthPicker.UnselectMonth().update(initialState)
-        ).toEqual(new MonthPicker.Unselect());
+            MonthPicker.UnselectMonth.update(initialState)
+        ).toEqual(MonthPicker.Unselect);
     });
 });
 
@@ -420,7 +420,7 @@ describe('View', () => {
         ).find(InputGroup.Prepend).find(Button).simulate('click');
 
         expect(dispatch).toBeCalledTimes(1);
-        expect(dispatch).toBeCalledWith(MonthPicker.ChangeYear.Prev);
+        expect(dispatch).toBeCalledWith(MonthPicker.ChangeYear(-1));
     });
 
     it('emits ChangeYear.Next by clicking to the control', () => {
@@ -433,7 +433,7 @@ describe('View', () => {
         ).find(InputGroup.Append).find(Button).simulate('click');
 
         expect(dispatch).toBeCalledTimes(1);
-        expect(dispatch).toBeCalledWith(MonthPicker.ChangeYear.Next);
+        expect(dispatch).toBeCalledWith(MonthPicker.ChangeYear(1));
     });
 
     describe('emits SetYear by changing the input', () => {
@@ -467,7 +467,7 @@ describe('View', () => {
             });
 
             expect(dispatch).toBeCalledTimes(1);
-            expect(dispatch).toBeCalledWith(new MonthPicker.SetYear(Nothing, Nothing, 2012));
+            expect(dispatch).toBeCalledWith(MonthPicker.SetYear(Nothing, Nothing, 2012));
         });
 
         it('with limits', () => {
@@ -489,7 +489,7 @@ describe('View', () => {
             });
 
             expect(dispatch).toBeCalledTimes(1);
-            expect(dispatch).toBeCalledWith(new MonthPicker.SetYear(Just(min.year), Just(max.year), 2012));
+            expect(dispatch).toBeCalledWith(MonthPicker.SetYear(Just(min.year), Just(max.year), 2012));
         });
     });
 
@@ -503,7 +503,7 @@ describe('View', () => {
         ).find(MonthPicker.ViewMonth).at(4).dive().find(Button).simulate('click');
 
         expect(dispatch).toBeCalledTimes(1);
-        expect(dispatch).toBeCalledWith(new MonthPicker.SelectMonth(MonthPicker.Month.May));
+        expect(dispatch).toBeCalledWith(MonthPicker.SelectMonth(MonthPicker.Month.May));
     });
 
     it('emits SelectMonth by clicking to the month control with selected in different year', () => {
@@ -516,7 +516,7 @@ describe('View', () => {
         ).find(MonthPicker.ViewMonth).at(4).dive().find(Button).simulate('click');
 
         expect(dispatch).toBeCalledTimes(1);
-        expect(dispatch).toBeCalledWith(new MonthPicker.SelectMonth(MonthPicker.Month.May));
+        expect(dispatch).toBeCalledWith(MonthPicker.SelectMonth(MonthPicker.Month.May));
     });
 
     it('emits UnselectMonth by clicking to the selected month control', () => {
@@ -529,6 +529,6 @@ describe('View', () => {
         ).find(MonthPicker.ViewMonth).at(4).dive().find(Button).simulate('click');
 
         expect(dispatch).toBeCalledTimes(1);
-        expect(dispatch).toBeCalledWith(new MonthPicker.UnselectMonth());
+        expect(dispatch).toBeCalledWith(MonthPicker.UnselectMonth);
     });
 });

@@ -28,8 +28,21 @@ export interface SearchFilter {
 
 export const areSearchFiltersEqual = (left: SearchFilter, right: SearchFilter): boolean => {
     return left.name.isEqual(right.name)
-        && left.brewedAfter.map(date => date.getTime())
-            .isEqual(right.brewedAfter.map(date => date.getTime()));
+        && left.brewedAfter.map(date => date.getTime()).isEqual(
+            right.brewedAfter.map(date => date.getTime())
+        );
+};
+
+const percentDecode = (str: string): Maybe<string> => {
+    try {
+        return Just(decodeURIComponent(str));
+    } catch (err) {
+        return Nothing;
+    }
+};
+
+const percentEncode = (str: string): string => {
+    return encodeURIComponent(str);
 };
 
 export type RouterPattern<R> = Cata<{
@@ -41,18 +54,6 @@ export type RouterPattern<R> = Cata<{
 }>;
 
 export abstract class Route {
-    protected static percentDecode(str: string): Maybe<string> {
-        try {
-            return Just(decodeURIComponent(str));
-        } catch (err) {
-            return Nothing;
-        }
-    }
-
-    protected static percentEncode(str: string): string {
-        return encodeURIComponent(str);
-    }
-
     private readonly type: string = this.constructor.name;
 
     public abstract toPath(): string;
@@ -78,9 +79,7 @@ export abstract class Route {
     }
 }
 
-class ToHomeRoute extends Route {
-    public static schema = '/';
-
+export const ToHome = Utils.inst<Route>(class ToHome extends Route {
     public toPath(): string {
         return '/';
     }
@@ -99,17 +98,9 @@ class ToHomeRoute extends Route {
             _: () => false
         });
     }
-}
+});
 
-export const ToHome: Route = new ToHomeRoute();
-
-class ToBeerRoute extends Route {
-    public static schema = '/beer/:id';
-
-    public static parse(match: match<{ id: string }>): Route {
-        return new ToBeerRoute(Number(match.params.id));
-    }
-
+export const ToBeer = Utils.cons<[ number ], Route>(class ToBeer extends Route {
     public constructor(private readonly id: number) {
         super();
     }
@@ -132,15 +123,9 @@ class ToBeerRoute extends Route {
             _: () => false
         });
     }
-}
+});
 
-export const ToBeer = (beerId: number): Route => {
-    return new ToBeerRoute(beerId);
-};
-
-class ToRandomBeerRoute extends Route {
-    public static schema = '/random';
-
+export const ToRandomBeer: Route = Utils.inst(class ToRandomBeer extends Route {
     public toPath(): string {
         return '/random';
     }
@@ -159,19 +144,17 @@ class ToRandomBeerRoute extends Route {
             _: () => false
         });
     }
-}
-
-export const ToRandomBeer: Route = new ToRandomBeerRoute();
+});
 
 abstract class ToRouteWithFilter extends Route {
-    protected static parseFilter(loc: Location): SearchFilter {
+    public static parseFilter(loc: Location): SearchFilter {
         const qs = queryString.parse(loc.search);
         const name = Array.isArray(qs.name) ? qs.name[0] : qs.name;
         const bra = Array.isArray(qs.bra) ? qs.bra[0] : qs.bra;
 
         return {
-            name: Maybe.fromNullable(name).chain(Route.percentDecode),
-            brewedAfter: Maybe.fromNullable(bra).chain(Route.percentDecode).chain(Utils.parseDate)
+            name: Maybe.fromNullable(name).chain(percentDecode),
+            brewedAfter: Maybe.fromNullable(bra).chain(percentDecode).chain(Utils.parseDate)
         };
     }
 
@@ -185,8 +168,8 @@ abstract class ToRouteWithFilter extends Route {
 
     protected toQueryString(): string {
         const queryBuilder: Array<[ string, Maybe<string> ]> = [
-            [ 'name', this.filter.name.map(Route.percentEncode) ],
-            [ 'bra', this.filter.brewedAfter.map(ToRouteWithFilter.brewedDateToString).map(Route.percentEncode) ]
+            [ 'name', this.filter.name.map(percentEncode) ],
+            [ 'bra', this.filter.brewedAfter.map(ToRouteWithFilter.brewedDateToString).map(percentEncode) ]
         ];
         const queryList = queryBuilder.reduce(
             (acc, [ key, value ]) => value.map((val: string) => [ `${key}=${val}`, ...acc ]).getOrElse(acc),
@@ -201,13 +184,7 @@ abstract class ToRouteWithFilter extends Route {
     }
 }
 
-class ToBeerSearchRoute extends ToRouteWithFilter {
-    public static schema = '/search';
-
-    public static parse(loc: Location): Route {
-        return new ToBeerSearchRoute(ToRouteWithFilter.parseFilter(loc));
-    }
-
+export const ToBeerSearch = Utils.cons<[ SearchFilter ], Route>(class ToBeerSearch extends ToRouteWithFilter {
     public toPath(): string {
         return '/search' + this.toQueryString();
     }
@@ -226,19 +203,9 @@ class ToBeerSearchRoute extends ToRouteWithFilter {
             _: () => false
         });
     }
-}
+});
 
-export const ToBeerSearch = (filter: SearchFilter): Route => {
-    return new ToBeerSearchRoute(filter);
-};
-
-class ToFavoritesRoute extends ToRouteWithFilter {
-    public static schema = '/favorites';
-
-    public static parse(loc: Location): Route {
-        return new ToFavoritesRoute(ToRouteWithFilter.parseFilter(loc));
-    }
-
+export const ToFavorites = Utils.cons<[ SearchFilter ], Route>(class ToFavorites extends ToRouteWithFilter {
     public toPath(): string {
         return '/favorites' + this.toQueryString();
     }
@@ -257,11 +224,7 @@ class ToFavoritesRoute extends ToRouteWithFilter {
             _: () => false
         });
     }
-}
-
-export const ToFavorites = (filter: SearchFilter): Route => {
-    return new ToFavoritesRoute(filter);
-};
+});
 
 interface PathProps<P> extends RouteProps {
     computedMatch?: match<P>;
@@ -290,28 +253,34 @@ export const View: React.FC<{
         <Switch>
             <Path
                 exact
-                path={ToHomeRoute.schema}
+                path="/"
                 onEnter={() => onChange(ToHome)}
             />
 
             <Path
-                path={ToBeerRoute.schema}
-                onEnter={(match: match<{ id: string }>) => onChange(ToBeerRoute.parse(match))}
+                path="/beer/:id"
+                onEnter={(match: match<{ id: string }>) => onChange(
+                    ToBeer(Number(match.params.id))
+                )}
             />
 
             <Path
-                path={ToRandomBeerRoute.schema}
+                path="/random"
                 onEnter={() => onChange(ToRandomBeer)}
             />
 
             <Path
-                path={ToBeerSearchRoute.schema}
-                onEnter={(_match, loc: Location) => onChange(ToBeerSearchRoute.parse(loc))}
+                path="/search"
+                onEnter={(_match, loc: Location) => onChange(
+                    ToBeerSearch(ToRouteWithFilter.parseFilter(loc))
+                )}
             />
 
             <Path
-                path={ToFavoritesRoute.schema}
-                onEnter={(_match, loc: Location) => onChange(ToFavoritesRoute.parse(loc))}
+                path="/favorites"
+                onEnter={(_match, loc: Location) => onChange(
+                    ToFavorites(ToRouteWithFilter.parseFilter(loc))
+                )}
             />
 
             <Redirect to={ToHome.toPath()}/>

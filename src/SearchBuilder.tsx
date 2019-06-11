@@ -54,7 +54,7 @@ export abstract class Stage {
     public abstract cata<R>(pattern: StagePattern<R>): R;
 }
 
-export class Update extends Stage {
+export const Update = Utils.cons<[ State ], Stage>(class Update extends Stage {
     public constructor(private readonly state: State) {
         super();
     }
@@ -62,9 +62,9 @@ export class Update extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Update(this.state);
     }
-}
+});
 
-export class Search extends Stage {
+export const Search = Utils.cons<[ Router.SearchFilter ], Stage>(class Search extends Stage {
     public constructor(private readonly filter: Router.SearchFilter) {
         super();
     }
@@ -72,21 +72,24 @@ export class Search extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Search(this.filter);
     }
-}
+});
 
 export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
-export class ChangeName extends Action {
+export const ChangeName = Utils.cons<[ string ], Action>(class ChangeName extends Action {
     public constructor(private readonly name: string) {
         super();
     }
 
     public update(state: State): Stage {
-        return new Update({ ...state, name: this.name });
+        return Update({ ...state, name: this.name });
     }
-}
+});
 
-export class ChangeBrewedAfter extends Action {
+export const ChangeBrewedAfter = Utils.cons<
+    [ Maybe<MonthPicker.Selected>, Maybe<MonthPicker.Selected>, string ],
+    Action
+>(class ChangeBrewedAfter extends Action {
     public constructor(
         private readonly min: Maybe<MonthPicker.Selected>,
         private readonly max: Maybe<MonthPicker.Selected>,
@@ -99,12 +102,12 @@ export class ChangeBrewedAfter extends Action {
         return selectedFromString(this.brewedAfter)
             .map(selected => this.limit(selected))
             .cata({
-                Nothing: () => new Update({
+                Nothing: () => Update({
                     ...state,
                     brewedAfter: this.brewedAfter
                 }),
 
-                Just: selected => new Update({
+                Just: selected => Update({
                     ...state,
                     brewedAfter: selectedToString(selected),
                     monthPicker: state.monthPicker.map(monthPicker => {
@@ -145,77 +148,73 @@ export class ChangeBrewedAfter extends Action {
             };
         }).getOrElse(bottomBordered);
     }
-}
+});
 
-export class SearchBeer extends Action {
+export const SearchBeer = Utils.inst<Action>(class SearchBeer extends Action {
     public update(state: State): Stage {
         const trimmedName = state.name.trim();
 
-        return new Search({
+        return Search({
             name: trimmedName ? Just(trimmedName) : Nothing,
             brewedAfter: selectedFromString(state.brewedAfter).map(({ month, year }) => month.toDate(year))
         });
     }
-}
+});
 
-export class ShowMonthPicker extends Action {
+export const ShowMonthPicker = Utils.inst<Action>(class ShowMonthPicker extends Action {
     public update(state: State): Stage {
         if (state.monthPicker.isJust()) {
-            return new Update(state);
+            return Update(state);
         }
 
         const initialYear = selectedFromString(state.brewedAfter)
             .map(selected => selected.year)
             .getOrElse(2010);
 
-        return new Update({
+        return Update({
             ...state,
             monthPicker: Just(MonthPicker.init(initialYear))
         });
     }
-}
+});
 
-export class HideMonthPicker extends Action {
+export const HideMonthPicker = Utils.inst<Action>(class HideMonthPicker extends Action {
     public update(state: State): Stage {
-        return new Update({
+        return Update({
             ...state,
             monthPicker: Nothing
         });
     }
-}
+});
 
-export class ActionMonthPicker extends Action {
-    public static cons(action: MonthPicker.Action): Action {
-        return new ActionMonthPicker(action);
-    }
-
-    private constructor(private readonly action: MonthPicker.Action) {
+export const ActionMonthPicker = Utils.cons<[ MonthPicker.Action ], Action>(class ActionMonthPicker extends Action {
+    public constructor(private readonly action: MonthPicker.Action) {
         super();
     }
 
     public update(state: State): Stage {
         return state.monthPicker.cata({
-            Nothing: () => new Update(state),
+            Nothing: () => Update(state),
 
             Just: monthPicker => this.action.update(monthPicker).cata({
-                Update: (nextMonthPicker: MonthPicker.State) => new Update({
+                Update: (nextMonthPicker: MonthPicker.State) => Update({
                     ...state,
                     monthPicker: Just(nextMonthPicker)
                 }),
 
-                Select: (brewedAfter: MonthPicker.Selected) => new Update({
+                Select: (brewedAfter: MonthPicker.Selected) => Update({
                     ...state,
                     brewedAfter: selectedToString(brewedAfter)
                 }),
 
-                Unselect: () => new Update({
+                Unselect: () => Update({
                     ...state,
                     brewedAfter: ''
                 })
             })
         });
     }
-}
+});
 
 export class ViewMonthpicker extends React.PureComponent<{
     min?: MonthPicker.Selected;
@@ -259,7 +258,7 @@ export class ViewMonthpicker extends React.PureComponent<{
                                 selected={selectedFromString(brewedAfter)}
                                 disabled={disabled}
                                 state={monthPicker}
-                                dispatch={compose(dispatch, ActionMonthPicker.cons)}
+                                dispatch={compose(dispatch, ActionMonthPicker)}
                             />
                         </Dropdown.Menu>
                     )
@@ -269,7 +268,7 @@ export class ViewMonthpicker extends React.PureComponent<{
     }
 
     private readonly onInputChange = (event: React.ChangeEvent<FormControlProps>) => {
-        this.props.dispatch(new ChangeBrewedAfter(
+        this.props.dispatch(ChangeBrewedAfter(
             Maybe.fromNullable(this.props.min),
             Maybe.fromNullable(this.props.max),
             event.currentTarget.value || ''
@@ -278,7 +277,7 @@ export class ViewMonthpicker extends React.PureComponent<{
 
     private readonly onInputFocus = () => {
         if (this.props.monthPicker.isNothing()) {
-            this.props.dispatch(new ShowMonthPicker());
+            this.props.dispatch(ShowMonthPicker);
             document.addEventListener('mousedown', this.closeDropdown, false);
         }
     }
@@ -288,7 +287,7 @@ export class ViewMonthpicker extends React.PureComponent<{
             && this.root.current
             && !this.root.current.contains(event.target as Node)
         ) {
-            this.props.dispatch(new HideMonthPicker());
+            this.props.dispatch(HideMonthPicker);
             document.removeEventListener('mousedown', this.closeDropdown, false);
         }
     }
@@ -305,7 +304,7 @@ export const View: React.FC<{
     <Form
         noValidate
         onSubmit={(event: React.FormEvent) => {
-            dispatch(new SearchBeer());
+            dispatch(SearchBeer);
 
             event.preventDefault();
         }}
@@ -323,7 +322,7 @@ export const View: React.FC<{
                     autoFocus
                     tabIndex={0}
                     onChange={(event: React.ChangeEvent<FormControlProps>) => {
-                        dispatch(new ChangeName(event.currentTarget.value || ''));
+                        dispatch(ChangeName(event.currentTarget.value || ''));
                     }}
                     placeholder="Search for a beer"
                 />

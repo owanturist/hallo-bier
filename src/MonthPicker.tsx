@@ -96,7 +96,7 @@ export abstract class Stage {
     public abstract cata<R>(pattern: StagePattern<R>): R;
 }
 
-export class Update extends Stage {
+export const Update = Utils.cons<[ State ], Stage>(class Update extends Stage {
     public constructor(private readonly state: State) {
         super();
     }
@@ -104,9 +104,9 @@ export class Update extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Update(this.state);
     }
-}
+});
 
-export class Select extends Stage {
+export const Select = Utils.cons<[ Month, number ], Stage>(class Select extends Stage {
     public constructor(
         private readonly month: Month,
         private readonly year: number
@@ -120,17 +120,18 @@ export class Select extends Stage {
             year: this.year
         });
     }
-}
+});
 
-export class Unselect extends Stage {
+
+export const Unselect = Utils.inst<Stage>(class Unselect extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Unselect();
     }
-}
+});
 
 export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
-export class SetYear extends Action {
+export const SetYear = Utils.cons<[ Maybe<number>, Maybe<number>, number ], Action>(class SetYear extends Action {
     public constructor(
         private readonly min: Maybe<number>,
         private readonly max: Maybe<number>,
@@ -140,7 +141,7 @@ export class SetYear extends Action {
     }
 
     public update(state: State): Stage {
-        return new Update({
+        return Update({
             ...state,
             year: this.min.cata({
                 Nothing: () => Math.min(this.max.getOrElse(this.year), this.year),
@@ -152,36 +153,33 @@ export class SetYear extends Action {
             })
         });
     }
-}
+});
 
-export class ChangeYear extends Action {
-    public static readonly Prev: Action = new ChangeYear(-1);
-    public static readonly Next: Action = new ChangeYear(1);
-
-    private constructor(private readonly delta: number) {
+export const ChangeYear = Utils.cons<[ number ], Action>(class ChangeYear extends Action {
+    public constructor(private readonly delta: number) {
         super();
     }
 
     public update(state: State): Stage {
-        return new Update({ ...state, year: state.year + this.delta });
+        return Update({ ...state, year: state.year + this.delta });
     }
-}
+});
 
-export class SelectMonth extends Action {
+export const SelectMonth = Utils.cons<[ Month ], Action>(class SelectMonth extends Action {
     public constructor(private readonly month: Month) {
         super();
     }
 
     public update(state: State): Stage {
-        return new Select(this.month, state.year);
+        return Select(this.month, state.year);
     }
-}
+});
 
-export class UnselectMonth extends Action {
+export const UnselectMonth = Utils.inst<Action>(class UnselectMonth extends Action {
     public update(_state: State): Stage {
-        return new Unselect();
+        return Unselect;
     }
-}
+});
 
 export const update = (action: Action, state: State): Stage => action.update(state);
 
@@ -201,7 +199,7 @@ export const ViewMonth: React.FC<{
         variant={'outline-dark'}
         active={selected}
         disabled={disabled}
-        onClick={() => dispatch(selected ? new UnselectMonth() : new SelectMonth(month))}
+        onClick={() => dispatch(selected ? UnselectMonth : SelectMonth(month))}
     >
         {selected ? (
             <b>{month.toShortName()}</b>
@@ -228,7 +226,7 @@ export const View: React.FC<{
                         variant="outline-primary"
                         disabled={disabled || lo.map(({ year }) => state.year <= year).getOrElse(false)}
                         tabIndex={0}
-                        onClick={() => dispatch(ChangeYear.Prev)}
+                        onClick={() => dispatch(ChangeYear(-1))}
                     >&lt;</Button>
                 </InputGroup.Prepend>
 
@@ -242,7 +240,7 @@ export const View: React.FC<{
                     onChange={(event: React.FormEvent<FormControlProps>) => {
                         Utils.parseInt(event.currentTarget.value || '').cata({
                             Nothing: () => { /* noop */ },
-                            Just: year => dispatch(new SetYear(
+                            Just: year => dispatch(SetYear(
                                 lo.map(({ year }) => year),
                                 hi.map(({ year }) => year),
                                 year
@@ -256,7 +254,7 @@ export const View: React.FC<{
                         variant="outline-primary"
                         disabled={disabled || hi.map(({ year }) => state.year >= year).getOrElse(false)}
                         tabIndex={0}
-                        onClick={() => dispatch(ChangeYear.Next)}
+                        onClick={() => dispatch(ChangeYear(1))}
                     >&gt;</Button>
                 </InputGroup.Append>
             </InputGroup>
