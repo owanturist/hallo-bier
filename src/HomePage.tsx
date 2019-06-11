@@ -5,7 +5,7 @@ import { Maybe, Nothing } from 'frctl/dist/Maybe';
 import * as Utils from './Utils';
 import * as Api from './Api';
 import * as Router from './Router';
-import { Month } from './MonthPicker';
+import * as MonthPicker from './MonthPicker';
 import * as SearchBuilder from './SearchBuilder';
 import * as BeerList from './BeerList';
 
@@ -129,8 +129,8 @@ class ActionSearchBuilder extends Action {
 }
 
 export const View: React.FC<{
-    minBrewedAfter?: [ Month, number ];
-    maxBrewedAfter?: [ Month, number ];
+    minBrewedAfter?: MonthPicker.Selected;
+    maxBrewedAfter?: MonthPicker.Selected;
     scroller: React.RefObject<HTMLElement>;
     favorites: Set<number>;
     state: State;

@@ -2,7 +2,7 @@ import React from 'react';
 import Button from 'react-bootstrap/Button';
 import InputGroup from 'react-bootstrap/InputGroup';
 import FormControl, { FormControlProps } from 'react-bootstrap/FormControl';
-import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
+import { Maybe } from 'frctl/dist/Maybe';
 import * as Utils from './Utils';
 import styles from './MonthPicker.module.css';
 
@@ -21,11 +21,7 @@ export class Month {
     public static Dec: Month = new Month(12, 'Dec', 'December');
 
     public static fromIndex(index: number): Maybe<Month> {
-        if (index % 1 !== 0 || index < 1 || index > 12) {
-            return Nothing;
-        }
-
-        return Just(Month.YEAR[ index - 1 ]);
+        return Maybe.fromNullable(Month.YEAR[ index - 1 ]);
     }
 
     public static fromDate(date: Date): Month {
@@ -86,11 +82,11 @@ export interface State {
     year: number;
 }
 
-export const setYear = (year: number, state: State): State => ({ ...state, year });
-
 export const init = (year: number): State => ({ year });
 
-interface StagePattern<R> {
+export const setYear = (year: number, state: State): State => ({ ...state, year });
+
+export interface StagePattern<R> {
     Update(nextState: State): R;
     Select(selected: Selected): R;
     Unselect(): R;
@@ -100,7 +96,7 @@ export abstract class Stage {
     public abstract cata<R>(pattern: StagePattern<R>): R;
 }
 
-class Update extends Stage {
+export class Update extends Stage {
     public constructor(private readonly state: State) {
         super();
     }
@@ -110,7 +106,7 @@ class Update extends Stage {
     }
 }
 
-class Select extends Stage {
+export class Select extends Stage {
     public constructor(
         private readonly month: Month,
         private readonly year: number
@@ -126,7 +122,7 @@ class Select extends Stage {
     }
 }
 
-class Unselect extends Stage {
+export class Unselect extends Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Unselect();
     }
@@ -134,7 +130,7 @@ class Unselect extends Stage {
 
 export abstract class Action extends Utils.Action<[ State ], Stage> {}
 
-class SetYear extends Action {
+export class SetYear extends Action {
     public constructor(
         private readonly min: Maybe<number>,
         private readonly max: Maybe<number>,
@@ -146,17 +142,25 @@ class SetYear extends Action {
     public update(state: State): Stage {
         return new Update({
             ...state,
-            year: this.year.map(year => Math.max(
-                this.min.getOrElse(year),
-                Math.min(this.max.getOrElse(year), year)
-            )).getOrElse(state.year)
+            year: this.year.cata({
+                Nothing: () => state.year,
+
+                Just: year => this.min.cata({
+                    Nothing: () => Math.min(this.max.getOrElse(year), year),
+
+                    Just: min => Math.max(
+                        min,
+                        Math.min(this.max.getOrElse(year), year)
+                    )
+                })
+            })
         });
     }
 }
 
-class ChangeYear extends Action {
-    public static readonly PREV: Action = new ChangeYear(-1);
-    public static readonly NEXT: Action = new ChangeYear(1);
+export class ChangeYear extends Action {
+    public static readonly Prev: Action = new ChangeYear(-1);
+    public static readonly Next: Action = new ChangeYear(1);
 
     private constructor(private readonly delta: number) {
         super();
@@ -167,7 +171,7 @@ class ChangeYear extends Action {
     }
 }
 
-class SelectMonth extends Action {
+export class SelectMonth extends Action {
     public constructor(private readonly month: Month) {
         super();
     }
@@ -177,8 +181,8 @@ class SelectMonth extends Action {
     }
 }
 
-class UnselectMonth extends Action {
-    public update(): Stage {
+export class UnselectMonth extends Action {
+    public update(_state: State): Stage {
         return new Unselect();
     }
 }
@@ -190,7 +194,7 @@ export interface Selected {
     year: number;
 }
 
-const MonthView: React.FC<{
+export const ViewMonth: React.FC<{
     disabled?: boolean;
     selected: boolean;
     month: Month;
@@ -198,7 +202,8 @@ const MonthView: React.FC<{
 }> = ({ disabled, selected, month, dispatch }) => (
     <Button
         block
-        variant={selected ? 'dark' : 'outline-dark'}
+        variant={'outline-dark'}
+        active={selected}
         disabled={disabled}
         onClick={() => dispatch(selected ? new UnselectMonth() : new SelectMonth(month))}
     >
@@ -209,70 +214,77 @@ const MonthView: React.FC<{
 );
 
 export const View: React.FC<{
-    min?: [ Month, number ];
-    max?: [ Month, number ];
+    min?: Selected;
+    max?: Selected;
     disabled?: boolean;
     selected: Maybe<Selected>;
     state: State;
     dispatch(action: Action): void;
-}> = ({ min, max, disabled, selected, state, dispatch }) => (
-    <div>
-        <InputGroup className="mb-1">
-            <InputGroup.Prepend>
-                <Button
-                    variant="outline-primary"
-                    disabled={disabled || state.year <= (min ? min[1] : 0)}
+}> = ({ min, max, disabled, selected, state, dispatch }) => {
+    const lo = Maybe.fromNullable(min);
+    const hi = Maybe.fromNullable(max);
+
+    return (
+        <div>
+            <InputGroup className="mb-1">
+                <InputGroup.Prepend>
+                    <Button
+                        variant="outline-primary"
+                        disabled={disabled || lo.map(({ year }) => state.year <= year).getOrElse(false)}
+                        tabIndex={0}
+                        onClick={() => dispatch(ChangeYear.Prev)}
+                    >&lt;</Button>
+                </InputGroup.Prepend>
+
+                <FormControl
+                    className="text-center"
+                    type="number"
+                    min={lo.map(({ year }) => year).getOrElse(0)}
+                    max={hi.map(({ year }) => year).getOrElse(Infinity)}
+                    value={state.year.toString()}
                     tabIndex={0}
-                    onClick={() => dispatch(ChangeYear.PREV)}
-                >&lt;</Button>
-            </InputGroup.Prepend>
+                    onChange={(event: React.FormEvent<FormControlProps>) => {
+                        dispatch(new SetYear(
+                            lo.map(({ year }) => year),
+                            hi.map(({ year }) => year),
+                            Utils.parseInt(event.currentTarget.value || '')
+                        ));
+                    }}
+                />
 
-            <FormControl
-                className="text-center"
-                type="number"
-                min={min ? min[1] : 0}
-                max={max && max[1]}
-                value={state.year.toString()}
-                tabIndex={0}
-                onChange={(event: React.FormEvent<FormControlProps>) => {
-                    dispatch(new SetYear(
-                        Maybe.fromNullable(min).map(([ _, year ]) => year),
-                        Maybe.fromNullable(max).map(([ _, year ]) => year),
-                        Utils.parseInt(event.currentTarget.value || '')
-                    ));
-                }}
-            />
+                <InputGroup.Append>
+                    <Button
+                        variant="outline-primary"
+                        disabled={disabled || hi.map(({ year }) => state.year >= year).getOrElse(false)}
+                        tabIndex={0}
+                        onClick={() => dispatch(ChangeYear.Next)}
+                    >&gt;</Button>
+                </InputGroup.Append>
+            </InputGroup>
 
-            <InputGroup.Append>
-                <Button
-                    variant="outline-primary"
-                    disabled={disabled || (max && state.year >= max[1])}
-                    tabIndex={0}
-                    onClick={() => dispatch(ChangeYear.NEXT)}
-                >&gt;</Button>
-            </InputGroup.Append>
-        </InputGroup>
-
-        <ul className={styles.monthList}>
-            {Month.year().map((month: Month) => (
-                <li key={month.toShortName()} className={styles.month}>
-                    <MonthView
-                        disabled={disabled
-                            || Maybe.fromNullable(min)
-                                .map(([ m, y ]) => state.year < y || (state.year === y && month.isLess(m)))
-                                .getOrElse(false)
-                            || Maybe.fromNullable(max)
-                                .map(([ m, y ]) => state.year > y || (state.year === y && month.isMore(m)))
-                                .getOrElse(false)
-                        }
-                        selected={selected.map(
-                            (selected: Selected) => selected.year === state.year && selected.month.isEqual(month)
-                        ).getOrElse(false)}
-                        month={month}
-                        dispatch={dispatch}
-                    />
-                </li>
-            ))}
-        </ul>
-    </div>
-);
+            <ul className={styles.monthList}>
+                {Month.year().map((month: Month) => (
+                    <li key={month.toShortName()} className={styles.month}>
+                        <ViewMonth
+                            disabled={disabled
+                                || lo.map(limit =>
+                                        state.year < limit.year
+                                        || (state.year === limit.year && month.isLess(limit.month))
+                                    ).getOrElse(false)
+                                || hi.map(limit =>
+                                        state.year > limit.year
+                                        || (state.year === limit.year && month.isMore(limit.month))
+                                    ).getOrElse(false)
+                            }
+                            selected={selected.map(
+                                (selected: Selected) => selected.year === state.year && selected.month.isEqual(month)
+                            ).getOrElse(false)}
+                            month={month}
+                            dispatch={dispatch}
+                        />
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};

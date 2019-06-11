@@ -88,8 +88,8 @@ class ChangeName extends Action {
 
 class ChangeBrewedAfter extends Action {
     public constructor(
-        private readonly min: Maybe<[ MonthPicker.Month, number ]>,
-        private readonly max: Maybe<[ MonthPicker.Month, number ]>,
+        private readonly min: Maybe<MonthPicker.Selected>,
+        private readonly max: Maybe<MonthPicker.Selected>,
         private readonly brewedAfter: string
     ) {
         super();
@@ -113,7 +113,7 @@ class ChangeBrewedAfter extends Action {
     }
 
     private limit(selected: MonthPicker.Selected): MonthPicker.Selected {
-        const bottomBordered = this.min.map(([ month, year ]) => {
+        const bottomBordered = this.min.map(({ month, year }) => {
             if (selected.year < year) {
                 return { month, year };
             }
@@ -128,7 +128,7 @@ class ChangeBrewedAfter extends Action {
             };
         }).getOrElse(selected);
 
-        return this.max.map(([ month, year ]) => {
+        return this.max.map(({ month, year }) => {
             if (bottomBordered.year < year) {
                 return bottomBordered;
             }
@@ -216,8 +216,8 @@ class ActionMonthPicker extends Action {
 }
 
 class ViewMonthpicker extends React.PureComponent<{
-    min?: [ MonthPicker.Month, number ];
-    max?: [ MonthPicker.Month, number ];
+    min?: MonthPicker.Selected;
+    max?: MonthPicker.Selected;
     disabled?: boolean;
     brewedAfter: string;
     monthPicker: Maybe<MonthPicker.State>;
@@ -293,8 +293,8 @@ class ViewMonthpicker extends React.PureComponent<{
 }
 
 export const View: React.FC<{
-    minBrewedAfter?: [ MonthPicker.Month, number ];
-    maxBrewedAfter?: [ MonthPicker.Month, number ];
+    minBrewedAfter?: MonthPicker.Selected;
+    maxBrewedAfter?: MonthPicker.Selected;
     disabled?: boolean;
     compact?: boolean;
     state: State;

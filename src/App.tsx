@@ -15,15 +15,15 @@ import * as BeerPage from './BeerPage';
 import * as RandomBeerPage from './RandomBeerPage';
 import * as SearchBeerPage from './SearchBeerPage';
 import * as FavoritesPage from './FavoritesPage';
-import { Month } from './MonthPicker';
+import * as MonthPicker from './MonthPicker';
 import styles from 'App.module.css';
 
 const brewedAfterLimits: {
-    minBrewedAfter: [ Month, number ];
-    maxBrewedAfter: [ Month, number ];
+    minBrewedAfter: MonthPicker.Selected;
+    maxBrewedAfter: MonthPicker.Selected;
 } = {
-    minBrewedAfter: [ Month.Sep, 0 ],
-    maxBrewedAfter: [ Month.Jul, 2019 ]
+    minBrewedAfter: { month: MonthPicker.Month.Sep, year: 0 },
+    maxBrewedAfter: { month: MonthPicker.Month.Jul, year: 2019 }
 };
 
 const BEERS_PER_PAGE = 10;

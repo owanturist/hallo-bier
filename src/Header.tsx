@@ -12,7 +12,7 @@ import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
 import * as Utils from 'Utils';
 import * as Router from './Router';
 import * as SearchBuilder from './SearchBuilder';
-import { Month } from './MonthPicker';
+import * as MonthPicker from './MonthPicker';
 import styles from 'Header.module.css';
 
 export interface State {
@@ -86,7 +86,7 @@ class ShowSearchBuilder extends Action {
                     filter.name.getOrElse(''),
                     filter.brewedAfter.map(
                         date => ({
-                            month: Month.fromDate(date),
+                            month: MonthPicker.Month.fromDate(date),
                             year: date.getFullYear()
                         })
                     )
@@ -332,8 +332,8 @@ const ViewNavbarToggle: React.FC<ButtonProps> = props => (
 );
 
 export const View: React.FC<{
-    minBrewedAfter?: [ Month, number ];
-    maxBrewedAfter?: [ Month, number ];
+    minBrewedAfter?: MonthPicker.Selected;
+    maxBrewedAfter?: MonthPicker.Selected;
     tools: Array<Tool>;
     state: State;
     dispatch(action: Action): void;
