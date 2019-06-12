@@ -639,7 +639,7 @@ export class Interceptor {
     }
 
     public reply(status: number, body?: string | object): Scope {
-        this.response = Just([
+        this.response = Just<[ number, string ]>([
             status,
             Maybe.fromNullable(body)
                 .map(x => typeof x === 'string' ? x : JSON.stringify(x))

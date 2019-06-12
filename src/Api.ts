@@ -83,11 +83,16 @@ const query = (key: string) => (value: string): [ string, string ] => [ key, val
 
 const arraySingleton = <T>(el: T): Array<T> => [ el ];
 
+export interface Page<T> {
+    hasMore: boolean;
+    beers: Array<T>;
+}
+
 export const loadBeerList = (
     filter: SearchFilter,
     beersPerPage: number,
     pageNumber: number
-): Http.Request<[ boolean, Array<Beer> ]> => {
+): Http.Request<Page<Beer>> => {
     return Http.get(`${PUNK_ENDPOINT}/beers`)
         .withQueryParam('page', pageNumber.toString())
         .withQueryParam('per_page', beersPerPage.toString())
@@ -106,10 +111,10 @@ export const loadBeerList = (
                 .getOrElse([])
         )
         .withExpect(Http.expectJson(
-            Decode.list(beerDecoder).map((beers): [ boolean, Array<Beer> ] => [
-                beers.length >= beersPerPage,
+            Decode.list(beerDecoder).map(beers => ({
+                hasMore: beers.length >= beersPerPage,
                 beers
-            ])
+            }))
         ));
 };
 
@@ -118,7 +123,7 @@ export const loadBeerListByIds = (
     ids: Array<number>,
     beersPerPage: number,
     pageNumber: number
-): Http.Request<[ boolean, Array<Beer> ]> => {
+): Http.Request<Page<Beer>> => {
     return loadBeerList(filter, beersPerPage, pageNumber)
         .withQueryParam('ids', ids.join('|'));
 };

@@ -28,7 +28,7 @@ export interface State {
     loading: RemoteData<Http.Error, never>;
 }
 
-export type Request = (count: number) => Http.Request<[ boolean, Array<Api.Beer> ]>;
+export type Request = (count: number) => Http.Request<Api.Page<Api.Beer>>;
 
 export const init = (request: Request): [ State, Cmd<Action> ] => [
     {
@@ -101,7 +101,7 @@ export const LoadMore = Utils.inst(class implements Action {
 
 export const LoadDone = Utils.cons(class implements Action {
     public constructor(
-        private readonly response: Either<Http.Error, [ boolean, Array<Api.Beer> ]>
+        private readonly response: Either<Http.Error, Api.Page<Api.Beer>>
     ) {}
 
     public update(_request: Request, state: State): Stage {
@@ -112,11 +112,11 @@ export const LoadDone = Utils.cons(class implements Action {
                     loading: Failure(error)
                 }),
 
-                Right: ([ hasMore, beerList ]) => ({
+                Right: page => ({
                     ...state,
-                    hasMore,
+                    hasMore: page.hasMore,
                     loading: NotAsked,
-                    beerList: state.beerList.concat(beerList)
+                    beerList: state.beerList.concat(page.beers)
                 })
             }),
             Cmd.none
