@@ -1,36 +1,6 @@
 import { Nothing, Just } from 'frctl/dist/Maybe';
 import * as Utils from './Utils';
 
-class Test extends Utils.Action<[ number ], number> {
-    public constructor(private readonly amount: number) {
-        super();
-    }
-
-    public update(count: number): number {
-        return count + this.amount;
-    }
-}
-
-describe('Action', () => {
-    const action = new Test(3);
-
-    it('toString returns class name', () => {
-        expect(action + '').toBe('Test');
-    });
-
-    it('JSON.stringify creates an object with the type and fields', () => {
-        expect(
-            JSON.stringify(action)
-        ).toBe(
-            JSON.stringify({ type: 'Test', amount: 3 })
-        );
-    });
-
-    it('update', () => {
-        expect(action.update(2)).toBe(5);
-    });
-});
-
 describe('parseInt', () => {
     it('Nothing when empty string', () => {
         expect(Utils.parseInt('')).toEqual(Nothing);

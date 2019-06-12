@@ -23,12 +23,10 @@ export const getBeer = (state: State): Maybe<Api.Beer> => state.beer.toMaybe();
 
 export const isLoading = (state: State): boolean => state.beer.isLoading();
 
-export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
+export interface Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
-export const LoadDone = Utils.cons<[ Either<Http.Error, Api.Beer> ], Action>(class extends Action {
-    public constructor(private readonly response: Either<Http.Error, Api.Beer>) {
-        super('LoadDone');
-    }
+export const LoadDone = Utils.cons(class implements Action {
+    public constructor(private readonly response: Either<Http.Error, Api.Beer>) {}
 
     public update(state: State): [ State, Cmd<Action> ] {
         return [

@@ -79,72 +79,78 @@ export abstract class Route {
     }
 }
 
-export const ToHome = Utils.inst<Route>(class ToHome extends Route {
-    public toPath(): string {
-        return '/';
-    }
-
-    public cata<R>(pattern: RouterPattern<R>): R {
-        if (typeof pattern.ToHome === 'function') {
-            return pattern.ToHome();
+export const ToHome = Utils.inst<Route>(
+    class ToHome extends Route {
+        public toPath(): string {
+            return '/';
         }
 
-        return (pattern._ as () => R)();
-    }
+        public cata<R>(pattern: RouterPattern<R>): R {
+            if (typeof pattern.ToHome === 'function') {
+                return pattern.ToHome();
+            }
 
-    public isEqual(another: Route): boolean {
-        return another.cata({
-            ToHome: () => true,
-            _: () => false
-        });
-    }
-});
-
-export const ToBeer = Utils.cons<[ number ], Route>(class ToBeer extends Route {
-    public constructor(private readonly id: number) {
-        super();
-    }
-
-    public toPath(): string {
-        return `/beer/${this.id}`;
-    }
-
-    public cata<R>(pattern: RouterPattern<R>): R {
-        if (typeof pattern.ToBeer === 'function') {
-            return pattern.ToBeer(this.id);
+            return (pattern._ as () => R)();
         }
 
-        return (pattern._ as () => R)();
+        public isEqual(another: Route): boolean {
+            return another.cata({
+                ToHome: () => true,
+                _: () => false
+            });
+        }
     }
+);
 
-    public isEqual(another: Route): boolean {
-        return another.cata({
-            ToBeer: beerId => beerId === this.id,
-            _: () => false
-        });
-    }
-});
-
-export const ToRandomBeer: Route = Utils.inst(class ToRandomBeer extends Route {
-    public toPath(): string {
-        return '/random';
-    }
-
-    public cata<R>(pattern: RouterPattern<R>): R {
-        if (typeof pattern.ToRandomBeer === 'function') {
-            return pattern.ToRandomBeer();
+export const ToBeer = Utils.cons<[ number ], Route>(
+    class ToBeer extends Route {
+        public constructor(private readonly id: number) {
+            super();
         }
 
-        return (pattern._ as () => R)();
-    }
+        public toPath(): string {
+            return `/beer/${this.id}`;
+        }
 
-    public isEqual(another: Route): boolean {
-        return another.cata({
-            ToRandomBeer: () => true,
-            _: () => false
-        });
+        public cata<R>(pattern: RouterPattern<R>): R {
+            if (typeof pattern.ToBeer === 'function') {
+                return pattern.ToBeer(this.id);
+            }
+
+            return (pattern._ as () => R)();
+        }
+
+        public isEqual(another: Route): boolean {
+            return another.cata({
+                ToBeer: beerId => beerId === this.id,
+                _: () => false
+            });
+        }
     }
-});
+);
+
+export const ToRandomBeer: Route = Utils.inst(
+    class ToRandomBeer extends Route {
+        public toPath(): string {
+            return '/random';
+        }
+
+        public cata<R>(pattern: RouterPattern<R>): R {
+            if (typeof pattern.ToRandomBeer === 'function') {
+                return pattern.ToRandomBeer();
+            }
+
+            return (pattern._ as () => R)();
+        }
+
+        public isEqual(another: Route): boolean {
+            return another.cata({
+                ToRandomBeer: () => true,
+                _: () => false
+            });
+        }
+    }
+);
 
 abstract class ToRouteWithFilter extends Route {
     public static parseFilter(loc: Location): SearchFilter {
@@ -184,47 +190,51 @@ abstract class ToRouteWithFilter extends Route {
     }
 }
 
-export const ToBeerSearch = Utils.cons<[ SearchFilter ], Route>(class ToBeerSearch extends ToRouteWithFilter {
-    public toPath(): string {
-        return '/search' + this.toQueryString();
-    }
-
-    public cata<R>(pattern: RouterPattern<R>): R {
-        if (typeof pattern.ToBeerSearch === 'function') {
-            return pattern.ToBeerSearch(this.filter);
+export const ToBeerSearch = Utils.cons<[ SearchFilter ], Route>(
+    class ToBeerSearch extends ToRouteWithFilter {
+        public toPath(): string {
+            return '/search' + this.toQueryString();
         }
 
-        return (pattern._ as () => R)();
-    }
+        public cata<R>(pattern: RouterPattern<R>): R {
+            if (typeof pattern.ToBeerSearch === 'function') {
+                return pattern.ToBeerSearch(this.filter);
+            }
 
-    public isEqual(another: Route): boolean {
-        return another.cata({
-            ToBeerSearch: filter => areSearchFiltersEqual(filter, this.filter),
-            _: () => false
-        });
-    }
-});
-
-export const ToFavorites = Utils.cons<[ SearchFilter ], Route>(class ToFavorites extends ToRouteWithFilter {
-    public toPath(): string {
-        return '/favorites' + this.toQueryString();
-    }
-
-    public cata<R>(pattern: RouterPattern<R>): R {
-        if (typeof pattern.ToFavorites === 'function') {
-            return pattern.ToFavorites(this.filter);
+            return (pattern._ as () => R)();
         }
 
-        return (pattern._ as () => R)();
+        public isEqual(another: Route): boolean {
+            return another.cata({
+                ToBeerSearch: filter => areSearchFiltersEqual(filter, this.filter),
+                _: () => false
+            });
+        }
     }
+);
 
-    public isEqual(another: Route): boolean {
-        return another.cata({
-            ToFavorites: filter => areSearchFiltersEqual(filter, this.filter),
-            _: () => false
-        });
+export const ToFavorites = Utils.cons<[ SearchFilter ], Route>(
+    class ToFavorites extends ToRouteWithFilter {
+        public toPath(): string {
+            return '/favorites' + this.toQueryString();
+        }
+
+        public cata<R>(pattern: RouterPattern<R>): R {
+            if (typeof pattern.ToFavorites === 'function') {
+                return pattern.ToFavorites(this.filter);
+            }
+
+            return (pattern._ as () => R)();
+        }
+
+        public isEqual(another: Route): boolean {
+            return another.cata({
+                ToFavorites: filter => areSearchFiltersEqual(filter, this.filter),
+                _: () => false
+            });
+        }
     }
-});
+);
 
 interface PathProps<P> extends RouteProps {
     computedMatch?: match<P>;

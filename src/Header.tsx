@@ -32,54 +32,46 @@ export interface StagePattern<R> {
     SetFilters(filters: Router.SearchFilter): R;
 }
 
-export abstract class Stage {
-    public abstract cata<R>(pattern: StagePattern<R>): R;
+export interface Stage {
+    cata<R>(pattern: StagePattern<R>): R;
 }
 
-export const Update = Utils.cons<[ State ], Stage>(class extends Stage {
-    public constructor(private readonly state: State) {
-        super();
-    }
+export const Update = Utils.cons(class implements Stage {
+    public constructor(private readonly state: State) {}
 
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Update(this.state);
     }
 });
 
-export const RollRandomBeer = Utils.inst<Stage>(class extends Stage {
+export const RollRandomBeer = Utils.inst(class implements Stage {
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.RollRandomBeer();
     }
 });
 
-export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class extends Stage {
+export const SetFavorites = Utils.cons(class implements Stage {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
-    ) {
-        super();
-    }
+    ) {}
 
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.SetFavorites(this.checked, this.beerId);
     }
 });
 
-export const SetFilters = Utils.cons<[ Router.SearchFilter ], Stage>(class extends Stage {
-    public constructor(private readonly filters: Router.SearchFilter) {
-        super();
-    }
+export const SetFilters = Utils.cons(class implements Stage {
+    public constructor(private readonly filters: Router.SearchFilter) {}
 
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.SetFilters(this.filters);
     }
 });
 
-export abstract class Action extends Utils.Action<[ State ], Stage> {}
+export interface Action extends Utils.Action<[ State ], Stage> {}
 
-export const RollBeer = Utils.inst<Action>(class extends Action {
-    protected readonly type = 'RollBeer';
-
+export const RollBeer = Utils.inst(class implements Action {
     public update(_state: State): Stage {
         return RollRandomBeer;
     }
@@ -96,10 +88,8 @@ export const showSearchBuilder = (filter: Router.SearchFilter, state: State): St
     };
 };
 
-export const ShowSearchBuilder = Utils.cons<[ Router.SearchFilter ], Action>(class extends Action {
-    public constructor(private readonly filter: Router.SearchFilter) {
-        super('ShowSearchBuilder');
-    }
+export const ShowSearchBuilder = Utils.cons(class implements Action {
+    public constructor(private readonly filter: Router.SearchFilter) {}
 
     public update(state: State): Stage {
         return Update(showSearchBuilder(this.filter, state));
@@ -110,51 +100,40 @@ export const hideSearchBuilder = (state: State): State => {
     return { ...state, searchBuilder: Nothing };
 };
 
-export const HideSearchBuilder = Utils.inst(class extends Action {
-    protected readonly type = 'HideSearchBuilder';
-
+export const HideSearchBuilder = Utils.inst(class implements Action {
     public update(state: State): Stage {
         return Update(hideSearchBuilder(state));
     }
 });
 
-export const ToggleMenu = Utils.cons<[ boolean ], Action>(class extends Action {
-    public constructor(private readonly expanded: boolean) {
-        super('ToggleMenu');
-    }
+export const ToggleMenu = Utils.cons(class implements Action {
+    public constructor(private readonly expanded: boolean) {}
 
     public update(state: State): Stage {
         return Update({ ...state, expanded: this.expanded });
     }
 });
 
-export const ToggleFavorite = Utils.cons<[ boolean, number ], Action>(class extends Action {
+export const ToggleFavorite = Utils.cons(class implements Action {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
-    ) {
-        super('ToggleFavorite');
-    }
+    ) {}
 
     public update(_state: State): Stage {
         return SetFavorites(this.checked, this.beerId);
     }
 });
 
-export const SearchBuilderAction = Utils.cons<
-    [ SearchBuilder. Action ],
-    Action
->(class extends Action {
-    public constructor(private readonly action: SearchBuilder.Action) {
-        super('SearchBuilderAction');
-    }
+export const SearchBuilderAction = Utils.cons(class implements Action {
+    public constructor(private readonly action: SearchBuilder.Action) {}
 
     public update(state: State): Stage {
         return state.searchBuilder.cata({
             Nothing: () => Update(state),
 
             Just: searchBuilder => {
-                return this.action.update(searchBuilder).cata({
+                return this.action.update(searchBuilder).cata<Stage>({
                     Update: nextSearchBuilder => Update({
                         ...state,
                         searchBuilder: Just(nextSearchBuilder)

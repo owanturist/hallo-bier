@@ -40,42 +40,36 @@ export interface StagePattern<R> {
     SetFavorites(checked: boolean, beerId: number): R;
 }
 
-export abstract class Stage {
-    public abstract cata<R>(patern: StagePattern<R>): R;
+export interface Stage {
+    cata<R>(patern: StagePattern<R>): R;
 }
 
-export const Update = Utils.cons<[ State, Cmd<Action> ], Stage>(class extends Stage {
+export const Update = Utils.cons<[ State, Cmd<Action> ], Stage>(class implements Stage {
     public constructor(
         private readonly state: State,
         private readonly cmd: Cmd<Action>
-    ) {
-        super();
-    }
+    ) {}
 
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Update(this.state, this.cmd);
     }
 });
 
-export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class extends Stage {
+export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class implements Stage {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
-    ) {
-        super();
-    }
+    ) {}
 
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.SetFavorites(this.checked, this.beerId);
     }
 });
 
-export abstract class Action extends Utils.Action<[ Router.SearchFilter, State ], Stage> {}
+export interface Action extends Utils.Action<[ Router.SearchFilter, State ], Stage> {}
 
-export const BeerListAction = Utils.cons<[ BeerList.Action ], Action>(class extends Action {
-    public constructor(private readonly action: BeerList.Action) {
-        super('BeerListAction');
-    }
+export const BeerListAction = Utils.cons(class implements Action {
+    public constructor(private readonly action: BeerList.Action) {}
 
     public update(filter: Router.SearchFilter, state: State): Stage {
         return this.action.update(

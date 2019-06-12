@@ -37,11 +37,11 @@ type PagePattern<R> = Cata<{
     PageFavoritesBeer(filter: Router.SearchFilter, favoritesPage: FavoritesPage.State): R;
 }>;
 
-abstract class Page {
-    public abstract cata<R>(pattern: PagePattern<R>): R;
+export interface Page {
+    cata<R>(pattern: PagePattern<R>): R;
 }
 
-export const PageVoid = Utils.inst<Page>(class extends Page {
+export const PageVoid = Utils.inst(class implements Page {
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageVoid === 'function') {
             return pattern.PageVoid();
@@ -51,10 +51,8 @@ export const PageVoid = Utils.inst<Page>(class extends Page {
     }
 });
 
-export const PageHome = Utils.cons<[ HomePage.State ], Page>(class extends Page {
-    public constructor(private readonly homePage: HomePage.State) {
-        super();
-    }
+export const PageHome = Utils.cons(class implements Page {
+    public constructor(private readonly homePage: HomePage.State) {}
 
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageHome === 'function') {
@@ -65,13 +63,11 @@ export const PageHome = Utils.cons<[ HomePage.State ], Page>(class extends Page 
     }
 });
 
-export const PageBeer = Utils.cons<[ number, BeerPage.State ], Page>(class extends Page {
+export const PageBeer = Utils.cons(class implements Page {
     public constructor(
         private readonly beerId: number,
         private readonly beerPage: BeerPage.State
-    ) {
-        super();
-    }
+    ) {}
 
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageBeer === 'function') {
@@ -82,10 +78,8 @@ export const PageBeer = Utils.cons<[ number, BeerPage.State ], Page>(class exten
     }
 });
 
-export const PageRandomBeer = Utils.cons<[ RandomBeerPage.State ], Page>(class extends Page {
-    public constructor(private readonly randomBeerPage: RandomBeerPage.State) {
-        super();
-    }
+export const PageRandomBeer = Utils.cons(class implements Page {
+    public constructor(private readonly randomBeerPage: RandomBeerPage.State) {}
 
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageRandomBeer === 'function') {
@@ -96,16 +90,11 @@ export const PageRandomBeer = Utils.cons<[ RandomBeerPage.State ], Page>(class e
     }
 });
 
-export const PageSearchBeer = Utils.cons<
-    [ Router.SearchFilter, SearchBeerPage.State ],
-    Page
->(class extends Page {
+export const PageSearchBeer = Utils.cons(class implements Page {
     public constructor(
         private readonly filter: Router.SearchFilter,
         private readonly searchBeerPage: SearchBeerPage.State
-    ) {
-        super();
-    }
+    ) {}
 
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageSearchBeer === 'function') {
@@ -116,16 +105,11 @@ export const PageSearchBeer = Utils.cons<
     }
 });
 
-export const PageFavoritesBeer = Utils.cons<
-    [ Router.SearchFilter, FavoritesPage.State ],
-    Page
->(class extends Page {
+export const PageFavoritesBeer = Utils.cons(class implements Page {
     public constructor(
         private readonly filter: Router.SearchFilter,
         private readonly favoritesPage: FavoritesPage.State
-    ) {
-        super();
-    }
+    ) {}
 
     public cata<R>(pattern: PagePattern<R>): R {
         if (typeof pattern.PageFavoritesBeer === 'function') {
@@ -164,12 +148,10 @@ const setFavorites = (checked: boolean, beerId: number, state: State): [ State, 
     ];
 };
 
-export abstract class Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
+export interface Action extends Utils.Action<[ State ], [ State, Cmd<Action> ]> {}
 
-export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends Action {
-    public constructor(private readonly route: Router.Route) {
-        super('RouteChanged');
-    }
+export const RouteChanged = Utils.cons(class implements Action {
+    public constructor(private readonly route: Router.Route) {}
 
     public update(state: State): [ State, Cmd<Action> ] {
         if (state.route.map(route => route.isEqual(this.route)).getOrElse(false)) {
@@ -266,10 +248,8 @@ export const RouteChanged = Utils.cons<[ Router.Route ], Action>(class extends A
     }
 });
 
-export const GetListOfFavorites = Utils.cons<[ Array<number> ], Action>(class extends Action {
-    public constructor(private readonly favorites: Array<number>) {
-        super('GetListOfFavorites');
-    }
+export const GetListOfFavorites = Utils.cons(class implements Action {
+    public constructor(private readonly favorites: Array<number>) {}
 
     public update(state: State): [ State, Cmd<Action> ] {
         return [
@@ -279,10 +259,8 @@ export const GetListOfFavorites = Utils.cons<[ Array<number> ], Action>(class ex
     }
 });
 
-export const HeaderAction = Utils.cons<[ Header.Action ], Action>(class extends Action {
-    public constructor(private readonly action: Header.Action) {
-        super('HeaderAction');
-    }
+export const HeaderAction = Utils.cons(class implements Action {
+    public constructor(private readonly action: Header.Action) {}
 
     public update(state: State): [ State, Cmd<Action> ] {
         return  this.action.update(state.header).cata<[ State, Cmd<Action> ]>({
@@ -317,10 +295,8 @@ export const HeaderAction = Utils.cons<[ Header.Action ], Action>(class extends 
     }
 });
 
-export const HomePageAction = Utils.cons<[ HomePage.Action ], Action>(class extends Action {
-    public constructor(private readonly action: HomePage.Action) {
-        super('HomePageAction');
-    }
+export const HomePageAction = Utils.cons(class implements Action {
+    public constructor(private readonly action: HomePage.Action) {}
 
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({
@@ -344,10 +320,8 @@ export const HomePageAction = Utils.cons<[ HomePage.Action ], Action>(class exte
     }
 });
 
-export const BeerPageAction = Utils.cons<[ BeerPage.Action ], Action>(class extends Action {
-    public constructor(private readonly action: BeerPage.Action) {
-        super('BeerPageAction');
-    }
+export const BeerPageAction = Utils.cons(class implements Action {
+    public constructor(private readonly action: BeerPage.Action) {}
 
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({
@@ -363,13 +337,8 @@ export const BeerPageAction = Utils.cons<[ BeerPage.Action ], Action>(class exte
     }
 });
 
-export const RandomBeerPageAction = Utils.cons<
-    [ RandomBeerPage.Action ],
-    Action
->(class extends Action {
-    public constructor(private readonly action: RandomBeerPage.Action) {
-        super('RandomBeerPageAction');
-    }
+export const RandomBeerPageAction = Utils.cons(class implements Action {
+    public constructor(private readonly action: RandomBeerPage.Action) {}
 
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({
@@ -387,10 +356,8 @@ export const RandomBeerPageAction = Utils.cons<
     }
 });
 
-export const SearchBeerPageAction = Utils.cons(class extends Action {
-    public constructor(private readonly action: SearchBeerPage.Action) {
-        super('SearchBeerPageAction');
-    }
+export const SearchBeerPageAction = Utils.cons(class implements Action {
+    public constructor(private readonly action: SearchBeerPage.Action) {}
 
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({
@@ -415,10 +382,8 @@ export const SearchBeerPageAction = Utils.cons(class extends Action {
     }
 });
 
-export const FavoritesPageAction = Utils.cons(class extends Action {
-    public constructor(private readonly action: FavoritesPage.Action) {
-        super('FavoritesPageAction');
-    }
+export const FavoritesPageAction = Utils.cons(class implements Action {
+    public constructor(private readonly action: FavoritesPage.Action) {}
 
     public update(state: State): [ State, Cmd<Action> ] {
         return state.page.cata<[ State, Cmd<Action> ]>({

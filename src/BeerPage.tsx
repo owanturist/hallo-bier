@@ -20,12 +20,10 @@ export const init = (beerId: number): [ State, Cmd<Action> ] => [
 
 export const initWithBeer = (beer: Api.Beer): State => ({ beer: Succeed(beer) });
 
-export abstract class Action extends Utils.Action<[ State ], State> {}
+export interface Action extends Utils.Action<[ State ], State> {}
 
-export const LoadDone = Utils.cons<[ Either<Http.Error, Api.Beer> ], Action>(class extends Action {
-    public constructor(private readonly response: Either<Http.Error, Api.Beer>) {
-        super('LoadDone');
-    }
+export const LoadDone = Utils.cons(class implements Action {
+    public constructor(private readonly response: Either<Http.Error, Api.Beer>) {}
 
     public update(state: State): State {
         return {

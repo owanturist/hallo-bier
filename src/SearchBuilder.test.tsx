@@ -10,7 +10,7 @@ Enzyme.configure({
     adapter: new Adapter()
 });
 
-class MonthPickerAction extends MonthPicker.Action {
+class MonthPickerAction implements MonthPicker.Action {
     public static readonly update = jest.fn<MonthPicker.Stage, [ MonthPicker.State ]>();
 
     public update(state: MonthPicker.State): MonthPicker.Stage {

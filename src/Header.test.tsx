@@ -1,10 +1,8 @@
-import React from 'react';
 import {} from 'react-bootstrap';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import { Nothing, Just } from 'frctl/dist/Maybe';
 import * as Router from './Router';
-import * as MonthPicker from './MonthPicker';
 import * as SearchBuilder from './SearchBuilder';
 import * as Header from './Header';
 

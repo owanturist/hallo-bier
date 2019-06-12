@@ -50,53 +50,42 @@ export interface StagePattern<R> {
     Search(config: Router.SearchFilter): R;
 }
 
-export abstract class Stage {
-    public abstract cata<R>(pattern: StagePattern<R>): R;
+export interface Stage {
+    cata<R>(pattern: StagePattern<R>): R;
 }
 
-export const Update = Utils.cons<[ State ], Stage>(class extends Stage {
-    public constructor(private readonly state: State) {
-        super();
-    }
+export const Update = Utils.cons(class implements Stage {
+    public constructor(private readonly state: State) {}
 
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Update(this.state);
     }
 });
 
-export const Search = Utils.cons<[ Router.SearchFilter ], Stage>(class extends Stage {
-    public constructor(private readonly filter: Router.SearchFilter) {
-        super();
-    }
+export const Search = Utils.cons(class implements Stage {
+    public constructor(private readonly filters: Router.SearchFilter) {}
 
     public cata<R>(pattern: StagePattern<R>): R {
-        return pattern.Search(this.filter);
+        return pattern.Search(this.filters);
     }
 });
 
-export abstract class Action extends Utils.Action<[ State ], Stage> {}
+export interface Action extends Utils.Action<[ State ], Stage> {}
 
-export const ChangeName = Utils.cons<[ string ], Action>(class extends Action {
-    public constructor(private readonly name: string) {
-        super('ChangeName');
-    }
+export const ChangeName = Utils.cons(class implements Action {
+    public constructor(private readonly name: string) {}
 
     public update(state: State): Stage {
         return Update({ ...state, name: this.name });
     }
 });
 
-export const ChangeBrewedAfter = Utils.cons<
-    [ Maybe<MonthPicker.Selected>, Maybe<MonthPicker.Selected>, string ],
-    Action
->(class extends Action {
+export const ChangeBrewedAfter = Utils.cons(class implements Action {
     public constructor(
         private readonly min: Maybe<MonthPicker.Selected>,
         private readonly max: Maybe<MonthPicker.Selected>,
         private readonly brewedAfter: string
-    ) {
-        super('ChangeBrewedAfter');
-    }
+    ) {}
 
     public update(state: State): Stage {
         return selectedFromString(this.brewedAfter)
@@ -150,9 +139,7 @@ export const ChangeBrewedAfter = Utils.cons<
     }
 });
 
-export const SearchBeer = Utils.inst<Action>(class extends Action {
-    protected readonly type = 'SearchBeer';
-
+export const SearchBeer = Utils.inst(class implements Action {
     public update(state: State): Stage {
         const trimmedName = state.name.trim();
 
@@ -163,9 +150,7 @@ export const SearchBeer = Utils.inst<Action>(class extends Action {
     }
 });
 
-export const ShowMonthPicker = Utils.inst<Action>(class extends Action {
-    protected readonly type = 'ShowMonthPicker';
-
+export const ShowMonthPicker = Utils.inst(class implements Action {
     public update(state: State): Stage {
         if (state.monthPicker.isJust()) {
             return Update(state);
@@ -182,9 +167,7 @@ export const ShowMonthPicker = Utils.inst<Action>(class extends Action {
     }
 });
 
-export const HideMonthPicker = Utils.inst<Action>(class extends Action {
-    protected readonly type = 'HideMonthPicker';
-
+export const HideMonthPicker = Utils.inst(class implements Action {
     public update(state: State): Stage {
         return Update({
             ...state,
@@ -193,10 +176,8 @@ export const HideMonthPicker = Utils.inst<Action>(class extends Action {
     }
 });
 
-export const MonthPickerAction = Utils.cons<[ MonthPicker.Action ], Action>(class extends Action {
-    public constructor(private readonly action: MonthPicker.Action) {
-        super('MonthPickerAction');
-    }
+export const MonthPickerAction = Utils.cons(class implements Action {
+    public constructor(private readonly action: MonthPicker.Action) {}
 
     public update(state: State): Stage {
         return state.monthPicker.cata({

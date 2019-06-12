@@ -58,41 +58,35 @@ export interface StagePattern<R> {
     SetFavorites(checked: boolean, beerId: number): R;
 }
 
-export abstract class Stage {
-    public abstract cata<R>(patern: StagePattern<R>): R;
+export interface Stage {
+    cata<R>(patern: StagePattern<R>): R;
 }
 
-export const Update = Utils.cons<[ State, Cmd<Action> ], Stage>(class extends Stage {
+export const Update = Utils.cons(class implements Stage {
     public constructor(
         private readonly state: State,
         private readonly cmd: Cmd<Action>
-    ) {
-        super();
-    }
+    ) {}
 
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.Update(this.state, this.cmd);
     }
 });
 
-export const SetFavorites = Utils.cons<[ boolean, number ], Stage>(class extends Stage {
+export const SetFavorites = Utils.cons(class implements Stage {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
-    ) {
-        super();
-    }
+    ) {}
 
     public cata<R>(pattern: StagePattern<R>): R {
         return pattern.SetFavorites(this.checked, this.beerId);
     }
 });
 
-export abstract class Action extends Utils.Action<[ Request, State ], Stage> {}
+export interface Action extends Utils.Action<[ Request, State ], Stage> {}
 
-export const LoadMore = Utils.inst<Action>(class extends Action {
-    protected readonly type = 'LoadMore';
-
+export const LoadMore = Utils.inst(class implements Action {
     public update(request: Request, state: State): Stage {
         if (!state.hasMore || !state.loading.isNotAsked()) {
             return Update(state, Cmd.none);
@@ -105,15 +99,10 @@ export const LoadMore = Utils.inst<Action>(class extends Action {
     }
 });
 
-export const LoadDone = Utils.cons<
-    [ Either<Http.Error, [ boolean, Array<Api.Beer> ]> ],
-    Action
->(class extends Action {
+export const LoadDone = Utils.cons(class implements Action {
     public constructor(
         private readonly response: Either<Http.Error, [ boolean, Array<Api.Beer> ]>
-    ) {
-        super('LoadDone');
-    }
+    ) {}
 
     public update(_request: Request, state: State): Stage {
         return Update(
@@ -135,13 +124,11 @@ export const LoadDone = Utils.cons<
     }
 });
 
-export const ToggleFavorite = Utils.cons<[ boolean, number ], Action>(class extends Action {
+export const ToggleFavorite = Utils.cons(class implements Action {
     public constructor(
         private readonly checked: boolean,
         private readonly beerId: number
-    ) {
-        super('ToggleFavorite');
-    }
+    ) {}
 
     public update(): Stage {
         return SetFavorites(this.checked, this.beerId);

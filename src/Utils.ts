@@ -1,25 +1,28 @@
 import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
 
-export const inst = <T>(Constructor: new () => T) => new Constructor();
+export const inst = <T>(Constructor: new (args: []) => T) => new Constructor([]);
 
 export const cons = <A extends Array<unknown>, T>(
     Constructor: new (...args: A) => A extends [] ? never : T
 ) => (...args: A): T => new Constructor(...args);
 
-export abstract class Action<S extends Array<unknown>, R> {
+export abstract class Cons<A extends Array<unknown> = []> {
     protected readonly type = this.constructor.name;
+    protected readonly _: {
+        [ K in Exclude<keyof A, keyof []> ]: A[ K ];
+    };
 
-    public constructor(type?: string) {
-        if (typeof type !== 'undefined') {
-            this.type = type;
-        }
+    public constructor(...args: A) {
+        this._ = args;
     }
-
-    public abstract update(...args: S): R;
 
     protected toString() {
         return this.type;
     }
+}
+
+export interface Action<A extends Array<unknown>, R> {
+    update(...args: A): R;
 }
 
 export const parseInt = (str: string): Maybe<number> => {
