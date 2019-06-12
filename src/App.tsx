@@ -466,17 +466,17 @@ export class View extends React.PureComponent<{
         const favoritesSet = new Set(state.favorites);
         const headerTools = state.page.cata({
             PageBeer: beerId => [
-                Header.Tool.Favorite(favoritesSet, Just(beerId))
+                Header.Favorite(favoritesSet, Just(beerId))
             ],
             PageRandomBeer: randomBeer => [
-                Header.Tool.Roll(RandomBeerPage.isLoading(randomBeer)),
-                Header.Tool.Favorite(favoritesSet, randomBeer.beer.map(beer => beer.id).toMaybe())
+                Header.Roll(RandomBeerPage.isLoading(randomBeer)),
+                Header.Favorite(favoritesSet, randomBeer.beer.map(beer => beer.id).toMaybe())
             ],
             PageSearchBeer: filter => [
-                Header.Tool.Filter(filter)
+                Header.Filter(filter)
             ],
             PageFavoritesBeer: filter => state.favorites.length > 1 ? [
-                Header.Tool.Filter(filter)
+                Header.Filter(filter)
             ] : [],
             _: () => []
         });

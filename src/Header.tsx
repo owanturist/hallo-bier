@@ -152,30 +152,12 @@ type ToolPattern<R> = Cata<{
     Favorite(favorites: Set<number>, beerId: Maybe<number>): R;
 }>;
 
-export abstract class Tool {
-    public static Filter(filter: Router.SearchFilter): Tool {
-        return new FilterTool(filter);
-    }
-
-    public static Roll(busy: boolean): Tool {
-        return new RollTool(busy);
-    }
-
-    public static Favorite(favorites: Set<number>, beerId: Maybe<number>): Tool {
-        return new FavoriteTool(favorites, beerId);
-    }
-
-    public toString(): string {
-        return this.constructor.name;
-    }
-
-    public abstract cata<R>(pattern: ToolPattern<R>): R;
+export interface Tool {
+    cata<R>(pattern: ToolPattern<R>): R;
 }
 
-class FilterTool extends Tool {
-    public constructor(private readonly filter: Router.SearchFilter) {
-        super();
-    }
+export const Filter = Utils.cons<[ Router.SearchFilter ], Tool>(class implements Tool {
+    public constructor(private readonly filter: Router.SearchFilter) {}
 
     public cata<R>(pattern: ToolPattern<R>): R {
         if (typeof pattern.Filter === 'function') {
@@ -184,12 +166,10 @@ class FilterTool extends Tool {
 
         return (pattern._ as () => R)();
     }
-}
+});
 
-class RollTool extends Tool {
-    public constructor(private readonly busy: boolean) {
-        super();
-    }
+export const Roll = Utils.cons<[ boolean ], Tool>(class implements Tool {
+    public constructor(private readonly busy: boolean) {}
 
     public cata<R>(pattern: ToolPattern<R>): R {
         if (typeof pattern.Roll === 'function') {
@@ -198,15 +178,13 @@ class RollTool extends Tool {
 
         return (pattern._ as () => R)();
     }
-}
+});
 
-class FavoriteTool extends Tool {
+export const Favorite = Utils.cons<[ Set<number>, Maybe<number> ], Tool>(class implements Tool {
     public constructor(
         private readonly favorites: Set<number>,
         private readonly beerId: Maybe<number>
-    ) {
-        super();
-    }
+    ) {}
 
     public cata<R>(pattern: ToolPattern<R>): R {
         if (typeof pattern.Favorite === 'function') {
@@ -215,7 +193,7 @@ class FavoriteTool extends Tool {
 
         return (pattern._ as () => R)();
     }
-}
+});
 
 const hasFilterTool = (tools: Array<Tool>): boolean => {
     return tools.some(tool => tool.cata({
