@@ -1,11 +1,30 @@
-export type Done<T> = (action: T) => void;
+export type Executor<T> = (action: T) => void;
 
-export abstract class Cmd<T> {
+abstract class Bag<T> {
+    protected static execute<T>(cmd: Cmd<T>, done: Executor<T>): void {
+        cmd.execute(done);
+    }
+
+    public abstract map<R>(fn: (action: T) => R): Cmd<R>;
+
+    protected abstract execute(done: Executor<T>): void;
+}
+
+abstract class CmdExecutor extends Bag<never> {
+    public static execute<T>(cmd: Cmd<T>, done: Executor<T>): void {
+        super.execute(cmd, done);
+    }
+}
+
+// tslint:disable-next-line:variable-name
+export const __execute__ = CmdExecutor.execute;
+
+export default abstract class Cmd<T> extends Bag<T> {
     public static get none(): Cmd<never> {
         return Batch.EMPTY;
     }
 
-    public static of<T>(cast: (done: Done<T>) => void): Cmd<T> {
+    public static of<T>(cast: (done: Executor<T>) => void): Cmd<T> {
         return new Unit(cast);
     }
 
@@ -16,7 +35,7 @@ export abstract class Cmd<T> {
             }
 
             case 1: {
-                return cmds[0];
+                return cmds[ 0 ];
             }
 
             default: {
@@ -25,22 +44,14 @@ export abstract class Cmd<T> {
         }
     }
 
-    protected static execute<T>(cmd: Cmd<T>, done: Done<T>): void {
-        cmd.execute(done);
+    private constructor() {
+        super();
     }
 
     public abstract map<R>(fn: (action: T) => R): Cmd<R>;
-
-    protected abstract execute(done: Done<T>): void;
 }
 
-abstract class Executor extends Cmd<never> {
-    public static execute<T>(cmd: Cmd<T>, done: Done<T>): void {
-        super.execute(cmd, done);
-    }
-}
-
-class Batch<T> extends Cmd<T> {
+class Batch<T> extends Bag<T> {
     public static EMPTY: Cmd<never> = new Batch([]);
 
     public constructor(
@@ -59,16 +70,16 @@ class Batch<T> extends Cmd<T> {
         return new Batch(acc);
     }
 
-    protected execute(done: Done<T>): void {
+    protected execute(done: Executor<T>): void {
         for (const cmd of this.cmds) {
-            Executor.execute(cmd, done);
+            __execute__(cmd, done);
         }
     }
 }
 
-class Unit<T> extends Cmd<T> {
+class Unit<T> extends Bag<T> {
     public constructor(
-        private readonly cast: (done: Done<T>) => void
+        private readonly cast: (done: Executor<T>) => void
     ) {
         super();
     }
@@ -79,7 +90,7 @@ class Unit<T> extends Cmd<T> {
         });
     }
 
-    protected execute(done: Done<T>): void {
+    protected execute(done: Executor<T>): void {
         this.cast(done);
     }
 }

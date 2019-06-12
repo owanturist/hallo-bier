@@ -15,7 +15,7 @@ import { RemoteData, NotAsked, Loading, Failure } from 'frctl/dist/RemoteData';
 import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
 import { Either } from 'frctl/dist/Either';
 import * as Http from 'Http';
-import { Cmd } from 'Cmd';
+import Cmd from 'Cmd';
 import * as Utils from './Utils';
 import * as Router from './Router';
 import * as Api from './Api';

@@ -3,7 +3,7 @@ import { RemoteData, Loading } from 'frctl/dist/RemoteData';
 import { Maybe } from 'frctl/dist/Maybe';
 import { Either } from 'frctl/dist/Either';
 import * as Http from 'Http';
-import { Cmd } from 'Cmd';
+import Cmd from 'Cmd';
 import * as Utils from './Utils';
 import * as Api from './Api';
 import * as BeerInfo from './BeerInfo';

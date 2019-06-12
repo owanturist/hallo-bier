@@ -1,14 +1,14 @@
 import { Maybe } from 'frctl/dist/Maybe';
-import { Cmd, Done } from 'Cmd';
+import Cmd, { Executor } from 'Cmd';
 
 export const key = (index: number): Cmd<Maybe<string>> => Cmd.of(
-    (done: Done<Maybe<string>>): void => {
+    (done: Executor<Maybe<string>>): void => {
         done(Maybe.fromNullable(localStorage.key(index)));
     }
 );
 
 export const getItem = (key: string): Cmd<Maybe<string>> => Cmd.of(
-    (done: Done<Maybe<string>>): void => {
+    (done: Executor<Maybe<string>>): void => {
         done(Maybe.fromNullable(localStorage.getItem(key)));
     }
 );

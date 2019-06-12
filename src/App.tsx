@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBeer, faHeart } from '@fortawesome/free-solid-svg-icons';
 import { Cata } from 'frctl/dist/Basics';
 import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
-import { Cmd } from 'Cmd';
+import Cmd from 'Cmd';
 import * as Utils from './Utils';
 import * as Router from './Router';
 import * as Api from './Api';

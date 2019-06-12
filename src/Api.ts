@@ -1,7 +1,7 @@
 import { Maybe, Just, Nothing } from 'frctl/dist/Maybe';
 import * as Decode from 'frctl/dist/Json/Decode';
 import * as Encode from 'frctl/dist/Json/Encode';
-import { Cmd } from 'Cmd';
+import Cmd from 'Cmd';
 import * as Http from 'Http';
 import * as LocalStorage from 'LocalStorage';
 import * as Utils from './Utils';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { compose } from 'redux';
-import { Cmd } from 'Cmd';
+import Cmd from 'Cmd';
 import { Maybe, Nothing } from 'frctl/dist/Maybe';
 import * as Utils from './Utils';
 import * as Api from './Api';

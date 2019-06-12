@@ -1,20 +1,7 @@
-import {
-    Cata
-} from 'frctl/dist/Basics';
-import {
-    Maybe,
-    Nothing,
-    Just
-} from 'frctl/dist/Maybe';
-import {
-    Either,
-    Left,
-    Right
-} from 'frctl/dist/Either';
-import {
-    Cmd,
-    Done
-} from 'Cmd';
+import { Cata } from 'frctl/dist/Basics';
+import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
+import { Either, Left, Right } from 'frctl/dist/Either';
+import Cmd, { Executor } from 'Cmd';
 import * as Decode from 'frctl/dist/Json/Decode';
 import * as Encode from 'frctl/dist/Json/Encode';
 
@@ -371,7 +358,7 @@ export class Request<T> {
     }
 
     public send<R>(tagger: (result: Either<Error, T>) => R): Cmd<R> {
-        return Cmd.of((done: Done<R>) => {
+        return Cmd.of((done: Executor<R>) => {
             const xhr = new XMLHttpRequest();
 
             xhr.addEventListener('error', () => {

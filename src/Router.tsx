@@ -16,7 +16,7 @@ import {
 import queryString from 'query-string';
 import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
 import { Cata } from 'frctl/dist/Basics';
-import { Cmd } from 'Cmd';
+import Cmd from 'Cmd';
 import * as Utils from './Utils';
 
 const history = createBrowserHistory();

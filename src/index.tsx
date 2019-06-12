@@ -5,7 +5,7 @@ import { createStore, compose } from 'redux';
 import * as App from './App';
 import './index.css';
 import 'bootstrap/dist/css/bootstrap.css';
-import { Cmd, Done } from 'Cmd';
+import Cmd, { Executor, __execute__ } from 'Cmd';
 
 const reduxDevtools = process.env.NODE_ENV !== 'production'
     && (window as any).__REDUX_DEVTOOLS_EXTENSION__
@@ -19,15 +19,9 @@ interface Action {
 const Action = (payload: App.Action): Action => ({ type: 'Action', payload });
 let initialAppCmd: Cmd<App.Action> = Cmd.none;
 
-let loopDispatch: Done<App.Action> = () => {
+let loopDispatch: Executor<App.Action> = () => {
     // do nothing
 };
-
-abstract class CmdExecutor extends Cmd<never> {
-    public static execute<T>(cmd: Cmd<T>, done: Done<T>): void {
-        super.execute(cmd, done);
-    }
-}
 
 function reducer(state: App.State, action: Action): App.State {
     // @INIT Redux action
@@ -37,7 +31,7 @@ function reducer(state: App.State, action: Action): App.State {
 
     const [ nextState, cmd ] = action.payload.update(state);
 
-    CmdExecutor.execute(cmd, loopDispatch);
+    __execute__(cmd, loopDispatch);
 
     return nextState;
 }
@@ -55,7 +49,7 @@ const store = reduxDevtools
     : createStore(reducer, init());
 
 loopDispatch = compose(store.dispatch, Action);
-CmdExecutor.execute(initialAppCmd, loopDispatch);
+__execute__(initialAppCmd, loopDispatch);
 
 const Root = connect(
     (state: App.State) => ({ state }),
