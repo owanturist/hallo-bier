@@ -1,6 +1,6 @@
 import { Maybe, Nothing, Just } from 'frctl/dist/Maybe';
 
-export const inst = <T>(Constructor: new (args: []) => T) => new Constructor([]);
+export const inst = <T>(Constructor: new () => T) => new Constructor();
 
 export const cons = <A extends Array<unknown>, T>(
     Constructor: new (...args: A) => A extends [] ? never : T

@@ -146,7 +146,7 @@ export const SearchBuilderAction = Utils.cons(class implements Action {
     }
 });
 
-type ToolPattern<R> = Cata<{
+export type ToolPattern<R> = Cata<{
     Filter(filter: Router.SearchFilter): R;
     Roll(busy: boolean): R;
     Favorite(favorites: Set<number>, beerId: Maybe<number>): R;
@@ -202,7 +202,7 @@ const hasFilterTool = (tools: Array<Tool>): boolean => {
     }));
 };
 
-const ViewTool: React.FC<{
+export const ViewTool: React.FC<{
     tool: Tool;
     state: State;
     dispatch(action: Action): void;
