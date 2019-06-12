@@ -407,7 +407,7 @@ describe('View', () => {
 
         expect(monthWrappers.length).toBe(1);
         expect(monthWrappers.first().dive().text()).toBe('May');
-        expect(monthWrappers.first().dive().prop('active')).toBe(true);
+        expect(monthWrappers.first().dive().prop<boolean>('active')).toBe(true);
     });
 
     it('emits ChangeYear.Prev by clicking to the control', () => {
