@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from 'react-bootstrap';
+import { Button, Navbar } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faRegularHeart } from '@fortawesome/free-regular-svg-icons';
@@ -448,6 +448,160 @@ describe('ViewTool', () => {
 
             expect(dispatch).toBeCalledTimes(1);
             expect(dispatch).toBeCalledWith(Header.ToggleFavorite(false, 1));
+        });
+    });
+});
+
+describe('View', () => {
+    const dispatch: jest.Mock<void, [ Header.Action ]> = jest.fn();
+
+    afterEach(() => {
+        dispatch.mockClear();
+    });
+
+    describe('renders tools acording prop', () => {
+        it('tools are empty', () => {
+            const wrapper = Enzyme.shallow(
+                <Header.View
+                    tools={[]}
+                    state={{
+                        expanded: false,
+                        searchBuilder: Nothing
+                    }}
+                    dispatch={dispatch}
+                />
+            );
+
+            expect(wrapper.find(Header.ViewTool).length).toBe(0);
+        });
+
+        it('some tools', () => {
+            const wrapper = Enzyme.shallow(
+                <Header.View
+                    tools={[
+                        Header.Filter({ name: Nothing, brewedAfter: Nothing }),
+                        Header.Roll(true)
+                    ]}
+                    state={{
+                        expanded: false,
+                        searchBuilder: Nothing
+                    }}
+                    dispatch={dispatch}
+                />
+            );
+
+            expect(wrapper.find(Header.ViewTool).length).toBe(2);
+
+            expect(
+                wrapper.find(Header.ViewTool).at(0).prop('tool')
+            ).toEqual(
+                Header.Filter({ name: Nothing, brewedAfter: Nothing })
+            );
+            expect(
+                wrapper.find(Header.ViewTool).at(1).prop('tool')
+            ).toEqual(
+                Header.Roll(true)
+            );
+        });
+    });
+
+    describe('renders SearchBuilder according Filter tool and state', () => {
+        it('Filter does not exist and state is Nothing', () => {
+            const wrapper = Enzyme.shallow(
+                <Header.View
+                    tools={[]}
+                    state={{
+                        expanded: false,
+                        searchBuilder: Nothing
+                    }}
+                    dispatch={dispatch}
+                />
+            );
+
+            expect(wrapper.find(SearchBuilder.View).length).toBe(0);
+        });
+
+        it('Filter exists and state is Nothing', () => {
+            const wrapper = Enzyme.shallow(
+                <Header.View
+                    tools={[
+                        Header.Filter({ name: Nothing, brewedAfter: Nothing })
+                    ]}
+                    state={{
+                        expanded: false,
+                        searchBuilder: Nothing
+                    }}
+                    dispatch={dispatch}
+                />
+            );
+
+            expect(wrapper.find(SearchBuilder.View).length).toBe(0);
+        });
+
+        it('Filter does not exist and state is Just', () => {
+            const wrapper = Enzyme.shallow(
+                <Header.View
+                    tools={[]}
+                    state={{
+                        expanded: false,
+                        searchBuilder: Just(SearchBuilder.init({ name: Nothing, brewedAfter: Nothing }))
+                    }}
+                    dispatch={dispatch}
+                />
+            );
+
+            expect(wrapper.find(SearchBuilder.View).length).toBe(0);
+        });
+
+        it('Filter exist and state is Just', () => {
+            const wrapper = Enzyme.shallow(
+                <Header.View
+                    tools={[
+                        Header.Filter({ name: Nothing, brewedAfter: Nothing })
+                    ]}
+                    state={{
+                        expanded: false,
+                        searchBuilder: Just(SearchBuilder.init({ name: Nothing, brewedAfter: Nothing }))
+                    }}
+                    dispatch={dispatch}
+                />
+            );
+
+            expect(wrapper.find(SearchBuilder.View).length).toBe(1);
+        });
+    });
+
+    describe('renders Navbar.Toggle according state', () => {
+        it('menu is not expanded', () => {
+            const wrapper = Enzyme.shallow(
+                <Header.View
+                    tools={[]}
+                    state={{
+                        expanded: false,
+                        searchBuilder: Nothing
+                    }}
+                    dispatch={dispatch}
+                />
+            );
+
+            expect(wrapper.find(Navbar).prop('expanded')).toBe(false);
+            expect(wrapper.find(Navbar.Toggle).prop('active')).toBe(false);
+        });
+
+        it('menu is expanded', () => {
+            const wrapper = Enzyme.shallow(
+                <Header.View
+                    tools={[]}
+                    state={{
+                        expanded: true,
+                        searchBuilder: Nothing
+                    }}
+                    dispatch={dispatch}
+                />
+            );
+
+            expect(wrapper.find(Navbar).prop('expanded')).toBe(true);
+            expect(wrapper.find(Navbar.Toggle).prop('active')).toBe(true);
         });
     });
 });

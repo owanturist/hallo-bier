@@ -302,8 +302,8 @@ export const View: React.FC<{
                 </Navbar.Brand>
 
                 <Nav navbar={false} className="order-sm-2">
-                    {tools.length > 0 && tools.map(tool => (
-                        <Nav.Item key={tool.toString()} className="ml-2">
+                    {tools.length > 0 && tools.map((tool, i) => (
+                        <Nav.Item key={i} className="ml-2">
                             <ViewTool
                                 state={state}
                                 tool={tool}
