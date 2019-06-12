@@ -254,17 +254,19 @@ export const jsonBody = (encoder: Encode.Encoder): Body => stringBody('applicati
 
 /* R E Q U E S T */
 
+interface RequestConfig<T> {
+    method: string;
+    url: string;
+    headers: Array<Header>;
+    body: Body;
+    expect: Expect<T>;
+    timeout: Maybe<number>;
+    withCredentials: boolean;
+    queryParams: Array<[ string, string ]>;
+}
+
 export class Request<T> {
-    protected constructor(private readonly config: Readonly<{
-        method: string;
-        url: string;
-        headers: Array<Header>;
-        body: Body;
-        expect: Expect<T>;
-        timeout: Maybe<number>;
-        withCredentials: boolean;
-        queryParams: Array<[ string, string ]>;
-    }>) {}
+    protected constructor(private readonly config: Readonly<RequestConfig<T>>) {}
 
     public withHeader(name: string, value: string): Request<T> {
         return this.withHeaders([ header(name, value) ]);
@@ -358,6 +360,48 @@ export class Request<T> {
     }
 
     public send<R>(tagger: (result: Either<Error, T>) => R): Cmd<R> {
+        if (process.env.NODE_ENV === 'test') {
+            return Cmd.of((done: Executor<R>) => {
+                Scope.fake(this.config).cata({
+                    Nothing: () => {
+                        throw new global.Error('Not handled');
+                    },
+
+                    Just: ([ status, body ]) => {
+                        const stringResponse: Response<string> = {
+                            url: this.config.url,
+                            statusCode: status,
+                            statusText: 'unknown',
+                            headers: {},
+                            body
+                        };
+
+                        if (status < 200 || status >= 300) {
+                            done(
+                                tagger(Left(Error.BadStatus(stringResponse)))
+                            );
+
+                            return;
+                        }
+
+                        PhantomExpect.toResult(stringResponse, this.config.expect).cata({
+                            Left(decodeError: Decode.Error): void {
+                                done(
+                                    tagger(Left(Error.BadBody(decodeError, stringResponse)))
+                                );
+                            },
+
+                            Right(value: T): void {
+                                done(
+                                    tagger(Right(value))
+                                );
+                            }
+                        });
+                    }
+                });
+            });
+        }
+
         return Cmd.of((done: Executor<R>) => {
             const xhr = new XMLHttpRequest();
 
@@ -481,3 +525,140 @@ export const del     = (url: string): Request<void> => PhantomRequest.of('DELETE
 export const options = (url: string): Request<void> => PhantomRequest.of('OPTIONS', url);
 export const trace   = (url: string): Request<void> => PhantomRequest.of('TRACE', url);
 export const head    = (url: string): Request<void> => PhantomRequest.of('HEAD', url);
+
+export class Scope {
+    public static cons(url: string): Scope {
+        const scope = new Scope(url);
+
+        Scope.scopes.push(scope);
+
+        return scope;
+    }
+
+    public static fake<T>(request: RequestConfig<T>): Maybe<[ number, string ]> {
+        for (const scope of Scope.scopes) {
+            const response = scope.pop(request);
+
+            if (response.isJust()) {
+                return response;
+            }
+        }
+
+        return Nothing;
+    }
+
+    private static readonly scopes: Array<Scope> = [];
+
+    private interceptors: Array<Interceptor> = [];
+
+    private constructor(public readonly url: string) {}
+
+    public intercept(method: string, path: string): Interceptor {
+        const interceptor = new Interceptor(this, method.toUpperCase(), path);
+
+        this.interceptors.push(interceptor);
+
+        return interceptor;
+    }
+
+    public get(path: string): Interceptor {
+        return this.intercept('GET', path);
+    }
+
+    public post(path: string): Interceptor {
+        return this.intercept('POST', path);
+    }
+
+    public put(path: string): Interceptor {
+        return this.intercept('PUT', path);
+    }
+
+    public patch(path: string): Interceptor {
+        return this.intercept('PATCH', path);
+    }
+
+    public del(path: string): Interceptor {
+        return this.intercept('DEL', path);
+    }
+
+    public options(path: string): Interceptor {
+        return this.intercept('OPTIONS', path);
+    }
+
+    public trace(path: string): Interceptor {
+        return this.intercept('TRACE', path);
+    }
+
+    public head(path: string): Interceptor {
+        return this.intercept('HEAD', path);
+    }
+
+    private pop<T>(request: RequestConfig<T>): Maybe<[ number, string ]> {
+        const acc: Array<Interceptor> = [];
+        let response: Maybe<[ number, string ]> = Nothing;
+
+        for (const interceptor of this.interceptors) {
+            if (response.isJust()) {
+                acc.push(interceptor);
+            } else {
+                response = interceptor.receive(request).orElse(() => {
+                    acc.push(interceptor);
+
+                    return Nothing;
+                });
+            }
+        }
+
+        this.interceptors = acc;
+
+        return response;
+    }
+}
+
+export class Interceptor {
+    private readonly queryParams: Array<[ string, string ]> = [];
+
+    private response: Maybe<[ number, string ]> = Nothing;
+
+    public constructor(
+        private readonly scope: Scope,
+        private readonly method: string,
+        private readonly path: string
+    ) {}
+
+    public withQueryParam(key: string, value: string): this {
+        this.queryParams.push([ key, value ]);
+
+        return this;
+    }
+
+    public withQueryParams(queries: Array<[ string, string ]>): this {
+        this.queryParams.push(...queries);
+
+        return this;
+    }
+
+    public reply(status: number, body?: string | object): Scope {
+        this.response = Just([
+            status,
+            Maybe.fromNullable(body)
+                .map(x => typeof x === 'string' ? x : JSON.stringify(x))
+                .getOrElse('')
+        ]);
+
+        return this.scope;
+    }
+
+    public receive<T>(request: RequestConfig<T>): Maybe<[ number, string ]> {
+        if (!this.isMatched(request)) {
+            return Nothing;
+        }
+
+        return this.response;
+    }
+
+    private isMatched<T>(request: RequestConfig<T>): boolean {
+        return request.method === this.method
+            || request.url === this.scope.url + this.path;
+    }
+}
