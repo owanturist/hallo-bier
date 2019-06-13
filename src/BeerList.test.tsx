@@ -9,29 +9,27 @@ import * as Api from './Api';
 import * as ApiFixture from './Api.fixture';
 import * as BeerList from './BeerList';
 import * as Http from 'Http';
-import Cmd, { __execute__ } from 'Cmd';
+import Cmd from 'Cmd';
 
 Enzyme.configure({
     adapter: new Adapter()
 });
 
-const PUNK_ENDPOINT = 'https://api.punkapi.com/v2';
+const send = jest.fn<Cmd<BeerList.Action>, [ BeerList.Action ]>(
+    () => Cmd.none
+);
+const request = jest.fn<Http.Request<Api.Page<Api.Beer>>, [ number ]>(
+    () => ({ send }) as any
+);
+
+afterEach(() => {
+    send.mockClear();
+    request.mockClear();
+});
 
 describe('State', () => {
-    const dispatch = jest.fn<void, [ BeerList.Action ]>();
-
-    afterEach(() => {
-        dispatch.mockClear();
-    });
-
     it('init', () => {
-        const request = jest.fn((_count: number ) => Api.loadBeerList({
-            searchFilter: { name: Nothing, brewedAfter: Nothing },
-            perPage: 10,
-            page: 1
-        }));
-
-        const [ initialState, initialCmd ] = BeerList.init(request);
+        const [ initialState ] = BeerList.init(request);
 
         expect(initialState).toEqual({
             hasMore: true,
@@ -41,22 +39,8 @@ describe('State', () => {
 
         expect(request).toBeCalledTimes(1);
         expect(request).toBeCalledWith(0);
-
-        Http.Scope.cons(PUNK_ENDPOINT)
-            .get('/beers')
-            .withQueryParam('page', '1')
-            .withQueryParam('per_page', '10')
-            .reply(200, [ ApiFixture.getFixtureByIndex(0) ]);
-
-        __execute__(initialCmd, dispatch);
-
-        expect(dispatch).toBeCalledTimes(1);
-        expect(dispatch).toBeCalledWith(
-            BeerList.LoadDone(Right({
-                hasMore: false,
-                beers: [ ApiFixture.list[ 0 ] ]
-            }))
-        );
+        expect(send).toBeCalledTimes(1);
+        expect(send).toBeCalledWith(BeerList.LoadDone);
     });
 
     describe('getBeer', () => {
@@ -144,18 +128,6 @@ describe('Stage', () => {
 });
 
 describe('Action', () => {
-    const send = jest.fn<Cmd<BeerList.Action>, [ BeerList.Action ]>(
-        () => Cmd.none
-    );
-    const request = jest.fn<Http.Request<Api.Page<Api.Beer>>, [ number ]>(
-        () => ({ send }) as any
-    );
-
-    afterEach(() => {
-        send.mockClear();
-        request.mockClear();
-    });
-
     describe('LoadMore', () => {
         it('does not call load more when there is no more beer', () => {
             const state = {
