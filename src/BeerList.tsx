@@ -130,7 +130,7 @@ export const ToggleFavorite = Utils.cons(class implements Action {
         private readonly beerId: number
     ) {}
 
-    public update(): Stage {
+    public update(_request: Request, _state: State): Stage {
         return SetFavorites(this.checked, this.beerId);
     }
 });
