@@ -616,6 +616,24 @@ export class Scope {
 }
 
 export class Interceptor {
+    private static packQueries(queries: Array<[ string, string ]>): Map<string, Array<string>> {
+        const acc: Map<string, Array<string>> = new Map();
+
+        for (const [ key, value ] of queries) {
+            const values = acc.get(key);
+
+            if (values) {
+                values.push(value);
+            } else {
+                acc.set(key, [ value ]);
+            }
+        }
+
+        acc.forEach(arr => arr.sort());
+
+        return acc;
+    }
+
     private readonly queryParams: Array<[ string, string ]> = [];
 
     private response: Maybe<[ number, string ]> = Nothing;
@@ -657,8 +675,35 @@ export class Interceptor {
         return this.response;
     }
 
+    private isQueriesMatched(queries: Array<[ string, string ]>): boolean {
+        const thisQueries = Interceptor.packQueries(this.queryParams);
+        const thatQueries = Interceptor.packQueries(queries);
+
+        for (const [ key, thatValues ] of thisQueries) {
+            const thisValues = thatQueries.get(key);
+
+
+            if (!thisValues) {
+                return false;
+            }
+
+            for (let i = 0, j = 0; i < thatValues.length; j++) {
+                if (j >= thisValues.length) {
+                    return false;
+                }
+
+                if (thatValues[ i ] === thisValues[ j ]) {
+                    i++;
+                }
+            }
+        }
+
+        return true;
+    }
+
     private isMatched<T>(request: RequestConfig<T>): boolean {
         return request.method === this.method
-            || request.url === this.scope.url + this.path;
+            && request.url === this.scope.url + this.path
+            && this.isQueriesMatched(request.queryParams);
     }
 }

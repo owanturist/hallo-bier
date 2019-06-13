@@ -16,7 +16,7 @@ export type State = Maybe<{
 }>;
 
 export const init = (
-    filter: Router.SearchFilter,
+    searchFilter: Router.SearchFilter,
     favorites: Array<number>,
     beersPerPage: number
 ): [ State, Cmd<Action> ] => {
@@ -28,7 +28,12 @@ export const init = (
     }
 
     const [ initialBeerList, cmdOfBeerList ] = BeerList.init(
-        () => Api.loadBeerListByIds(filter, favorites, beersPerPage, 1)
+        () => Api.loadBeerListByIds({
+            searchFilter,
+            ids: favorites,
+            perPage: beersPerPage,
+            page: 1
+        })
     );
 
     return [
@@ -91,12 +96,12 @@ export const BeerListAction = Utils.cons<[ BeerList.Action ], Action>(class impl
             Nothing: () => Update(Nothing, Cmd.none),
 
             Just: state => this.action.update(
-                count => Api.loadBeerListByIds(
-                    filter,
-                    state.favorites,
-                    state.beersPerPage,
-                    count / state.beersPerPage + 1
-                ),
+                count => Api.loadBeerListByIds({
+                    searchFilter: filter,
+                    ids: state.favorites,
+                    perPage: state.beersPerPage,
+                    page: count / state.beersPerPage + 1
+                }),
                 state.beerList
             ).cata<Stage>({
                 Update: (nextBeerList, cmdOfBeerList) => Update(

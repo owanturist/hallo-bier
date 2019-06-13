@@ -54,11 +54,11 @@ describe('State', () => {
     });
 
     it('init', () => {
-        const request = jest.fn((_count: number ) => Api.loadBeerList(
-            { name: Nothing, brewedAfter: Nothing },
-            10,
-            1
-        ));
+        const request = jest.fn((_count: number ) => Api.loadBeerList({
+            searchFilter: { name: Nothing, brewedAfter: Nothing },
+            perPage: 10,
+            page: 1
+        }));
 
         const [ initialState, initialCmd ] = BeerList.init(request);
 

@@ -7,7 +7,7 @@ import * as LocalStorage from 'LocalStorage';
 import * as Utils from './Utils';
 import { SearchFilter } from 'Router';
 
-const PUNK_ENDPOINT = 'https://api.punkapi.com/v2';
+export const PUNK_ENDPOINT = 'https://api.punkapi.com/v2';
 
 export interface Beer {
     id: number;
@@ -65,7 +65,7 @@ const beerDecoder: Decode.Decoder<Beer> = Decode.props({
     attenuationLevel: Decode.field('attenuation_level', Decode.nullable(Decode.number))
 });
 
-const nameToQuery = (name: string): Maybe<string> => {
+export const nameToQuery = (name: string): Maybe<string> => {
     const trimmed = name.trim();
 
     if (!trimmed.length) {
@@ -75,7 +75,7 @@ const nameToQuery = (name: string): Maybe<string> => {
     return Just(trimmed.replace(/\s+/g, '_'));
 };
 
-const dateToQuery = (date: Date): string => {
+export const dateToQuery = (date: Date): string => {
     return [ date.getMonth() + 1, date.getFullYear() ].join('_');
 };
 
@@ -88,23 +88,23 @@ export interface Page<T> {
     beers: Array<T>;
 }
 
-export const loadBeerList = (
-    filter: SearchFilter,
-    beersPerPage: number,
-    pageNumber: number
-): Http.Request<Page<Beer>> => {
+export const loadBeerList = ({ searchFilter, perPage, page }: {
+    searchFilter: SearchFilter;
+    perPage: number;
+    page: number;
+}): Http.Request<Page<Beer>> => {
     return Http.get(`${PUNK_ENDPOINT}/beers`)
-        .withQueryParam('page', pageNumber.toString())
-        .withQueryParam('per_page', beersPerPage.toString())
+        .withQueryParam('page', page.toString())
+        .withQueryParam('per_page', perPage.toString())
         .withQueryParams(
-            filter.name
+            searchFilter.name
                 .chain(nameToQuery)
                 .map(query('beer_name'))
                 .map(arraySingleton)
                 .getOrElse([])
         )
         .withQueryParams(
-            filter.brewedAfter
+            searchFilter.brewedAfter
                 .map(dateToQuery)
                 .map(query('brewed_after'))
                 .map(arraySingleton)
@@ -112,19 +112,19 @@ export const loadBeerList = (
         )
         .withExpect(Http.expectJson(
             Decode.list(beerDecoder).map(beers => ({
-                hasMore: beers.length >= beersPerPage,
+                hasMore: beers.length >= perPage,
                 beers
             }))
         ));
 };
 
-export const loadBeerListByIds = (
-    filter: SearchFilter,
-    ids: Array<number>,
-    beersPerPage: number,
-    pageNumber: number
-): Http.Request<Page<Beer>> => {
-    return loadBeerList(filter, beersPerPage, pageNumber)
+export const loadBeerListByIds = ({ ids, ...params }: {
+    ids: Array<number>;
+    searchFilter: SearchFilter;
+    perPage: number;
+    page: number;
+}): Http.Request<Page<Beer>> => {
+    return loadBeerList(params)
         .withQueryParam('ids', ids.join('|'));
 };
 

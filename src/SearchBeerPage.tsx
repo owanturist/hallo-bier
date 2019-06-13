@@ -13,11 +13,15 @@ export interface State {
 }
 
 export const init = (
-    filter: Router.SearchFilter,
+    searchFilter: Router.SearchFilter,
     beersPerPage: number
 ): [ State, Cmd<Action> ] => {
     const [ initialBeerList, cmdOfBeerList ] = BeerList.init(
-        () => Api.loadBeerList(filter, beersPerPage, 1)
+        () => Api.loadBeerList({
+            searchFilter,
+            perPage: beersPerPage,
+            page: 1
+        })
     );
 
     return [
@@ -73,11 +77,11 @@ export const BeerListAction = Utils.cons(class implements Action {
 
     public update(filter: Router.SearchFilter, state: State): Stage {
         return this.action.update(
-            count => Api.loadBeerList(
-                filter,
-                state.beersPerPage,
-                count / state.beersPerPage + 1
-            ),
+            count => Api.loadBeerList({
+                searchFilter: filter,
+                perPage: state.beersPerPage,
+                page: count / state.beersPerPage + 1
+            }),
             state.beerList
         ).cata({
             Update: (nextBeerList, cmdOfBeerList) => Update(
