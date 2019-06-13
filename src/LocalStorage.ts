@@ -138,7 +138,7 @@ export class Scope {
         return false;
     }
 
-    private static scopes: Array<Scope> = [];
+    private static readonly scopes: Array<Scope> = [];
 
     private readonly config: {
         key: Array<[ number, Maybe<string> ]>;
