@@ -1,5 +1,8 @@
-// import React from 'react';
-import {} from 'react-bootstrap';
+import React from 'react';
+import { Col, Card, Button } from 'react-bootstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faHeart as faRegularHeart } from '@fortawesome/free-regular-svg-icons';
 import Enzyme from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import { NotAsked, Loading, Failure } from 'frctl/dist/RemoteData';
@@ -249,5 +252,245 @@ describe('Action', () => {
                 }
             )
         ).toEqual(BeerList.SetFavorites(true, 123));
+    });
+});
+
+describe('ViewBeer', () => {
+    const dispatch = jest.fn<void, [ BeerList.Action ]>();
+
+    afterEach(() => {
+        dispatch.mockClear();
+    });
+
+    it('does not render image column when the image dose not exist', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.ViewBeer
+                favorite={false}
+                beer={ApiFixture.beer314}
+                dispatch={dispatch}
+            />
+        );
+
+        expect(wrapper.find(Col).length).toBe(1);
+    });
+
+    it('renders column when the image exists', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.ViewBeer
+                favorite={false}
+                beer={ApiFixture.beer1}
+                dispatch={dispatch}
+            />
+        );
+
+        expect(wrapper.find(Col).length).toBe(2);
+    });
+
+    it('renders favorite heart and handle toggle when beer is not favorite', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.ViewBeer
+                favorite={false}
+                beer={ApiFixture.beer169}
+                dispatch={dispatch}
+            />
+        ).find(Card.Title).find(Button);
+
+        expect(wrapper.find(FontAwesomeIcon).prop('icon')).toBe(faRegularHeart);
+
+        wrapper.simulate('click');
+
+        expect(dispatch).toBeCalledTimes(1);
+        expect(dispatch).toBeCalledWith(BeerList.ToggleFavorite(true, 169));
+    });
+
+    it('renders favorite heart and handle toggle when beer is favorite', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.ViewBeer
+                favorite={true}
+                beer={ApiFixture.beer169}
+                dispatch={dispatch}
+            />
+        ).find(Card.Title).find(Button);
+
+        expect(wrapper.find(FontAwesomeIcon).prop('icon')).toBe(faHeart);
+
+        wrapper.simulate('click');
+
+        expect(dispatch).toBeCalledTimes(1);
+        expect(dispatch).toBeCalledWith(BeerList.ToggleFavorite(false, 169));
+    });
+});
+
+describe('ViewBeerList', () => {
+    const dispatch = jest.fn<void, [ BeerList.Action ]>();
+    const favorites = new Set([ 1, 4, 3 ]);
+
+    afterEach(() => {
+        dispatch.mockClear();
+    });
+
+    it('mark ViewBeer as favorite if the beer id exists in favorites', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.ViewBeerList
+                favorites={favorites}
+                beerList={[ ApiFixture.beer1, ApiFixture.beer2, ApiFixture.beer4 ]}
+                dispatch={dispatch}
+            />
+        ).find(BeerList.ViewBeer);
+
+        expect(wrapper.length).toBe(3);
+
+        expect(wrapper.at(0).prop('beer')).toBe(ApiFixture.beer1);
+        expect(wrapper.at(0).prop('favorite')).toBe(true);
+
+        expect(wrapper.at(1).prop('beer')).toBe(ApiFixture.beer2);
+        expect(wrapper.at(1).prop('favorite')).toBe(false);
+
+        expect(wrapper.at(2).prop('beer')).toBe(ApiFixture.beer4);
+        expect(wrapper.at(2).prop('favorite')).toBe(true);
+    });
+});
+
+describe('View', () => {
+    const dispatch = jest.fn<void, [ BeerList.Action ]>();
+    const scroller = React.createRef<HTMLElement>();
+    const favorites = new Set([ 1, 4, 3 ]);
+
+    afterEach(() => {
+        dispatch.mockClear();
+    });
+
+    it('renders SkeletonBeerList when beer list is empty and loading', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.View
+                scroller={scroller}
+                favorites={favorites}
+                skeletonCount={7}
+                state={{
+                    hasMore: true,
+                    beerList: [],
+                    loading: Loading
+                }}
+                dispatch={dispatch}
+            />
+        );
+
+        expect(wrapper.find(BeerList.ViewBeerList).length).toBe(0);
+        expect(wrapper.find(BeerList.SkeletonBeerList).length).toBe(1);
+        expect(wrapper.find(BeerList.SkeletonBeerList).prop('count')).toBe(7);
+        expect(wrapper.find(BeerList.ViewError).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewLoadMore).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewEmpty).length).toBe(0);
+    });
+
+    it('renders ViewEmpty when beer list is empty and not loading', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.View
+                scroller={scroller}
+                favorites={favorites}
+                skeletonCount={7}
+                state={{
+                    hasMore: false,
+                    beerList: [],
+                    loading: NotAsked
+                }}
+                dispatch={dispatch}
+            />
+        );
+
+        expect(wrapper.find(BeerList.ViewBeerList).length).toBe(0);
+        expect(wrapper.find(BeerList.SkeletonBeerList).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewError).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewLoadMore).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewEmpty).length).toBe(1);
+    });
+
+    it('renders both ViewError and BeerList when Failure with not empty beer list', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.View
+                scroller={scroller}
+                favorites={favorites}
+                skeletonCount={7}
+                state={{
+                    hasMore: false,
+                    beerList: [ ApiFixture.beer1 ],
+                    loading: Failure(Http.Error.Timeout)
+                }}
+                dispatch={dispatch}
+            />
+        );
+
+        expect(wrapper.find(BeerList.ViewBeerList).length).toBe(1);
+        expect(wrapper.find(BeerList.SkeletonBeerList).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewError).length).toBe(1);
+        expect(wrapper.find(BeerList.ViewError).prop('error')).toEqual(Http.Error.Timeout);
+        expect(wrapper.find(BeerList.ViewLoadMore).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewEmpty).length).toBe(0);
+    });
+
+    it('renders both ViewLoadMore and BeerList when Loading with not empty beer list', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.View
+                scroller={scroller}
+                favorites={favorites}
+                skeletonCount={7}
+                state={{
+                    hasMore: false,
+                    beerList: [ ApiFixture.beer1 ],
+                    loading: Loading
+                }}
+                dispatch={dispatch}
+            />
+        );
+
+        expect(wrapper.find(BeerList.ViewBeerList).length).toBe(1);
+        expect(wrapper.find(BeerList.SkeletonBeerList).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewError).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewLoadMore).length).toBe(1);
+        expect(wrapper.find(BeerList.ViewEmpty).length).toBe(0);
+    });
+
+    it('renders both ViewLoadMore and BeerList when NotAsked but has more with not empty beer list', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.View
+                scroller={scroller}
+                favorites={favorites}
+                skeletonCount={7}
+                state={{
+                    hasMore: true,
+                    beerList: [ ApiFixture.beer1 ],
+                    loading: NotAsked
+                }}
+                dispatch={dispatch}
+            />
+        );
+
+        expect(wrapper.find(BeerList.ViewBeerList).length).toBe(1);
+        expect(wrapper.find(BeerList.SkeletonBeerList).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewError).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewLoadMore).length).toBe(1);
+        expect(wrapper.find(BeerList.ViewEmpty).length).toBe(0);
+    });
+
+    it('renders only BeerList when NotAsked and has no more with not empty beer list', () => {
+        const wrapper = Enzyme.shallow(
+            <BeerList.View
+                scroller={scroller}
+                favorites={favorites}
+                skeletonCount={7}
+                state={{
+                    hasMore: false,
+                    beerList: [ ApiFixture.beer1 ],
+                    loading: NotAsked
+                }}
+                dispatch={dispatch}
+            />
+        );
+
+        expect(wrapper.find(BeerList.ViewBeerList).length).toBe(1);
+        expect(wrapper.find(BeerList.SkeletonBeerList).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewError).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewLoadMore).length).toBe(0);
+        expect(wrapper.find(BeerList.ViewEmpty).length).toBe(0);
     });
 });

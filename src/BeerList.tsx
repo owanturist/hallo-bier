@@ -163,7 +163,7 @@ const SkeletonBeer: React.FC = () => (
     </Card>
 );
 
-const SkeletonBeerList: React.FC<{
+export const SkeletonBeerList: React.FC<{
     count: number;
 }> = ({ count }) => (
     <ul className="list-unstyled m-0 pb-2">
@@ -175,7 +175,7 @@ const SkeletonBeerList: React.FC<{
     </ul>
 );
 
-const ViewBeer: React.FC<{
+export const ViewBeer: React.FC<{
     favorite: boolean;
     beer: Api.Beer;
     dispatch(action: Action): void;
@@ -231,7 +231,7 @@ const ViewBeer: React.FC<{
     </Card>
 );
 
-const ViewBeerList: React.FC<{
+export const ViewBeerList: React.FC<{
     favorites: Set<number>;
     beerList: Array<Api.Beer>;
     dispatch(action: Action): void;
@@ -249,7 +249,7 @@ const ViewBeerList: React.FC<{
     </ul>
 );
 
-const ViewError: React.FC<{
+export const ViewError: React.FC<{
     error: Http.Error;
 }> = ({ error }) => (
     <div>
@@ -282,13 +282,13 @@ const ViewError: React.FC<{
     </div>
 );
 
-const ViewLoadMore: React.FC = () => (
+export const ViewLoadMore: React.FC = () => (
     <div className="text-center pt-2 pb-3">
         <Spinner animation="border" variant="warning" />
     </div>
 );
 
-const ViewEmpty: React.FC = () => (
+export const ViewEmpty: React.FC = () => (
     <Jumbotron fluid className="mb-0">
         <Container fluid>
             <h1>There is no beer!</h1>

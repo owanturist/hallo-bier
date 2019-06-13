@@ -313,6 +313,34 @@ export const beer169: Api.Beer = {
     contributor: 'Sam Mason <samjbmason>'
 };
 
-export const list = [ beer1, beer2, beer3, beer4, beer5, beer6, beer7, beer8, beer9, beer169 ];
+export const beer314: Api.Beer = {
+    id: 314,
+    name: 'Manic Mango',
+    tagline: 'Mango IPA.',
+    firstBrewed: new Date(2018),
+    description: 'BrewDog v Brewski. One of a series of collaborations with European craft breweries, aimed at promoting engagement and market growth. Our Swedish collaboration with Brewski is a mango IPA.',
+    image: Nothing,
+    abv: Just(6),
+    ibu: Just(20),
+    targetFg: Just(1010),
+    targetOg: Just(1057),
+    ebc: Just(12),
+    srm: Just(6),
+    ph: Just(4.4),
+    attenuationLevel: Just(82),
+    volume: {
+        value: 20,
+        unit: 'litres'
+    },
+    foodPairing: [
+        'Green Thai curry',
+        'Salmon with mango salsa',
+        'Pho soup with light rice noodles'
+    ],
+    brewersTips: 'Add the mango puree towards the end of primary fermentation, about 10 SG points above your FG. Allow it to reach FG and have a diacetyl rest before dry hopping it.',
+    contributor: 'John Jenkman <johnjenkman>'
+};
+
+export const list = [ beer1, beer2, beer3, beer4, beer5, beer6, beer7, beer8, beer9, beer169, beer314 ];
 
 export const map = new Map(list.map((beer): [ number, Api.Beer ] => [ beer.id, beer ]));
